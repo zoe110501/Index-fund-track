@@ -1,19 +1,19 @@
-name: CSRC Index Monitor
+name: CSRC Index Daily Summary
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "5 0-13 * * *"
+    - cron: "30 11 * * *"
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: csrc-index-monitor
+  group: csrc-index-daily-summary
   cancel-in-progress: false
 
 jobs:
-  monitor:
+  daily-summary:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -43,9 +43,9 @@ jobs:
 
           mkdir -p state-branch/state
 
-      - name: Run monitor
+      - name: Run daily summary
         env:
-          REPORT_MODE: incremental
+          REPORT_MODE: daily_summary
           CSRC_QUERY_KEYWORD: 指数
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
@@ -54,23 +54,4 @@ jobs:
           ALERT_EMAIL_FROM: ${{ secrets.ALERT_EMAIL_FROM }}
           ALERT_EMAIL_TO: ${{ secrets.ALERT_EMAIL_TO }}
           STATE_FILE_PATH: state-branch/state/csrc_index_monitor_state.json
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python csrc_index_monitor.py
-
-      - name: Commit state updates
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          if git -C state-branch status --short -- state | grep -q .; then
-            git -C state-branch config user.name "github-actions[bot]"
-            git -C state-branch config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git -C state-branch add state/csrc_index_monitor_state.json
-            if [ -d state-branch/state/daily ]; then
-              git -C state-branch add state/daily
-            fi
-            git -C state-branch commit -m "chore: update CSRC index monitor state"
-            git -C state-branch push origin HEAD:state
-          else
-            echo "No state changes to commit."
-          fi

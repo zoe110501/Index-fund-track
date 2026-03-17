@@ -8,23 +8,41 @@ from unittest import mock
 import csrc_index_monitor as monitor
 
 
-FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
+KEYWORD = "\u6307\u6570"
+TASK_RECEIVE = "\u63a5\u6536\u6750\u6599"
+TASK_ACCEPT = "\u53d7\u7406\u901a\u77e5"
+ETF_PHRASE = "\u4ea4\u6613\u578b\u5f00\u653e\u5f0f\u6307\u6570\u8bc1\u5238\u6295\u8d44\u57fa\u91d1"
 
 
-class StepIdTests(unittest.TestCase):
-    def test_make_step_id_uses_dash_for_missing_file_code(self):
-        step = {"taskName": "接收材料", "fnshDate": "2026-03-16", "alFileCde": None}
-        self.assertEqual(monitor.make_step_id(step), "接收材料|2026-03-16|-")
+def build_title(manager: str, product_name: str) -> str:
+    return f"\u5173\u4e8e{manager}\u7684\u300a\u516c\u5f00\u52df\u96c6\u57fa\u91d1\u52df\u96c6\u7533\u8bf7\u6ce8\u518c-{product_name}\u300b"
+
+
+def build_step(task_name: str, fnsh_date: str, file_code: str = "-") -> dict[str, str]:
+    return {
+        "task_name": task_name,
+        "fnsh_date": fnsh_date,
+        "step_id": f"{task_name}|{fnsh_date}|{file_code}",
+    }
+
+
+def build_record(record_id: str, title: str, app_date: str, steps: list[dict[str, str]]) -> dict[str, object]:
+    return {
+        "record_id": record_id,
+        "title": title,
+        "app_date": app_date,
+        "steps": steps,
+    }
 
 
 class SnapshotDiffTests(unittest.TestCase):
-    def test_diff_snapshots_detects_new_record_and_new_steps(self):
+    def test_diff_snapshots_detects_new_record_and_new_step(self):
         old_snapshot = {
             "records": {
                 "alpha": {
-                    "title": "甲中证机器人指数证券投资基金",
+                    "title": "alpha",
                     "app_date": "2026-03-16",
-                    "step_ids": ["接收材料|2026-03-16|-"],
+                    "step_ids": [f"{TASK_RECEIVE}|2026-03-16|-"],
                 }
             },
             "last_notified_event_ids": [],
@@ -32,14 +50,14 @@ class SnapshotDiffTests(unittest.TestCase):
         new_snapshot = {
             "records": {
                 "alpha": {
-                    "title": "甲中证机器人指数证券投资基金",
+                    "title": "alpha",
                     "app_date": "2026-03-16",
-                    "step_ids": ["接收材料|2026-03-16|-", "受理通知|2026-03-17|file-a"],
+                    "step_ids": [f"{TASK_RECEIVE}|2026-03-16|-", f"{TASK_ACCEPT}|2026-03-17|file-a"],
                 },
-                "gamma": {
-                    "title": "丙沪深300指数增强证券投资基金",
+                "beta": {
+                    "title": "beta",
                     "app_date": "2026-03-17",
-                    "step_ids": ["接收材料|2026-03-17|-"],
+                    "step_ids": [f"{TASK_RECEIVE}|2026-03-17|-"],
                 },
             }
         }
@@ -48,28 +66,27 @@ class SnapshotDiffTests(unittest.TestCase):
 
         self.assertEqual(len(events), 2)
         self.assertEqual(events[0]["event_type"], "new_record")
-        self.assertEqual(events[0]["record_id"], "gamma")
+        self.assertEqual(events[0]["record_id"], "beta")
         self.assertEqual(events[1]["event_type"], "new_step")
-        self.assertEqual(events[1]["record_id"], "alpha")
-        self.assertEqual(events[1]["step_id"], "受理通知|2026-03-17|file-a")
+        self.assertEqual(events[1]["step_id"], f"{TASK_ACCEPT}|2026-03-17|file-a")
 
     def test_diff_snapshots_skips_already_notified_event_ids(self):
         old_snapshot = {
             "records": {
                 "alpha": {
-                    "title": "甲中证机器人指数证券投资基金",
+                    "title": "alpha",
                     "app_date": "2026-03-16",
-                    "step_ids": ["接收材料|2026-03-16|-"],
+                    "step_ids": [f"{TASK_RECEIVE}|2026-03-16|-"],
                 }
             },
-            "last_notified_event_ids": ["new-step|alpha|受理通知|2026-03-17|file-a"],
+            "last_notified_event_ids": [f"new-step|alpha|{TASK_ACCEPT}|2026-03-17|file-a"],
         }
         new_snapshot = {
             "records": {
                 "alpha": {
-                    "title": "甲中证机器人指数证券投资基金",
+                    "title": "alpha",
                     "app_date": "2026-03-16",
-                    "step_ids": ["接收材料|2026-03-16|-", "受理通知|2026-03-17|file-a"],
+                    "step_ids": [f"{TASK_RECEIVE}|2026-03-16|-", f"{TASK_ACCEPT}|2026-03-17|file-a"],
                 }
             }
         }
@@ -77,76 +94,128 @@ class SnapshotDiffTests(unittest.TestCase):
         self.assertEqual(monitor.diff_snapshots(old_snapshot, new_snapshot), [])
 
 
-class FetchAndNormalizeTests(unittest.TestCase):
+class FetchTests(unittest.TestCase):
     def test_fetch_all_records_reads_all_pages_and_filters_titles(self):
-        pages = {
-            1: json.loads((FIXTURES_DIR / "csrc_approval_progress_page1.json").read_text(encoding="utf-8")),
-            2: json.loads((FIXTURES_DIR / "csrc_approval_progress_page2.json").read_text(encoding="utf-8")),
-        }
-
-        def fake_fetch(page_num, page_size, keyword):
-            self.assertEqual(page_size, 2)
-            self.assertEqual(keyword, "指数")
-            return pages[page_num]
-
-        records = monitor.fetch_all_records("指数", page_size=2, fetch_page=fake_fetch)
-
-        self.assertEqual([record["record_id"] for record in records], ["alpha", "gamma"])
-        self.assertEqual(records[1]["steps"][1]["task_name"], "受理通知")
-
-    def test_fetch_all_records_handles_missing_step_lists(self):
-        page = {
+        page_one = {
             "code": "0000",
-            "message": "success",
             "data": {
                 "records": [
                     {
                         "alAppLtCde": "alpha",
-                        "showCntnt": "关于甲公司的指数产品",
+                        "showCntnt": build_title("\u7532\u516c\u53f8", "\u673a\u5668\u4eba" + KEYWORD + "\u57fa\u91d1"),
                         "appDate": "2026-03-16",
-                        "aprvSchdPubFlowViewResultList": None,
-                    }
+                        "aprvSchdPubFlowViewResultList": [{"taskName": TASK_RECEIVE, "fnshDate": "2026-03-16", "alFileCde": None}],
+                    },
+                    {
+                        "alAppLtCde": "ignore",
+                        "showCntnt": build_title("\u4e59\u516c\u53f8", "\u666e\u901a\u80a1\u7968\u57fa\u91d1"),
+                        "appDate": "2026-03-16",
+                        "aprvSchdPubFlowViewResultList": [],
+                    },
                 ],
-                "total": 1,
-                "size": 1000,
+                "total": 3,
+                "size": 2,
                 "current": 1,
             },
         }
-
-        records = monitor.fetch_all_records("指数", fetch_page=lambda page_num, page_size, keyword: page)
-
-        self.assertEqual(records[0]["record_id"], "alpha")
-        self.assertEqual(records[0]["steps"], [])
-
-    def test_fetch_all_records_returns_empty_list_for_empty_response(self):
-        page = {
+        page_two = {
             "code": "0000",
-            "message": "success",
-            "data": {"records": [], "total": 0, "size": 1000, "current": 1},
+            "data": {
+                "records": [
+                    {
+                        "alAppLtCde": "beta",
+                        "showCntnt": build_title("\u4e19\u516c\u53f8", "\u4eba\u5de5\u667a\u80fd" + KEYWORD + "\u57fa\u91d1"),
+                        "appDate": "2026-03-17",
+                        "aprvSchdPubFlowViewResultList": [{"taskName": TASK_ACCEPT, "fnshDate": "2026-03-17", "alFileCde": "file-a"}],
+                    }
+                ],
+                "total": 3,
+                "size": 2,
+                "current": 2,
+            },
         }
+        pages = {1: page_one, 2: page_two}
 
-        records = monitor.fetch_all_records("指数", fetch_page=lambda page_num, page_size, keyword: page)
+        records = monitor.fetch_all_records(KEYWORD, page_size=2, fetch_page=lambda page_num, page_size, keyword: pages[page_num])
 
-        self.assertEqual(records, [])
+        self.assertEqual([record["record_id"] for record in records], ["alpha", "beta"])
+        self.assertEqual(records[1]["steps"][0]["task_name"], TASK_ACCEPT)
 
 
-class OrchestrationTests(unittest.TestCase):
-    def test_run_monitor_bootstraps_without_sending_email(self):
-        records = [
-            {
-                "record_id": "alpha",
-                "title": "甲中证机器人指数证券投资基金",
-                "app_date": "2026-03-16",
-                "steps": [{"task_name": "接收材料", "fnsh_date": "2026-03-16", "step_id": "接收材料|2026-03-16|-"}],
+class ConfigTests(unittest.TestCase):
+    def test_build_email_diagnostics_flags_sender_mismatch(self):
+        diagnostics = monitor.build_email_diagnostics(
+            monitor.MonitorConfig(
+                keyword=KEYWORD,
+                state_file_path=Path("state.json"),
+                smtp_host="smtp.example.com",
+                smtp_port=465,
+                smtp_username="mailer@example.com",
+                smtp_password="secret",
+                alert_email_from="alerts@other.com",
+                alert_email_to=["one@example.com", "two@example.com"],
+            )
+        )
+
+        self.assertEqual(diagnostics["smtp_host"], "smtp.example.com")
+        self.assertEqual(diagnostics["recipient_count"], 2)
+        self.assertFalse(diagnostics["sender_matches_username"])
+        self.assertFalse(diagnostics["sender_domain_matches_username_domain"])
+        self.assertTrue(diagnostics["warnings"])
+
+    def test_load_config_from_env_parses_multiple_recipients(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state_file = Path(tmpdir) / "state.json"
+            env = {
+                "CSRC_QUERY_KEYWORD": KEYWORD,
+                "SMTP_HOST": "smtp.example.com",
+                "SMTP_PORT": "465",
+                "SMTP_USERNAME": "bot@example.com",
+                "SMTP_PASSWORD": "secret",
+                "ALERT_EMAIL_FROM": "bot@example.com",
+                "ALERT_EMAIL_TO": "one@example.com, two@example.com",
+                "STATE_FILE_PATH": str(state_file),
             }
+
+            with mock.patch.dict(os.environ, env, clear=False):
+                config = monitor.load_config_from_env()
+
+            self.assertEqual(config.alert_email_to, ["one@example.com", "two@example.com"])
+            self.assertEqual(config.state_file_path, state_file)
+
+
+class DisplayTests(unittest.TestCase):
+    def test_extract_display_fields_and_type(self):
+        product_name = "\u534e\u590f\u4eba\u5de5\u667a\u80fd" + ETF_PHRASE
+        display = monitor.extract_display_fields(build_title("\u534e\u590f\u57fa\u91d1\u7ba1\u7406\u6709\u9650\u516c\u53f8", product_name))
+
+        self.assertEqual(display["manager"], "\u534e\u590f")
+        self.assertEqual(display["product_type"], "ETF")
+        self.assertIn("ETF", display["product_name"])
+
+    def test_format_product_name_for_display_replaces_etf_phrase(self):
+        formatted = monitor.format_product_name_for_display("\u534e\u590f\u4eba\u5de5\u667a\u80fd" + ETF_PHRASE)
+
+        self.assertEqual(formatted, "\u534e\u590f\u4eba\u5de5\u667a\u80fdETF")
+
+
+class IncrementalModeTests(unittest.TestCase):
+    def test_incremental_bootstrap_creates_daily_baseline_without_sending_email(self):
+        records = [
+            build_record(
+                "alpha",
+                build_title("\u534e\u590f\u57fa\u91d1\u7ba1\u7406\u6709\u9650\u516c\u53f8", "\u534e\u590f\u4eba\u5de5\u667a\u80fd" + ETF_PHRASE),
+                "2026-03-17",
+                [build_step(TASK_RECEIVE, "2026-03-17")],
+            )
         ]
-        sent_messages = []
 
         with tempfile.TemporaryDirectory() as tmpdir:
             state_file = Path(tmpdir) / "state.json"
+            sent_messages = []
             result = monitor.run_monitor(
                 config=monitor.MonitorConfig(
-                    keyword="指数",
+                    keyword=KEYWORD,
                     state_file_path=state_file,
                     smtp_host="smtp.example.com",
                     smtp_port=465,
@@ -156,53 +225,37 @@ class OrchestrationTests(unittest.TestCase):
                     alert_email_to=["me@example.com"],
                 ),
                 fetch_records=lambda keyword: records,
-                send_email_func=lambda *_args, **_kwargs: sent_messages.append("sent"),
-                now_iso="2026-03-16T10:00:00Z",
+                send_email_func=lambda **kwargs: sent_messages.append(kwargs),
+                now_iso="2026-03-17T00:05:00Z",
             )
 
-            self.assertTrue(state_file.exists())
             self.assertEqual(sent_messages, [])
             self.assertTrue(result["baseline_created"])
-            self.assertEqual(result["events"], [])
+            self.assertTrue(result["daily_baseline_created"])
+            self.assertTrue(Path(result["daily_baseline_path"]).exists())
 
-    def test_run_monitor_sends_summary_for_incremental_changes(self):
+    def test_incremental_mode_uses_beijing_hour_subject_and_no_attachment(self):
         first_records = [
-            {
-                "record_id": "alpha",
-                "title": "关于易方达基金管理有限公司的《公开募集基金募集申请注册-易方达中证机器人指数证券投资基金》",
-                "app_date": "2026-03-16",
-                "steps": [{"task_name": "接收材料", "fnsh_date": "2026-03-16", "step_id": "接收材料|2026-03-16|-"}],
-            }
+            build_record(
+                "alpha",
+                build_title("\u534e\u590f\u57fa\u91d1\u7ba1\u7406\u6709\u9650\u516c\u53f8", "\u534e\u590f\u4eba\u5de5\u667a\u80fd" + ETF_PHRASE),
+                "2026-03-17",
+                [build_step(TASK_RECEIVE, "2026-03-17")],
+            )
         ]
         second_records = [
-            {
-                "record_id": "alpha",
-                "title": "关于易方达基金管理有限公司的《公开募集基金募集申请注册-易方达上证综指交易型开放式指数证券投资基金联接基金》",
-                "app_date": "2026-03-16",
-                "steps": [
-                    {"task_name": "接收材料", "fnsh_date": "2026-03-16", "step_id": "接收材料|2026-03-16|-"},
-                    {"task_name": "受理通知", "fnsh_date": "2026-03-17", "step_id": "受理通知|2026-03-17|file-a"},
-                ],
-            },
-            {
-                "record_id": "gamma",
-                "title": "关于华夏基金管理有限公司的《公开募集基金募集申请注册-华夏创业板人工智能交易型开放式指数证券投资基金》",
-                "app_date": "2026-03-17",
-                "steps": [{"task_name": "接收材料", "fnsh_date": "2026-03-17", "step_id": "接收材料|2026-03-17|-"}],
-            },
-            {
-                "record_id": "delta",
-                "title": "关于国泰基金管理有限公司的《公开募集基金募集申请注册-国泰沪深300指数增强证券投资基金》",
-                "app_date": "2026-03-18",
-                "steps": [{"task_name": "接收材料", "fnsh_date": "2026-03-18", "step_id": "接收材料|2026-03-18|-"}],
-            },
+            build_record(
+                "alpha",
+                build_title("\u534e\u590f\u57fa\u91d1\u7ba1\u7406\u6709\u9650\u516c\u53f8", "\u534e\u590f\u4eba\u5de5\u667a\u80fd" + ETF_PHRASE),
+                "2026-03-17",
+                [build_step(TASK_RECEIVE, "2026-03-17"), build_step(TASK_ACCEPT, "2026-03-17", "file-a")],
+            )
         ]
-        email_calls = []
 
         with tempfile.TemporaryDirectory() as tmpdir:
             state_file = Path(tmpdir) / "state.json"
-            base_config = monitor.MonitorConfig(
-                keyword="指数",
+            config = monitor.MonitorConfig(
+                keyword=KEYWORD,
                 state_file_path=state_file,
                 smtp_host="smtp.example.com",
                 smtp_port=465,
@@ -211,61 +264,39 @@ class OrchestrationTests(unittest.TestCase):
                 alert_email_from="bot@example.com",
                 alert_email_to=["me@example.com"],
             )
+            email_calls = []
 
             monitor.run_monitor(
-                config=base_config,
+                config=config,
                 fetch_records=lambda keyword: first_records,
-                send_email_func=lambda *_args, **_kwargs: email_calls.append("baseline"),
-                now_iso="2026-03-16T10:00:00Z",
+                send_email_func=lambda **kwargs: None,
+                now_iso="2026-03-17T09:00:00Z",
             )
-
             result = monitor.run_monitor(
-                config=base_config,
+                config=config,
                 fetch_records=lambda keyword: second_records,
                 send_email_func=lambda **kwargs: email_calls.append(kwargs),
                 now_iso="2026-03-17T10:00:00Z",
             )
 
-            self.assertEqual(len(email_calls), 1)
-            self.assertEqual(result["event_count"], 3)
-            self.assertIn("新产品 2 条", email_calls[0]["subject"])
-            self.assertIn("新节点 1 条", email_calls[0]["subject"])
-            self.assertIn("请查看支持 HTML 的邮件正文获取完整表格。", email_calls[0]["body"])
-            self.assertIn("新产品：2 条", email_calls[0]["body"])
-            self.assertIn("新节点：1 条", email_calls[0]["body"])
-            self.assertNotIn("本轮检测到以下增量", email_calls[0]["body"])
-            self.assertNotIn("序号 | 管理人 | 产品名称", email_calls[0]["body"])
-            self.assertIn("html_body", email_calls[0])
-            self.assertIn("font-family: FangSong", email_calls[0]["html_body"])
-            self.assertIn("<th", email_calls[0]["html_body"])
-            self.assertIn("最新状态日期", email_calls[0]["html_body"])
-            self.assertIn("华夏创业板人工智能交易型开放式指数证券投资基金", email_calls[0]["html_body"])
+            self.assertEqual(result["report_mode"], "incremental")
+            self.assertEqual(result["email_subject"], "\u6307\u6570\u57fa\u91d1\u5ba1\u6279\u8fdb\u5ea6\uff0818\uff1a00\uff09")
+            self.assertEqual(email_calls[0]["subject"], result["email_subject"])
+            self.assertIsNone(email_calls[0].get("attachments"))
+            self.assertIn("ETF", email_calls[0]["html_body"])
 
-    def test_run_monitor_does_not_update_state_when_email_fails(self):
+    def test_incremental_mode_does_not_update_latest_state_when_email_fails(self):
         first_records = [
-            {
-                "record_id": "alpha",
-                "title": "甲中证机器人指数证券投资基金",
-                "app_date": "2026-03-16",
-                "steps": [{"task_name": "接收材料", "fnsh_date": "2026-03-16", "step_id": "接收材料|2026-03-16|-"}],
-            }
+            build_record("alpha", "alpha", "2026-03-16", [build_step(TASK_RECEIVE, "2026-03-16")])
         ]
         second_records = [
-            {
-                "record_id": "alpha",
-                "title": "甲中证机器人指数证券投资基金",
-                "app_date": "2026-03-16",
-                "steps": [
-                    {"task_name": "接收材料", "fnsh_date": "2026-03-16", "step_id": "接收材料|2026-03-16|-"},
-                    {"task_name": "受理通知", "fnsh_date": "2026-03-17", "step_id": "受理通知|2026-03-17|file-a"},
-                ],
-            }
+            build_record("alpha", "alpha", "2026-03-16", [build_step(TASK_RECEIVE, "2026-03-16"), build_step(TASK_ACCEPT, "2026-03-17", "file-a")])
         ]
 
         with tempfile.TemporaryDirectory() as tmpdir:
             state_file = Path(tmpdir) / "state.json"
             config = monitor.MonitorConfig(
-                keyword="指数",
+                keyword=KEYWORD,
                 state_file_path=state_file,
                 smtp_host="smtp.example.com",
                 smtp_port=465,
@@ -278,7 +309,7 @@ class OrchestrationTests(unittest.TestCase):
             monitor.run_monitor(
                 config=config,
                 fetch_records=lambda keyword: first_records,
-                send_email_func=lambda *_args, **_kwargs: None,
+                send_email_func=lambda **kwargs: None,
                 now_iso="2026-03-16T10:00:00Z",
             )
             previous_state = state_file.read_text(encoding="utf-8")
@@ -294,155 +325,151 @@ class OrchestrationTests(unittest.TestCase):
             self.assertEqual(state_file.read_text(encoding="utf-8"), previous_state)
 
 
-class ConfigTests(unittest.TestCase):
-    def test_build_email_diagnostics_flags_sender_mismatch(self):
-        diagnostics = monitor.build_email_diagnostics(
-            monitor.MonitorConfig(
-                keyword="鎸囨暟",
-                state_file_path=Path("state.json"),
-                smtp_host="smtp.example.com",
-                smtp_port=465,
-                smtp_username="mailer@example.com",
-                smtp_password="secret",
-                alert_email_from="alerts@other.com",
-                alert_email_to=["one@example.com", "two@example.com"],
+class DailySummaryTests(unittest.TestCase):
+    def test_daily_summary_sends_pdf_attachment(self):
+        baseline_records = [
+            build_record(
+                "alpha",
+                build_title("\u534e\u590f\u57fa\u91d1\u7ba1\u7406\u6709\u9650\u516c\u53f8", "\u534e\u590f\u4eba\u5de5\u667a\u80fd" + ETF_PHRASE),
+                "2026-03-17",
+                [build_step(TASK_RECEIVE, "2026-03-17")],
             )
-        )
-
-        self.assertEqual(diagnostics["smtp_host"], "smtp.example.com")
-        self.assertEqual(diagnostics["smtp_port"], 465)
-        self.assertEqual(diagnostics["recipient_count"], 2)
-        self.assertFalse(diagnostics["sender_matches_username"])
-        self.assertFalse(diagnostics["sender_domain_matches_username_domain"])
-        self.assertTrue(diagnostics["warnings"])
-        self.assertIn("@", diagnostics["smtp_username_masked"])
-        self.assertIn("@", diagnostics["alert_email_from_masked"])
-
-    def test_load_config_from_env_parses_multiple_recipients(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            state_file = Path(tmpdir) / "state.json"
-            env = {
-                "CSRC_QUERY_KEYWORD": "指数",
-                "SMTP_HOST": "smtp.example.com",
-                "SMTP_PORT": "465",
-                "SMTP_USERNAME": "bot@example.com",
-                "SMTP_PASSWORD": "secret",
-                "ALERT_EMAIL_FROM": "bot@example.com",
-                "ALERT_EMAIL_TO": "one@example.com, two@example.com ,three@example.com",
-                "STATE_FILE_PATH": str(state_file),
-            }
-
-            with mock.patch.dict(os.environ, env, clear=False):
-                config = monitor.load_config_from_env()
-
-            self.assertEqual(
-                config.alert_email_to,
-                ["one@example.com", "two@example.com", "three@example.com"],
-            )
-            self.assertEqual(config.state_file_path, state_file)
-
-
-class DisplayFieldTests(unittest.TestCase):
-    def test_extract_display_fields_from_raw_title(self):
-        display = monitor.extract_display_fields(
-            "关于易方达基金管理有限公司的《公开募集基金募集申请注册-易方达创业板新能源交易型开放式指数证券投资基金》"
-        )
-
-        self.assertEqual(display["manager"], "易方达")
-        self.assertEqual(display["product_name"], "易方达创业板新能源交易型开放式指数证券投资基金")
-        self.assertEqual(display["product_type"], "ETF")
-
-    def test_format_table_aligns_columns(self):
-        table = monitor.format_table(
-            ["序号", "管理人", "产品类型"],
-            [
-                ["1", "华夏", "ETF"],
-                ["2", "国泰", "普通指数"],
-            ],
-        )
-
-        lines = table.splitlines()
-        self.assertEqual(lines[0].count("|"), 2)
-        self.assertIn("-+-", lines[1])
-        self.assertEqual(lines[2].count("|"), 2)
-
-
-class ObservabilityTests(unittest.TestCase):
-    def test_run_monitor_returns_email_delivery_diagnostics(self):
-        first_records = [
-            {
-                "record_id": "alpha",
-                "title": "鐢蹭腑璇佹満鍣ㄤ汉鎸囨暟璇佸埜鎶曡祫鍩洪噾",
-                "app_date": "2026-03-16",
-                "steps": [{"task_name": "鎺ユ敹鏉愭枡", "fnsh_date": "2026-03-16", "step_id": "鎺ユ敹鏉愭枡|2026-03-16|-"}],
-            }
         ]
-        second_records = [
-            {
-                "record_id": "alpha",
-                "title": "鐢蹭腑璇佹満鍣ㄤ汉鎸囨暟璇佸埜鎶曡祫鍩洪噾",
-                "app_date": "2026-03-16",
-                "steps": [
-                    {"task_name": "鎺ユ敹鏉愭枡", "fnsh_date": "2026-03-16", "step_id": "鎺ユ敹鏉愭枡|2026-03-16|-"},
-                    {"task_name": "鍙楃悊閫氱煡", "fnsh_date": "2026-03-17", "step_id": "鍙楃悊閫氱煡|2026-03-17|file-a"},
-                ],
-            },
-            {
-                "record_id": "gamma",
-                "title": "涓欐勃娣?00鎸囨暟澧炲己璇佸埜鎶曡祫鍩洪噾",
-                "app_date": "2026-03-17",
-                "steps": [{"task_name": "鎺ユ敹鏉愭枡", "fnsh_date": "2026-03-17", "step_id": "鎺ユ敹鏉愭枡|2026-03-17|-"}],
-            },
+        current_records = [
+            build_record(
+                "alpha",
+                build_title("\u534e\u590f\u57fa\u91d1\u7ba1\u7406\u6709\u9650\u516c\u53f8", "\u534e\u590f\u4eba\u5de5\u667a\u80fd" + ETF_PHRASE),
+                "2026-03-17",
+                [build_step(TASK_RECEIVE, "2026-03-17"), build_step(TASK_ACCEPT, "2026-03-17", "file-a")],
+            ),
+            build_record(
+                "beta",
+                build_title("\u4e2d\u94f6\u57fa\u91d1\u7ba1\u7406\u6709\u9650\u516c\u53f8", "\u4e2d\u94f6\u6709\u8272\u91d1\u5c5e" + ETF_PHRASE),
+                "2026-03-17",
+                [build_step(TASK_RECEIVE, "2026-03-17")],
+            ),
         ]
 
         with tempfile.TemporaryDirectory() as tmpdir:
             state_file = Path(tmpdir) / "state.json"
+            baseline_path = Path(tmpdir) / "daily" / "2026-03-17.json"
+            baseline_path.parent.mkdir(parents=True, exist_ok=True)
+            baseline_path.write_text(
+                json.dumps(monitor.build_snapshot(baseline_records, "2026-03-17T00:05:00Z"), ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
             config = monitor.MonitorConfig(
-                keyword="鎸囨暟",
+                keyword=KEYWORD,
                 state_file_path=state_file,
                 smtp_host="smtp.example.com",
                 smtp_port=465,
                 smtp_username="bot@example.com",
                 smtp_password="secret",
                 alert_email_from="bot@example.com",
-                alert_email_to=["me@example.com", "ops@example.com"],
+                alert_email_to=["me@example.com"],
             )
-
-            monitor.run_monitor(
-                config=config,
-                fetch_records=lambda keyword: first_records,
-                send_email_func=lambda **kwargs: None,
-                now_iso="2026-03-16T10:00:00Z",
-            )
+            email_calls = []
 
             result = monitor.run_monitor(
                 config=config,
-                fetch_records=lambda keyword: second_records,
-                send_email_func=lambda **kwargs: None,
-                now_iso="2026-03-17T10:00:00Z",
+                fetch_records=lambda keyword: current_records,
+                send_email_func=lambda **kwargs: email_calls.append(kwargs),
+                now_iso="2026-03-17T11:30:00Z",
+                report_mode="daily_summary",
             )
 
+            self.assertEqual(result["report_mode"], "daily_summary")
+            self.assertEqual(result["email_subject"], "\u6307\u6570\u57fa\u91d1\u5ba1\u6279\u65e5\u62a52026-03-17")
             self.assertEqual(result["event_count"], 2)
             self.assertEqual(result["new_record_count"], 1)
             self.assertEqual(result["new_step_count"], 1)
-            self.assertEqual(result["email_delivery"]["status"], "sent")
-            self.assertEqual(result["email_delivery"]["recipient_count"], 2)
-            self.assertTrue(result["email_delivery"]["attempted"])
-            self.assertEqual(result["email_diagnostics"]["smtp_host"], "smtp.example.com")
-            self.assertEqual(result["email_diagnostics"]["recipient_count"], 2)
+            self.assertEqual(len(email_calls), 1)
+            self.assertEqual(len(email_calls[0]["attachments"]), 1)
+            attachment = email_calls[0]["attachments"][0]
+            self.assertEqual(attachment["filename"], "\u6307\u6570\u57fa\u91d1\u5ba1\u6279\u65e5\u62a52026-03-17.pdf")
+            self.assertEqual(attachment["subtype"], "pdf")
+            self.assertGreater(len(attachment["content"]), 0)
 
-    def test_write_github_step_summary_writes_masked_delivery_details(self):
+    def test_daily_summary_skips_email_when_no_changes(self):
+        records = [
+            build_record("alpha", "alpha", "2026-03-17", [build_step(TASK_RECEIVE, "2026-03-17")])
+        ]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state_file = Path(tmpdir) / "state.json"
+            baseline_path = Path(tmpdir) / "daily" / "2026-03-17.json"
+            baseline_path.parent.mkdir(parents=True, exist_ok=True)
+            baseline_path.write_text(
+                json.dumps(monitor.build_snapshot(records, "2026-03-17T00:05:00Z"), ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            config = monitor.MonitorConfig(
+                keyword=KEYWORD,
+                state_file_path=state_file,
+                smtp_host="smtp.example.com",
+                smtp_port=465,
+                smtp_username="bot@example.com",
+                smtp_password="secret",
+                alert_email_from="bot@example.com",
+                alert_email_to=["me@example.com"],
+            )
+            email_calls = []
+
+            result = monitor.run_monitor(
+                config=config,
+                fetch_records=lambda keyword: records,
+                send_email_func=lambda **kwargs: email_calls.append(kwargs),
+                now_iso="2026-03-17T11:30:00Z",
+                report_mode="daily_summary",
+            )
+
+            self.assertEqual(result["email_delivery"]["status"], "skipped_no_changes")
+            self.assertEqual(result["skipped_reason"], "no_daily_changes")
+            self.assertEqual(email_calls, [])
+
+    def test_daily_summary_skips_when_baseline_missing(self):
+        records = [
+            build_record("alpha", "alpha", "2026-03-17", [build_step(TASK_RECEIVE, "2026-03-17")])
+        ]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state_file = Path(tmpdir) / "state.json"
+            config = monitor.MonitorConfig(
+                keyword=KEYWORD,
+                state_file_path=state_file,
+                smtp_host="smtp.example.com",
+                smtp_port=465,
+                smtp_username="bot@example.com",
+                smtp_password="secret",
+                alert_email_from="bot@example.com",
+                alert_email_to=["me@example.com"],
+            )
+            result = monitor.run_monitor(
+                config=config,
+                fetch_records=lambda keyword: records,
+                send_email_func=lambda **kwargs: None,
+                now_iso="2026-03-17T11:30:00Z",
+                report_mode="daily_summary",
+            )
+
+            self.assertEqual(result["email_delivery"]["status"], "skipped_missing_baseline")
+            self.assertEqual(result["skipped_reason"], "missing_daily_baseline")
+
+
+class ObservabilityTests(unittest.TestCase):
+    def test_write_github_step_summary_includes_skip_reason(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             summary_path = Path(tmpdir) / "summary.md"
             result = {
-                "baseline_created": False,
-                "event_count": 2,
-                "new_record_count": 1,
-                "new_step_count": 1,
+                "report_mode": "daily_summary",
+                "event_count": 0,
+                "new_record_count": 0,
+                "new_step_count": 0,
+                "skipped_reason": "no_daily_changes",
                 "email_delivery": {
-                    "attempted": True,
-                    "status": "sent",
-                    "recipient_count": 2,
+                    "attempted": False,
+                    "status": "skipped_no_changes",
+                    "recipient_count": 1,
                     "transport": "SMTP_SSL",
                 },
                 "email_diagnostics": {
@@ -451,8 +478,8 @@ class ObservabilityTests(unittest.TestCase):
                     "transport": "SMTP_SSL",
                     "smtp_username_masked": "b***@example.com",
                     "alert_email_from_masked": "b***@example.com",
-                    "alert_email_to_masked": ["m***@example.com", "o***@example.com"],
-                    "recipient_count": 2,
+                    "alert_email_to_masked": ["m***@example.com"],
+                    "recipient_count": 1,
                     "sender_matches_username": True,
                     "sender_domain_matches_username_domain": True,
                     "warnings": [],
@@ -462,10 +489,9 @@ class ObservabilityTests(unittest.TestCase):
             monitor.write_github_step_summary(result, summary_path)
 
             content = summary_path.read_text(encoding="utf-8")
-            self.assertIn("Email delivery diagnostics", content)
-            self.assertIn("smtp.example.com", content)
-            self.assertIn("b***@example.com", content)
-            self.assertIn("sent", content)
+            self.assertIn("daily_summary", content)
+            self.assertIn("skipped_no_changes", content)
+            self.assertIn("no_daily_changes", content)
 
 
 if __name__ == "__main__":

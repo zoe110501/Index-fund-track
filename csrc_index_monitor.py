@@ -7,7 +7,7 @@ import smtplib
 import sys
 import unicodedata
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
 from html import escape
 from pathlib import Path
@@ -15,12 +15,20 @@ from typing import Any, Callable
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+import fitz
+
 
 API_URL = "https://neris.csrc.gov.cn/alappr-delare/home/approval-progress/v1/list"
 DEFAULT_KEYWORD = "指数"
 DEFAULT_PAGE_SIZE = 1000
 DEFAULT_STATE_FILE = Path("state/csrc_index_monitor_state.json")
+DEFAULT_REPORT_MODE = "incremental"
+REPORT_MODE_INCREMENTAL = "incremental"
+REPORT_MODE_DAILY_SUMMARY = "daily_summary"
 EVENT_ID_SEPARATOR = "|"
+SHANGHAI_TZ = timezone(timedelta(hours=8))
+DISPLAY_ETF_SOURCE = "交易型开放式指数证券投资基金"
+DISPLAY_ETF_TARGET = "ETF"
 TITLE_PATTERN = re.compile(r"^关于(?P<manager>.+?)的《公开募集基金募集申请注册-(?P<product_name>.+?)》$")
 MANAGER_SUFFIXES = (
     "基金管理有限责任公司",
@@ -117,10 +125,19 @@ def attach_monitor_diagnostics(
     events: list[dict[str, Any]],
     email_attempted: bool,
     email_status: str,
+    report_mode: str,
+    daily_baseline_path: Path,
+    daily_baseline_created: bool = False,
+    skipped_reason: str | None = None,
 ) -> dict[str, Any]:
     new_record_count, new_step_count = count_events_by_type(events)
+    result["report_mode"] = report_mode
     result["new_record_count"] = new_record_count
     result["new_step_count"] = new_step_count
+    result["daily_baseline_path"] = str(daily_baseline_path)
+    result["daily_baseline_created"] = daily_baseline_created
+    if skipped_reason:
+        result["skipped_reason"] = skipped_reason
     result["email_diagnostics"] = build_email_diagnostics(config)
     result["email_delivery"] = {
         "attempted": email_attempted,
@@ -146,13 +163,7 @@ def normalize_step(step: dict[str, Any]) -> dict[str, str]:
         "task_name": task_name,
         "fnsh_date": fnsh_date,
         "al_file_cde": file_code,
-        "step_id": make_step_id(
-            {
-                "taskName": task_name,
-                "fnshDate": fnsh_date,
-                "alFileCde": file_code,
-            }
-        ),
+        "step_id": make_step_id({"taskName": task_name, "fnshDate": fnsh_date, "alFileCde": file_code}),
     }
 
 
@@ -212,7 +223,6 @@ def fetch_all_records(
         total = int(data.get("total") or 0)
         current = int(data.get("current") or page_num)
         size = int(data.get("size") or page_size or 1)
-
         if total == 0 or current * size >= total or not raw_records:
             break
         page_num += 1
@@ -307,10 +317,14 @@ def abbreviate_manager_name(name: str) -> str:
     return name
 
 
+def format_product_name_for_display(product_name: str) -> str:
+    return product_name.replace(DISPLAY_ETF_SOURCE, DISPLAY_ETF_TARGET)
+
+
 def classify_product_type(product_name: str) -> str:
     if "交易型开放式指数证券投资基金联接基金" in product_name:
         return "ETF联接"
-    if "交易型开放式指数证券投资基金" in product_name:
+    if DISPLAY_ETF_SOURCE in product_name:
         return "ETF"
     return "普通指数"
 
@@ -319,25 +333,22 @@ def extract_display_fields(title: str) -> dict[str, str]:
     match = TITLE_PATTERN.match(title)
     if match:
         manager_raw = match.group("manager")
-        product_name = match.group("product_name")
+        product_name_raw = match.group("product_name")
         manager = abbreviate_manager_name(manager_raw)
     else:
-        product_name = title
+        product_name_raw = title
         manager = ""
 
     return {
         "manager": manager,
-        "product_name": product_name,
-        "product_type": classify_product_type(product_name),
+        "product_name": format_product_name_for_display(product_name_raw),
+        "product_type": classify_product_type(product_name_raw),
     }
 
 
 def format_table(headers: list[str], rows: list[list[str]]) -> str:
     all_rows = [headers, *rows]
-    widths = [
-        max(display_width(row[index]) for row in all_rows)
-        for index in range(len(headers))
-    ]
+    widths = [max(display_width(row[index]) for row in all_rows) for index in range(len(headers))]
     lines = [format_table_row(headers, widths), format_table_separator(widths)]
     for row in rows:
         lines.append(format_table_row(row, widths))
@@ -368,15 +379,7 @@ def build_record_rows(events: list[dict[str, Any]]) -> list[list[str]]:
     rows: list[list[str]] = []
     for index, event in enumerate(events, start=1):
         display = extract_display_fields(event["title"])
-        rows.append(
-            [
-                str(index),
-                display["manager"],
-                display["product_name"],
-                display["product_type"],
-                event["app_date"],
-            ]
-        )
+        rows.append([str(index), display["manager"], display["product_name"], display["product_type"], event["app_date"]])
     return rows
 
 
@@ -398,29 +401,18 @@ def build_step_rows(events: list[dict[str, Any]]) -> list[list[str]]:
     return rows
 
 
-def format_html_summary(events: list[dict[str, Any]]) -> str:
-    new_records = [event for event in events if event["event_type"] == "new_record"]
-    new_steps = [event for event in events if event["event_type"] == "new_step"]
-    sections: list[str] = [
-        "<div style=\"font-family: FangSong, STFangsong, serif; font-size: 16px; color: #1f2937;\">",
-        "<p>本轮检测到以下增量：</p>",
-        f"<p><strong>新产品（{len(new_records)} 条）</strong></p>",
-        render_html_table(
-            ["序号", "管理人", "产品名称", "产品类型", "上报日期"],
-            build_record_rows(new_records),
-        )
-        if new_records
-        else "<p>无</p>",
-        f"<p><strong>新节点产品（{len(new_steps)} 条）</strong></p>",
-        render_html_table(
-            ["序号", "管理人", "产品名称", "产品类型", "上报日期", "最新状态", "最新状态日期"],
-            build_step_rows(new_steps),
-        )
-        if new_steps
-        else "<p>无</p>",
-        "</div>",
-    ]
-    return "".join(sections)
+def report_copy(report_mode: str) -> dict[str, str]:
+    if report_mode == REPORT_MODE_DAILY_SUMMARY:
+        return {
+            "intro": "今日累计汇总如下：",
+            "records_title": "今日新产品",
+            "steps_title": "今日新增节点产品",
+        }
+    return {
+        "intro": "本轮检测到以下增量：",
+        "records_title": "新产品",
+        "steps_title": "新增节点产品",
+    }
 
 
 def render_html_table(headers: list[str], rows: list[list[str]]) -> str:
@@ -430,33 +422,104 @@ def render_html_table(headers: list[str], rows: list[list[str]]) -> str:
     )
     row_html = []
     for row in rows:
-        cells = "".join(
-            f"<td style=\"border:1px solid #1f2937;padding:8px 12px;\">{escape(value)}</td>"
-            for value in row
-        )
+        cells = "".join(f"<td style=\"border:1px solid #1f2937;padding:8px 12px;\">{escape(value)}</td>" for value in row)
         row_html.append(f"<tr>{cells}</tr>")
     return (
-        "<table style=\"border-collapse:collapse;width:100%;font-family: FangSong, STFangsong, serif;"
-        "margin:8px 0 16px 0;\">"
+        "<table style=\"border-collapse:collapse;width:100%;font-family:FangSong,STFangsong,serif;margin:8px 0 16px 0;\">"
         f"<thead><tr>{header_html}</tr></thead>"
         f"<tbody>{''.join(row_html)}</tbody>"
         "</table>"
     )
 
 
-def format_email_summary(events: list[dict[str, Any]]) -> tuple[str, str]:
+def format_html_summary(events: list[dict[str, Any]], report_mode: str) -> str:
+    copy = report_copy(report_mode)
     new_records = [event for event in events if event["event_type"] == "new_record"]
     new_steps = [event for event in events if event["event_type"] == "new_step"]
-    subject = f"CSRC 指数审批进展提醒：新产品 {len(new_records)} 条，新节点 {len(new_steps)} 条"
+    return "".join(
+        [
+            "<div style=\"font-family:FangSong,STFangsong,serif;font-size:16px;color:#1f2937;\">",
+            f"<p>{escape(copy['intro'])}</p>",
+            f"<p><strong>{escape(copy['records_title'])}（{len(new_records)} 条）</strong></p>",
+            render_html_table(["序号", "管理人", "产品名称", "产品类型", "上报日期"], build_record_rows(new_records)) if new_records else "<p>无</p>",
+            f"<p><strong>{escape(copy['steps_title'])}（{len(new_steps)} 条）</strong></p>",
+            render_html_table(["序号", "管理人", "产品名称", "产品类型", "上报日期", "最新节点", "节点日期"], build_step_rows(new_steps)) if new_steps else "<p>无</p>",
+            "</div>",
+        ]
+    )
 
+
+def format_email_summary(events: list[dict[str, Any]], report_mode: str, local_now: datetime) -> tuple[str, str]:
+    new_record_count, new_step_count = count_events_by_type(events)
+    if report_mode == REPORT_MODE_DAILY_SUMMARY:
+        subject = f"指数基金审批日报{local_now:%Y-%m-%d}"
+        body = "\n".join(
+            [
+                f"指数基金审批日报 {local_now:%Y-%m-%d}",
+                f"今日新产品：{new_record_count} 条",
+                f"今日新增节点产品：{new_step_count} 条",
+                "请查看 HTML 正文和 PDF 附件获取完整汇总。",
+            ]
+        )
+        return subject, body
+
+    subject = f"指数基金审批进度（{local_now:%H}：00）"
     body = "\n".join(
         [
             "请查看支持 HTML 的邮件正文获取完整表格。",
-            f"新产品：{len(new_records)} 条",
-            f"新节点：{len(new_steps)} 条",
+            f"新产品：{new_record_count} 条",
+            f"新增节点产品：{new_step_count} 条",
         ]
     )
     return subject, body
+
+
+def build_pdf_lines(events: list[dict[str, Any]], local_now: datetime) -> list[str]:
+    copy = report_copy(REPORT_MODE_DAILY_SUMMARY)
+    new_records = [event for event in events if event["event_type"] == "new_record"]
+    new_steps = [event for event in events if event["event_type"] == "new_step"]
+    lines = [
+        f"指数基金审批日报{local_now:%Y-%m-%d}",
+        f"生成时间：{local_now:%Y-%m-%d %H:%M}",
+        f"合计：新产品 {len(new_records)} 条，新增节点产品 {len(new_steps)} 条",
+        "",
+        f"{copy['records_title']}（{len(new_records)} 条）",
+    ]
+    if new_records:
+        for index, event in enumerate(new_records, start=1):
+            display = extract_display_fields(event["title"])
+            lines.append(f"{index}. {display['manager']} | {display['product_name']} | {event['app_date']}")
+    else:
+        lines.append("无")
+
+    lines.extend(["", f"{copy['steps_title']}（{len(new_steps)} 条）"])
+    if new_steps:
+        for index, event in enumerate(new_steps, start=1):
+            display = extract_display_fields(event["title"])
+            lines.append(f"{index}. {display['manager']} | {display['product_name']} | {event['task_name']} | {event['fnsh_date']}")
+    else:
+        lines.append("无")
+    return lines
+
+
+def generate_daily_summary_pdf(events: list[dict[str, Any]], local_now: datetime) -> dict[str, Any]:
+    document = fitz.open()
+    page = document.new_page()
+    y = 40
+    for line in build_pdf_lines(events, local_now):
+        if y > 790:
+            page = document.new_page()
+            y = 40
+        page.insert_textbox(fitz.Rect(40, y, 555, y + 18), line, fontsize=11, fontname="helv")
+        y += 18
+    content = document.tobytes()
+    document.close()
+    return {
+        "filename": f"指数基金审批日报{local_now:%Y-%m-%d}.pdf",
+        "content": content,
+        "maintype": "application",
+        "subtype": "pdf",
+    }
 
 
 def send_email(
@@ -466,6 +529,7 @@ def send_email(
     body: str,
     html_body: str | None = None,
     events: list[dict[str, Any]] | None = None,
+    attachments: list[dict[str, Any]] | None = None,
 ) -> None:
     message = EmailMessage()
     message["Subject"] = subject
@@ -474,6 +538,13 @@ def send_email(
     message.set_content(body)
     if html_body:
         message.add_alternative(html_body, subtype="html")
+    for attachment in attachments or []:
+        message.add_attachment(
+            attachment["content"],
+            maintype=attachment.get("maintype", "application"),
+            subtype=attachment.get("subtype", "octet-stream"),
+            filename=attachment["filename"],
+        )
 
     if config.smtp_port == 465:
         with smtplib.SMTP_SSL(config.smtp_host, config.smtp_port, timeout=30) as client:
@@ -500,11 +571,29 @@ def save_state(path: Path, snapshot: dict[str, Any]) -> None:
     path.write_text(json.dumps(snapshot, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def parse_now_iso(now_iso: str | None = None) -> datetime:
+    if now_iso:
+        return datetime.fromisoformat(now_iso.replace("Z", "+00:00")).astimezone(timezone.utc)
+    return datetime.now(timezone.utc).replace(microsecond=0)
+
+
+def daily_baseline_path_for(state_file_path: Path, local_now: datetime) -> Path:
+    return state_file_path.parent / "daily" / f"{local_now:%Y-%m-%d}.json"
+
+
+def ensure_daily_baseline(path: Path, snapshot: dict[str, Any]) -> bool:
+    if path.exists():
+        return False
+    save_state(path, snapshot)
+    return True
+
+
 def write_github_step_summary(result: dict[str, Any], path: Path | None = None) -> None:
-    summary_path = path or Path(os.getenv("GITHUB_STEP_SUMMARY", ""))
-    if not str(summary_path):
+    raw_summary_path = str(path) if path is not None else os.getenv("GITHUB_STEP_SUMMARY", "")
+    if not raw_summary_path:
         return
 
+    summary_path = Path(raw_summary_path)
     diagnostics = result.get("email_diagnostics") or {}
     email_delivery = result.get("email_delivery") or {}
     warnings = diagnostics.get("warnings") or []
@@ -520,12 +609,19 @@ def write_github_step_summary(result: dict[str, Any], path: Path | None = None) 
     else:
         lines.extend(
             [
+                f"- Report mode: {result.get('report_mode', '')}",
                 f"- Baseline created: {result.get('baseline_created')}",
+                f"- Daily baseline created: {result.get('daily_baseline_created')}",
+                f"- Daily baseline path: {result.get('daily_baseline_path', '')}",
                 f"- Events detected: {result.get('event_count', 0)}",
                 f"- New records: {result.get('new_record_count', 0)}",
                 f"- New steps: {result.get('new_step_count', 0)}",
             ]
         )
+        if result.get("email_subject"):
+            lines.append(f"- Email subject: {result['email_subject']}")
+        if result.get("skipped_reason"):
+            lines.append(f"- Skipped reason: {result['skipped_reason']}")
 
     if diagnostics:
         lines.extend(
@@ -563,29 +659,97 @@ def run_monitor(
     fetch_records: Callable[[str], list[dict[str, Any]]] | None = None,
     send_email_func: Callable[..., None] | None = None,
     now_iso: str | None = None,
+    report_mode: str = DEFAULT_REPORT_MODE,
 ) -> dict[str, Any]:
     fetch_records = fetch_records or (lambda keyword: fetch_all_records(keyword))
     send_email_func = send_email_func or send_email
-    now_iso = now_iso or datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-
-    previous_snapshot = load_state(config.state_file_path)
+    now_utc = parse_now_iso(now_iso)
+    now_iso = now_utc.replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    local_now = now_utc.astimezone(SHANGHAI_TZ)
     records = fetch_records(config.keyword)
     current_snapshot = build_snapshot(records, now_iso)
+    baseline_snapshot = build_snapshot(records, now_iso)
+    daily_baseline_path = daily_baseline_path_for(config.state_file_path, local_now)
 
+    if report_mode == REPORT_MODE_DAILY_SUMMARY:
+        daily_baseline_snapshot = load_state(daily_baseline_path)
+        if daily_baseline_snapshot is None:
+            return attach_monitor_diagnostics(
+                {
+                    "baseline_created": False,
+                    "event_count": 0,
+                    "events": [],
+                    "state_changed": False,
+                    "state_file_path": str(config.state_file_path),
+                },
+                config=config,
+                events=[],
+                email_attempted=False,
+                email_status="skipped_missing_baseline",
+                report_mode=report_mode,
+                daily_baseline_path=daily_baseline_path,
+                skipped_reason="missing_daily_baseline",
+            )
+
+        events = diff_snapshots(daily_baseline_snapshot, current_snapshot)
+        if not events:
+            return attach_monitor_diagnostics(
+                {
+                    "baseline_created": False,
+                    "event_count": 0,
+                    "events": [],
+                    "state_changed": False,
+                    "state_file_path": str(config.state_file_path),
+                },
+                config=config,
+                events=[],
+                email_attempted=False,
+                email_status="skipped_no_changes",
+                report_mode=report_mode,
+                daily_baseline_path=daily_baseline_path,
+                skipped_reason="no_daily_changes",
+            )
+
+        subject, body = format_email_summary(events, report_mode, local_now)
+        html_body = format_html_summary(events, report_mode)
+        attachments = [generate_daily_summary_pdf(events, local_now)]
+        send_email_func(config=config, subject=subject, body=body, html_body=html_body, events=events, attachments=attachments)
+        return attach_monitor_diagnostics(
+            {
+                "baseline_created": False,
+                "event_count": len(events),
+                "events": events,
+                "state_changed": False,
+                "state_file_path": str(config.state_file_path),
+                "email_subject": subject,
+            },
+            config=config,
+            events=events,
+            email_attempted=True,
+            email_status="sent",
+            report_mode=report_mode,
+            daily_baseline_path=daily_baseline_path,
+        )
+
+    daily_baseline_created = ensure_daily_baseline(daily_baseline_path, baseline_snapshot)
+    previous_snapshot = load_state(config.state_file_path)
     if previous_snapshot is None:
         save_state(config.state_file_path, current_snapshot)
         return attach_monitor_diagnostics(
             {
-            "baseline_created": True,
-            "event_count": 0,
-            "events": [],
-            "state_changed": True,
-            "state_file_path": str(config.state_file_path),
+                "baseline_created": True,
+                "event_count": 0,
+                "events": [],
+                "state_changed": True,
+                "state_file_path": str(config.state_file_path),
             },
             config=config,
             events=[],
             email_attempted=False,
             email_status="not_attempted",
+            report_mode=report_mode,
+            daily_baseline_path=daily_baseline_path,
+            daily_baseline_created=daily_baseline_created,
         )
 
     events = diff_snapshots(previous_snapshot, current_snapshot)
@@ -593,37 +757,42 @@ def run_monitor(
         save_state(config.state_file_path, current_snapshot)
         return attach_monitor_diagnostics(
             {
-            "baseline_created": False,
-            "event_count": 0,
-            "events": [],
-            "state_changed": True,
-            "state_file_path": str(config.state_file_path),
+                "baseline_created": False,
+                "event_count": 0,
+                "events": [],
+                "state_changed": True,
+                "state_file_path": str(config.state_file_path),
             },
             config=config,
             events=[],
             email_attempted=False,
             email_status="not_attempted",
+            report_mode=report_mode,
+            daily_baseline_path=daily_baseline_path,
+            daily_baseline_created=daily_baseline_created,
         )
 
-    subject, body = format_email_summary(events)
-    html_body = format_html_summary(events)
-    send_email_func(config=config, subject=subject, body=body, html_body=html_body, events=events)
-
+    subject, body = format_email_summary(events, report_mode, local_now)
+    html_body = format_html_summary(events, report_mode)
+    send_email_func(config=config, subject=subject, body=body, html_body=html_body, events=events, attachments=None)
     notified_snapshot = build_snapshot(records, now_iso, notified_event_ids=[event["event_id"] for event in events])
     save_state(config.state_file_path, notified_snapshot)
     return attach_monitor_diagnostics(
         {
-        "baseline_created": False,
-        "event_count": len(events),
-        "events": events,
-        "state_changed": True,
-        "state_file_path": str(config.state_file_path),
-        "email_subject": subject,
+            "baseline_created": False,
+            "event_count": len(events),
+            "events": events,
+            "state_changed": True,
+            "state_file_path": str(config.state_file_path),
+            "email_subject": subject,
         },
         config=config,
         events=events,
         email_attempted=True,
         email_status="sent",
+        report_mode=report_mode,
+        daily_baseline_path=daily_baseline_path,
+        daily_baseline_created=daily_baseline_created,
     )
 
 
@@ -658,7 +827,8 @@ def main() -> int:
     config: MonitorConfig | None = None
     try:
         config = load_config_from_env()
-        result = run_monitor(config=config)
+        report_mode = os.getenv("REPORT_MODE", DEFAULT_REPORT_MODE)
+        result = run_monitor(config=config, report_mode=report_mode)
         write_github_step_summary(result)
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

@@ -3,6 +3,7 @@
 !.github/
 !.github/workflows/
 !.github/workflows/csrc-index-monitor.yml
+!.github/workflows/csrc-index-daily-summary.yml
 !csrc_index_monitor.py
 !tests/
 tests/*
