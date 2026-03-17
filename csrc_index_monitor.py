@@ -510,6 +510,26 @@ def build_pdf_lines(events: list[dict[str, Any]], local_now: datetime) -> list[s
     return lines
 
 
+def build_pdf_table_sections(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    copy = report_copy(REPORT_MODE_DAILY_SUMMARY)
+    new_records = [event for event in events if event["event_type"] == "new_record"]
+    new_steps = [event for event in events if event["event_type"] == "new_step"]
+    return [
+        {
+            "title": f"{copy['records_title']}（{len(new_records)} 条）",
+            "headers": ["序号", "管理人", "产品名称", "产品类型", "上报日期"],
+            "rows": build_record_rows(new_records),
+            "column_widths": [70, 140, 430, 150, 160],
+        },
+        {
+            "title": f"{copy['steps_title']}（{len(new_steps)} 条）",
+            "headers": ["序号", "管理人", "产品名称", "产品类型", "上报日期", "最新节点", "节点日期"],
+            "rows": build_step_rows(new_steps),
+            "column_widths": [70, 120, 300, 120, 120, 210, 120],
+        },
+    ]
+
+
 def load_fitz_module() -> Any:
     try:
         return importlib.import_module("fitz")
@@ -555,6 +575,14 @@ def wrap_pdf_text(draw: Any, text: str, font: Any, max_width: int) -> list[str]:
     return lines
 
 
+def normalized_column_widths(widths: list[int], total_width: int) -> list[int]:
+    width_sum = sum(widths)
+    scaled = [max(60, round(width * total_width / width_sum)) for width in widths]
+    diff = total_width - sum(scaled)
+    scaled[-1] += diff
+    return scaled
+
+
 def generate_daily_summary_pdf(events: list[dict[str, Any]], local_now: datetime) -> dict[str, Any]:
     image_module, draw_module, font_module = load_pillow_modules()
     font_path = find_pdf_font_path()
@@ -562,34 +590,97 @@ def generate_daily_summary_pdf(events: list[dict[str, Any]], local_now: datetime
     margin_x, margin_y = 72, 72
     content_width = page_width - (margin_x * 2)
 
-    title_font = font_module.truetype(str(font_path), 34)
-    heading_font = font_module.truetype(str(font_path), 28)
-    body_font = font_module.truetype(str(font_path), 24)
+    title_font = font_module.truetype(str(font_path), 36)
+    meta_font = font_module.truetype(str(font_path), 24)
+    section_font = font_module.truetype(str(font_path), 28)
+    header_font = font_module.truetype(str(font_path), 22)
+    body_font = font_module.truetype(str(font_path), 20)
     pages: list[Any] = []
 
     def new_page() -> tuple[Any, Any, int]:
         image = image_module.new("RGB", (page_width, page_height), "white")
         return image, draw_module.Draw(image), margin_y
 
-    image, draw, y = new_page()
-    for index, raw_line in enumerate(build_pdf_lines(events, local_now)):
-        font = body_font
-        if index == 0:
-            font = title_font
-        elif raw_line and not raw_line[:1].isdigit() and raw_line.endswith("）"):
-            font = heading_font
-
-        line_height = font.size + 16
-        wrapped_lines = wrap_pdf_text(draw, raw_line, font, content_width)
-        for line in wrapped_lines:
-            if y + line_height > page_height - margin_y:
-                pages.append(image)
-                image, draw, y = new_page()
-            draw.text((margin_x, y), line, fill="black", font=font)
+    def draw_title_block(draw: Any, y: int) -> int:
+        summary_lines = [
+            f"指数基金审批日报{local_now:%Y-%m-%d}",
+            f"生成时间：{local_now:%Y-%m-%d %H:%M}",
+            f"合计：新产品 {sum(1 for event in events if event['event_type'] == 'new_record')} 条，新增节点产品 {sum(1 for event in events if event['event_type'] == 'new_step')} 条",
+        ]
+        for index, line in enumerate(summary_lines):
+            font = title_font if index == 0 else meta_font
+            line_height = font.size + 16
+            draw.text((margin_x, y), line, fill="#111827", font=font)
             y += line_height
+        return y + 8
 
-        if raw_line == "":
-            y += 6
+    def draw_table(draw: Any, y: int, section: dict[str, Any]) -> tuple[Any, Any, int]:
+        nonlocal image
+        section_title = section["title"]
+        headers = section["headers"]
+        rows = section["rows"]
+        column_widths = normalized_column_widths(section["column_widths"], content_width)
+        cell_padding = 10
+        grid_color = "#1f2937"
+        header_fill = "#dbeafe"
+        header_text_color = "#0f172a"
+        body_text_color = "#111827"
+
+        def draw_table_header(current_draw: Any, current_y: int) -> int:
+            current_draw.text((margin_x, current_y), section_title, fill="#111827", font=section_font)
+            current_y += section_font.size + 14
+
+            header_height = header_font.size + (cell_padding * 2)
+            x = margin_x
+            for header, width in zip(headers, column_widths):
+                current_draw.rectangle((x, current_y, x + width, current_y + header_height), fill=header_fill, outline=grid_color, width=2)
+                current_draw.text((x + cell_padding, current_y + cell_padding), header, fill=header_text_color, font=header_font)
+                x += width
+            return current_y + header_height
+
+        def start_new_page() -> int:
+            nonlocal image, draw
+            pages.append(image)
+            image, draw, next_y = new_page()
+            next_y = draw_title_block(draw, next_y)
+            return draw_table_header(draw, next_y)
+
+        y = draw_table_header(draw, y)
+        if not rows:
+            draw.text((margin_x + 4, y + 14), "无", fill=body_text_color, font=body_font)
+            return image, draw, y + body_font.size + 26
+
+        line_height = body_font.size + 12
+        for row in rows:
+            wrapped_cells = [
+                wrap_pdf_text(draw, str(value), body_font, max(width - (cell_padding * 2), 40))
+                for value, width in zip(row, column_widths)
+            ]
+            row_height = max(len(lines) for lines in wrapped_cells) * line_height + (cell_padding * 2)
+            if y + row_height > page_height - margin_y:
+                y = start_new_page()
+                wrapped_cells = [
+                    wrap_pdf_text(draw, str(value), body_font, max(width - (cell_padding * 2), 40))
+                    for value, width in zip(row, column_widths)
+                ]
+                row_height = max(len(lines) for lines in wrapped_cells) * line_height + (cell_padding * 2)
+
+            x = margin_x
+            for lines, width in zip(wrapped_cells, column_widths):
+                draw.rectangle((x, y, x + width, y + row_height), outline=grid_color, width=2)
+                text_y = y + cell_padding
+                for line in lines:
+                    draw.text((x + cell_padding, text_y), line, fill=body_text_color, font=body_font)
+                    text_y += line_height
+                x += width
+            y += row_height
+
+        return image, draw, y + 20
+
+    image, draw, y = new_page()
+    y = draw_title_block(draw, y)
+    for section in build_pdf_table_sections(events):
+        image, draw, y = draw_table(draw, y, section)
 
     pages.append(image)
     buffer = io.BytesIO()

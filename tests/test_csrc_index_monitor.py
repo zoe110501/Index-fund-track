@@ -328,6 +328,34 @@ class IncrementalModeTests(unittest.TestCase):
 
 
 class DailySummaryTests(unittest.TestCase):
+    def test_build_pdf_table_sections_matches_email_tables(self):
+        events = [
+            {
+                "event_type": "new_record",
+                "title": build_title("\u4e2d\u94f6\u57fa\u91d1\u7ba1\u7406\u6709\u9650\u516c\u53f8", "\u4e2d\u94f6\u6709\u8272\u91d1\u5c5e" + ETF_PHRASE),
+                "app_date": "2026-03-17",
+                "record_id": "beta",
+                "event_id": "new-record|beta",
+            },
+            {
+                "event_type": "new_step",
+                "title": build_title("\u534e\u590f\u57fa\u91d1\u7ba1\u7406\u6709\u9650\u516c\u53f8", "\u534e\u590f\u4eba\u5de5\u667a\u80fd" + ETF_PHRASE),
+                "app_date": "2026-03-17",
+                "record_id": "alpha",
+                "event_id": "new-step|alpha|x",
+                "task_name": TASK_ACCEPT,
+                "fnsh_date": "2026-03-17",
+                "al_file_cde": "x",
+            },
+        ]
+
+        sections = monitor.build_pdf_table_sections(events)
+
+        self.assertEqual(sections[0]["headers"], ["\u5e8f\u53f7", "\u7ba1\u7406\u4eba", "\u4ea7\u54c1\u540d\u79f0", "\u4ea7\u54c1\u7c7b\u578b", "\u4e0a\u62a5\u65e5\u671f"])
+        self.assertEqual(sections[0]["rows"][0][1:], ["\u4e2d\u94f6", "\u4e2d\u94f6\u6709\u8272\u91d1\u5c5eETF", "ETF", "2026-03-17"])
+        self.assertEqual(sections[1]["headers"], ["\u5e8f\u53f7", "\u7ba1\u7406\u4eba", "\u4ea7\u54c1\u540d\u79f0", "\u4ea7\u54c1\u7c7b\u578b", "\u4e0a\u62a5\u65e5\u671f", "\u6700\u65b0\u8282\u70b9", "\u8282\u70b9\u65e5\u671f"])
+        self.assertEqual(sections[1]["rows"][0][1:], ["\u534e\u590f", "\u534e\u590f\u4eba\u5de5\u667a\u80fdETF", "ETF", "2026-03-17", TASK_ACCEPT, "2026-03-17"])
+
     def test_generate_daily_summary_pdf_reports_missing_font(self):
         local_now = datetime(2026, 3, 17, 19, 30, tzinfo=monitor.SHANGHAI_TZ)
 
