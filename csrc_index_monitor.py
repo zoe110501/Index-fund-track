@@ -52,6 +52,85 @@ class MonitorConfig:
     alert_email_to: list[str]
 
 
+def get_email_transport(config: MonitorConfig) -> str:
+    return "SMTP_SSL" if config.smtp_port == 465 else "STARTTLS"
+
+
+def mask_email_address(value: str) -> str:
+    value = value.strip()
+    if "@" not in value:
+        if len(value) <= 2:
+            return "*" * len(value)
+        return f"{value[0]}***{value[-1]}"
+
+    local_part, domain = value.split("@", 1)
+    if not local_part:
+        masked_local = "***"
+    elif len(local_part) == 1:
+        masked_local = f"{local_part}***"
+    else:
+        masked_local = f"{local_part[0]}***{local_part[-1]}"
+    return f"{masked_local}@{domain}"
+
+
+def email_domain(value: str) -> str:
+    _, _, domain = value.strip().partition("@")
+    return domain.lower()
+
+
+def build_email_diagnostics(config: MonitorConfig) -> dict[str, Any]:
+    username = config.smtp_username.strip().lower()
+    sender = config.alert_email_from.strip().lower()
+    username_domain = email_domain(config.smtp_username)
+    sender_domain = email_domain(config.alert_email_from)
+    warnings: list[str] = []
+
+    if sender != username:
+        warnings.append("ALERT_EMAIL_FROM does not exactly match SMTP_USERNAME.")
+    if username_domain and sender_domain and username_domain != sender_domain:
+        warnings.append("ALERT_EMAIL_FROM uses a different domain from SMTP_USERNAME.")
+
+    return {
+        "smtp_host": config.smtp_host,
+        "smtp_port": config.smtp_port,
+        "transport": get_email_transport(config),
+        "smtp_username_masked": mask_email_address(config.smtp_username),
+        "alert_email_from_masked": mask_email_address(config.alert_email_from),
+        "alert_email_to_masked": [mask_email_address(recipient) for recipient in config.alert_email_to],
+        "recipient_count": len(config.alert_email_to),
+        "sender_matches_username": sender == username,
+        "sender_domain_matches_username_domain": bool(username_domain and sender_domain and username_domain == sender_domain),
+        "warnings": warnings,
+    }
+
+
+def count_events_by_type(events: list[dict[str, Any]]) -> tuple[int, int]:
+    new_record_count = sum(1 for event in events if event.get("event_type") == "new_record")
+    new_step_count = sum(1 for event in events if event.get("event_type") == "new_step")
+    return new_record_count, new_step_count
+
+
+def attach_monitor_diagnostics(
+    result: dict[str, Any],
+    *,
+    config: MonitorConfig,
+    events: list[dict[str, Any]],
+    email_attempted: bool,
+    email_status: str,
+) -> dict[str, Any]:
+    new_record_count, new_step_count = count_events_by_type(events)
+    result["new_record_count"] = new_record_count
+    result["new_step_count"] = new_step_count
+    result["email_diagnostics"] = build_email_diagnostics(config)
+    result["email_delivery"] = {
+        "attempted": email_attempted,
+        "status": email_status,
+        "recipient_count": len(config.alert_email_to),
+        "transport": get_email_transport(config),
+    }
+    return result
+
+
 def make_step_id(step: dict[str, Any]) -> str:
     task_name = step.get("taskName") or step.get("task_name") or ""
     fnsh_date = step.get("fnshDate") or step.get("fnsh_date") or ""
@@ -421,6 +500,63 @@ def save_state(path: Path, snapshot: dict[str, Any]) -> None:
     path.write_text(json.dumps(snapshot, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def write_github_step_summary(result: dict[str, Any], path: Path | None = None) -> None:
+    summary_path = path or Path(os.getenv("GITHUB_STEP_SUMMARY", ""))
+    if not str(summary_path):
+        return
+
+    diagnostics = result.get("email_diagnostics") or {}
+    email_delivery = result.get("email_delivery") or {}
+    warnings = diagnostics.get("warnings") or []
+    lines = ["## Email delivery diagnostics", ""]
+
+    if result.get("status") == "error":
+        lines.extend(
+            [
+                f"- Status: error ({result.get('error_type', 'UnknownError')})",
+                f"- Message: {result.get('message', '')}",
+            ]
+        )
+    else:
+        lines.extend(
+            [
+                f"- Baseline created: {result.get('baseline_created')}",
+                f"- Events detected: {result.get('event_count', 0)}",
+                f"- New records: {result.get('new_record_count', 0)}",
+                f"- New steps: {result.get('new_step_count', 0)}",
+            ]
+        )
+
+    if diagnostics:
+        lines.extend(
+            [
+                f"- SMTP host: {diagnostics.get('smtp_host', '')}",
+                f"- SMTP port: {diagnostics.get('smtp_port', '')}",
+                f"- Transport: {diagnostics.get('transport', '')}",
+                f"- SMTP username: {diagnostics.get('smtp_username_masked', '')}",
+                f"- Alert from: {diagnostics.get('alert_email_from_masked', '')}",
+                f"- Alert recipients ({diagnostics.get('recipient_count', 0)}): {', '.join(diagnostics.get('alert_email_to_masked') or [])}",
+                f"- Sender matches username: {diagnostics.get('sender_matches_username')}",
+                f"- Sender domain matches username domain: {diagnostics.get('sender_domain_matches_username_domain')}",
+            ]
+        )
+
+    if email_delivery:
+        lines.extend(
+            [
+                f"- Delivery attempted: {email_delivery.get('attempted')}",
+                f"- Delivery status: {email_delivery.get('status', '')}",
+            ]
+        )
+
+    if warnings:
+        lines.extend(["", "### Warnings"])
+        lines.extend(f"- {warning}" for warning in warnings)
+
+    summary_path.parent.mkdir(parents=True, exist_ok=True)
+    summary_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def run_monitor(
     *,
     config: MonitorConfig,
@@ -438,24 +574,36 @@ def run_monitor(
 
     if previous_snapshot is None:
         save_state(config.state_file_path, current_snapshot)
-        return {
+        return attach_monitor_diagnostics(
+            {
             "baseline_created": True,
             "event_count": 0,
             "events": [],
             "state_changed": True,
             "state_file_path": str(config.state_file_path),
-        }
+            },
+            config=config,
+            events=[],
+            email_attempted=False,
+            email_status="not_attempted",
+        )
 
     events = diff_snapshots(previous_snapshot, current_snapshot)
     if not events:
         save_state(config.state_file_path, current_snapshot)
-        return {
+        return attach_monitor_diagnostics(
+            {
             "baseline_created": False,
             "event_count": 0,
             "events": [],
             "state_changed": True,
             "state_file_path": str(config.state_file_path),
-        }
+            },
+            config=config,
+            events=[],
+            email_attempted=False,
+            email_status="not_attempted",
+        )
 
     subject, body = format_email_summary(events)
     html_body = format_html_summary(events)
@@ -463,14 +611,20 @@ def run_monitor(
 
     notified_snapshot = build_snapshot(records, now_iso, notified_event_ids=[event["event_id"] for event in events])
     save_state(config.state_file_path, notified_snapshot)
-    return {
+    return attach_monitor_diagnostics(
+        {
         "baseline_created": False,
         "event_count": len(events),
         "events": events,
         "state_changed": True,
         "state_file_path": str(config.state_file_path),
         "email_subject": subject,
-    }
+        },
+        config=config,
+        events=events,
+        email_attempted=True,
+        email_status="sent",
+    )
 
 
 def parse_email_recipients(raw_value: str) -> list[str]:
@@ -501,9 +655,11 @@ def load_config_from_env() -> MonitorConfig:
 
 
 def main() -> int:
+    config: MonitorConfig | None = None
     try:
         config = load_config_from_env()
         result = run_monitor(config=config)
+        write_github_step_summary(result)
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
     except Exception as exc:
@@ -512,6 +668,9 @@ def main() -> int:
             "error_type": exc.__class__.__name__,
             "message": str(exc),
         }
+        if config is not None:
+            error_payload["email_diagnostics"] = build_email_diagnostics(config)
+        write_github_step_summary(error_payload)
         print(json.dumps(error_payload, ensure_ascii=False, indent=2), file=sys.stderr)
         return 1
 
