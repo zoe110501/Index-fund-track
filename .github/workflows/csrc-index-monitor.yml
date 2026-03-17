@@ -37,7 +37,7 @@ jobs:
             git worktree add --force state-branch --detach origin/state
             git -C state-branch switch -C state --track origin/state
           else
-            git worktree add --force --orphan state-branch state
+            git worktree add --force --orphan -b state state-branch
             find state-branch -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
           fi
 
