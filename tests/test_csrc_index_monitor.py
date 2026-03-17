@@ -230,14 +230,20 @@ class OrchestrationTests(unittest.TestCase):
             self.assertEqual(result["event_count"], 3)
             self.assertIn("新产品 2 条", email_calls[0]["subject"])
             self.assertIn("新节点 1 条", email_calls[0]["subject"])
-            self.assertIn("序号 | 管理人 | 产品名称 | 产品类型 | 上报日期", email_calls[0]["body"])
-            self.assertIn("序号 | 管理人 | 产品名称 | 产品类型 | 上报日期 | 最新状态 | 最新状态日期", email_calls[0]["body"])
-            self.assertIn("1 | 华夏 | 华夏创业板人工智能交易型开放式指数证券投资基金 | ETF | 2026-03-17", email_calls[0]["body"])
-            self.assertIn("2 | 国泰 | 国泰沪深300指数增强证券投资基金 | 普通指数 | 2026-03-18", email_calls[0]["body"])
+            self.assertIn("序号 | 管理人 | 产品名称", email_calls[0]["body"])
+            self.assertIn("最新状态日期", email_calls[0]["body"])
+            self.assertIn("-----+--------+", email_calls[0]["body"])
+            self.assertIn("1    | 华夏", email_calls[0]["body"])
+            self.assertIn("2    | 国泰", email_calls[0]["body"])
             self.assertIn(
-                "1 | 易方达 | 易方达上证综指交易型开放式指数证券投资基金联接基金 | ETF联接 | 2026-03-16 | 受理通知 | 2026-03-17",
+                "1    | 易方达 | 易方达上证综指交易型开放式指数证券投资基金联接基金",
                 email_calls[0]["body"],
             )
+            self.assertIn("html_body", email_calls[0])
+            self.assertIn("font-family: FangSong", email_calls[0]["html_body"])
+            self.assertIn("<th", email_calls[0]["html_body"])
+            self.assertIn("最新状态日期", email_calls[0]["html_body"])
+            self.assertIn("华夏创业板人工智能交易型开放式指数证券投资基金", email_calls[0]["html_body"])
 
     def test_run_monitor_does_not_update_state_when_email_fails(self):
         first_records = [
@@ -326,6 +332,20 @@ class DisplayFieldTests(unittest.TestCase):
         self.assertEqual(display["manager"], "易方达")
         self.assertEqual(display["product_name"], "易方达创业板新能源交易型开放式指数证券投资基金")
         self.assertEqual(display["product_type"], "ETF")
+
+    def test_format_table_aligns_columns(self):
+        table = monitor.format_table(
+            ["序号", "管理人", "产品类型"],
+            [
+                ["1", "华夏", "ETF"],
+                ["2", "国泰", "普通指数"],
+            ],
+        )
+
+        lines = table.splitlines()
+        self.assertEqual(lines[0].count("|"), 2)
+        self.assertIn("-+-", lines[1])
+        self.assertEqual(lines[2].count("|"), 2)
 
 
 if __name__ == "__main__":

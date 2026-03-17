@@ -5,9 +5,11 @@ import os
 import re
 import smtplib
 import sys
+import unicodedata
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from email.message import EmailMessage
+from html import escape
 from pathlib import Path
 from typing import Any, Callable
 from urllib.parse import urlencode
@@ -252,10 +254,115 @@ def extract_display_fields(title: str) -> dict[str, str]:
 
 
 def format_table(headers: list[str], rows: list[list[str]]) -> str:
-    lines = [" | ".join(headers)]
+    all_rows = [headers, *rows]
+    widths = [
+        max(display_width(row[index]) for row in all_rows)
+        for index in range(len(headers))
+    ]
+    lines = [format_table_row(headers, widths), format_table_separator(widths)]
     for row in rows:
-        lines.append(" | ".join(row))
+        lines.append(format_table_row(row, widths))
     return "\n".join(lines)
+
+
+def display_width(value: str) -> int:
+    width = 0
+    for char in value:
+        width += 2 if unicodedata.east_asian_width(char) in {"W", "F"} else 1
+    return width
+
+
+def pad_cell(value: str, width: int) -> str:
+    padding = width - display_width(value)
+    return value + (" " * max(padding, 0))
+
+
+def format_table_row(row: list[str], widths: list[int]) -> str:
+    return " | ".join(pad_cell(value, widths[index]) for index, value in enumerate(row))
+
+
+def format_table_separator(widths: list[int]) -> str:
+    return "-+-".join("-" * width for width in widths)
+
+
+def build_record_rows(events: list[dict[str, Any]]) -> list[list[str]]:
+    rows: list[list[str]] = []
+    for index, event in enumerate(events, start=1):
+        display = extract_display_fields(event["title"])
+        rows.append(
+            [
+                str(index),
+                display["manager"],
+                display["product_name"],
+                display["product_type"],
+                event["app_date"],
+            ]
+        )
+    return rows
+
+
+def build_step_rows(events: list[dict[str, Any]]) -> list[list[str]]:
+    rows: list[list[str]] = []
+    for index, event in enumerate(events, start=1):
+        display = extract_display_fields(event["title"])
+        rows.append(
+            [
+                str(index),
+                display["manager"],
+                display["product_name"],
+                display["product_type"],
+                event["app_date"],
+                event["task_name"],
+                event["fnsh_date"],
+            ]
+        )
+    return rows
+
+
+def format_html_summary(events: list[dict[str, Any]]) -> str:
+    new_records = [event for event in events if event["event_type"] == "new_record"]
+    new_steps = [event for event in events if event["event_type"] == "new_step"]
+    sections: list[str] = [
+        "<div style=\"font-family: FangSong, STFangsong, serif; font-size: 16px; color: #1f2937;\">",
+        "<p>本轮检测到以下增量：</p>",
+        f"<p><strong>新产品（{len(new_records)} 条）</strong></p>",
+        render_html_table(
+            ["序号", "管理人", "产品名称", "产品类型", "上报日期"],
+            build_record_rows(new_records),
+        )
+        if new_records
+        else "<p>无</p>",
+        f"<p><strong>新节点产品（{len(new_steps)} 条）</strong></p>",
+        render_html_table(
+            ["序号", "管理人", "产品名称", "产品类型", "上报日期", "最新状态", "最新状态日期"],
+            build_step_rows(new_steps),
+        )
+        if new_steps
+        else "<p>无</p>",
+        "</div>",
+    ]
+    return "".join(sections)
+
+
+def render_html_table(headers: list[str], rows: list[list[str]]) -> str:
+    header_html = "".join(
+        f"<th style=\"border:1px solid #1f2937;background:#1f4f82;color:#ffffff;padding:8px 12px;text-align:center;\">{escape(header)}</th>"
+        for header in headers
+    )
+    row_html = []
+    for row in rows:
+        cells = "".join(
+            f"<td style=\"border:1px solid #1f2937;padding:8px 12px;\">{escape(value)}</td>"
+            for value in row
+        )
+        row_html.append(f"<tr>{cells}</tr>")
+    return (
+        "<table style=\"border-collapse:collapse;width:100%;font-family: FangSong, STFangsong, serif;"
+        "margin:8px 0 16px 0;\">"
+        f"<thead><tr>{header_html}</tr></thead>"
+        f"<tbody>{''.join(row_html)}</tbody>"
+        "</table>"
+    )
 
 
 def format_email_summary(events: list[dict[str, Any]]) -> tuple[str, str]:
@@ -268,43 +375,17 @@ def format_email_summary(events: list[dict[str, Any]]) -> tuple[str, str]:
     sections.append("")
     sections.append(f"新产品（{len(new_records)} 条）")
     if new_records:
-        rows: list[list[str]] = []
-        for index, event in enumerate(new_records, start=1):
-            display = extract_display_fields(event["title"])
-            rows.append(
-                [
-                    str(index),
-                    display["manager"],
-                    display["product_name"],
-                    display["product_type"],
-                    event["app_date"],
-                ]
-            )
-        sections.append(format_table(["序号", "管理人", "产品名称", "产品类型", "上报日期"], rows))
+        sections.append(format_table(["序号", "管理人", "产品名称", "产品类型", "上报日期"], build_record_rows(new_records)))
     else:
         sections.append("- 无")
 
     sections.append("")
     sections.append(f"新节点产品（{len(new_steps)} 条）")
     if new_steps:
-        rows = []
-        for index, event in enumerate(new_steps, start=1):
-            display = extract_display_fields(event["title"])
-            rows.append(
-                [
-                    str(index),
-                    display["manager"],
-                    display["product_name"],
-                    display["product_type"],
-                    event["app_date"],
-                    event["task_name"],
-                    event["fnsh_date"],
-                ]
-            )
         sections.append(
             format_table(
                 ["序号", "管理人", "产品名称", "产品类型", "上报日期", "最新状态", "最新状态日期"],
-                rows,
+                build_step_rows(new_steps),
             )
         )
     else:
@@ -313,12 +394,21 @@ def format_email_summary(events: list[dict[str, Any]]) -> tuple[str, str]:
     return subject, "\n".join(sections)
 
 
-def send_email(*, config: MonitorConfig, subject: str, body: str, events: list[dict[str, Any]] | None = None) -> None:
+def send_email(
+    *,
+    config: MonitorConfig,
+    subject: str,
+    body: str,
+    html_body: str | None = None,
+    events: list[dict[str, Any]] | None = None,
+) -> None:
     message = EmailMessage()
     message["Subject"] = subject
     message["From"] = config.alert_email_from
     message["To"] = ", ".join(config.alert_email_to)
     message.set_content(body)
+    if html_body:
+        message.add_alternative(html_body, subtype="html")
 
     if config.smtp_port == 465:
         with smtplib.SMTP_SSL(config.smtp_host, config.smtp_port, timeout=30) as client:
@@ -382,7 +472,8 @@ def run_monitor(
         }
 
     subject, body = format_email_summary(events)
-    send_email_func(config=config, subject=subject, body=body, events=events)
+    html_body = format_html_summary(events)
+    send_email_func(config=config, subject=subject, body=body, html_body=html_body, events=events)
 
     notified_snapshot = build_snapshot(records, now_iso, notified_event_ids=[event["event_id"] for event in events])
     save_state(config.state_file_path, notified_snapshot)
