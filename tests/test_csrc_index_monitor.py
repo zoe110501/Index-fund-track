@@ -445,10 +445,6 @@ class DailySummaryTests(unittest.TestCase):
             self.assertEqual(email_calls, [])
 
     def test_daily_summary_skips_when_baseline_missing(self):
-        records = [
-            build_record("alpha", "alpha", "2026-03-17", [build_step(TASK_RECEIVE, "2026-03-17")])
-        ]
-
         with tempfile.TemporaryDirectory() as tmpdir:
             state_file = Path(tmpdir) / "state.json"
             config = monitor.MonitorConfig(
@@ -470,6 +466,87 @@ class DailySummaryTests(unittest.TestCase):
 
             self.assertEqual(result["email_delivery"]["status"], "skipped_missing_baseline")
             self.assertEqual(result["skipped_reason"], "missing_daily_baseline")
+
+    def test_load_daily_baseline_snapshot_falls_back_to_git_history(self):
+        baseline_records = [
+            build_record("alpha", "alpha", "2026-03-17", [build_step(TASK_RECEIVE, "2026-03-17")])
+        ]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_root = Path(tmpdir) / "state-branch"
+            repo_root.mkdir(parents=True, exist_ok=True)
+            (repo_root / ".git").write_text("gitdir: /tmp/fake\n", encoding="utf-8")
+            state_file = repo_root / "state" / "csrc_index_monitor_state.json"
+            daily_path = repo_root / "state" / "daily" / "2026-03-17.json"
+            expected_snapshot = monitor.build_snapshot(baseline_records, "2026-03-17T01:56:45Z")
+
+            def fake_git_runner(command, **kwargs):
+                self.assertEqual(command[0], "git")
+                self.assertEqual(command[1], "-C")
+                self.assertEqual(command[2], str(repo_root))
+                if command[3] == "log":
+                    return mock.Mock(returncode=0, stdout="3b76b95b4c80af5eb36aa4352ec7c93d7abfa545\n", stderr="")
+                if command[3] == "show":
+                    self.assertEqual(command[4], "3b76b95b4c80af5eb36aa4352ec7c93d7abfa545:state/csrc_index_monitor_state.json")
+                    return mock.Mock(
+                        returncode=0,
+                        stdout=json.dumps(expected_snapshot, ensure_ascii=False),
+                        stderr="",
+                    )
+                raise AssertionError(f"Unexpected git command: {command}")
+
+            snapshot, source = monitor.load_daily_baseline_snapshot(
+                daily_path,
+                state_file,
+                datetime(2026, 3, 17, 19, 30, tzinfo=monitor.SHANGHAI_TZ),
+                git_runner=fake_git_runner,
+            )
+
+            self.assertEqual(source, "git_history")
+            self.assertEqual(snapshot, expected_snapshot)
+
+    def test_load_daily_baseline_snapshot_prefers_earlier_git_history_over_late_daily_file(self):
+        baseline_records = [
+            build_record("alpha", "alpha", "2026-03-17", [build_step(TASK_RECEIVE, "2026-03-17")])
+        ]
+        late_records = [
+            build_record("alpha", "alpha", "2026-03-17", [build_step(TASK_RECEIVE, "2026-03-17"), build_step(TASK_ACCEPT, "2026-03-17", "file-a")])
+        ]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            repo_root = Path(tmpdir) / "state-branch"
+            repo_root.mkdir(parents=True, exist_ok=True)
+            (repo_root / ".git").write_text("gitdir: /tmp/fake\n", encoding="utf-8")
+            state_file = repo_root / "state" / "csrc_index_monitor_state.json"
+            daily_path = repo_root / "state" / "daily" / "2026-03-17.json"
+            daily_path.parent.mkdir(parents=True, exist_ok=True)
+            late_snapshot = monitor.build_snapshot(late_records, "2026-03-17T11:50:42Z")
+            expected_snapshot = monitor.build_snapshot(baseline_records, "2026-03-17T01:56:45Z")
+            daily_path.write_text(json.dumps(late_snapshot, ensure_ascii=False), encoding="utf-8")
+
+            def fake_git_runner(command, **kwargs):
+                self.assertEqual(command[0], "git")
+                self.assertEqual(command[1], "-C")
+                self.assertEqual(command[2], str(repo_root))
+                if command[3] == "log":
+                    return mock.Mock(returncode=0, stdout="3b76b95b4c80af5eb36aa4352ec7c93d7abfa545\n", stderr="")
+                if command[3] == "show":
+                    return mock.Mock(
+                        returncode=0,
+                        stdout=json.dumps(expected_snapshot, ensure_ascii=False),
+                        stderr="",
+                    )
+                raise AssertionError(f"Unexpected git command: {command}")
+
+            snapshot, source = monitor.load_daily_baseline_snapshot(
+                daily_path,
+                state_file,
+                datetime(2026, 3, 17, 19, 30, tzinfo=monitor.SHANGHAI_TZ),
+                git_runner=fake_git_runner,
+            )
+
+            self.assertEqual(source, "git_history")
+            self.assertEqual(snapshot, expected_snapshot)
 
     def test_daily_summary_skips_when_latest_state_missing(self):
         baseline_records = [

@@ -5,6 +5,7 @@ import importlib
 import os
 import re
 import smtplib
+import subprocess
 import sys
 import unicodedata
 from dataclasses import dataclass
@@ -597,6 +598,128 @@ def ensure_daily_baseline(path: Path, snapshot: dict[str, Any]) -> bool:
     return True
 
 
+def find_git_repo_root(start_path: Path) -> Path | None:
+    for candidate in [start_path, *start_path.parents]:
+        if (candidate / ".git").exists():
+            return candidate
+    return None
+
+
+def run_git_command(
+    command: list[str],
+    *,
+    capture_output: bool = True,
+    text: bool = True,
+    encoding: str = "utf-8",
+    check: bool = True,
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        command,
+        capture_output=capture_output,
+        text=text,
+        encoding=encoding,
+        check=check,
+    )
+
+
+def load_historical_daily_baseline(
+    state_file_path: Path,
+    local_now: datetime,
+    *,
+    git_runner: Callable[..., subprocess.CompletedProcess[str]] = run_git_command,
+) -> dict[str, Any] | None:
+    repo_root = find_git_repo_root(state_file_path.parent)
+    if repo_root is None:
+        return None
+
+    try:
+        state_path_in_repo = state_file_path.relative_to(repo_root).as_posix()
+    except ValueError:
+        return None
+
+    day_start_local = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+    day_end_local = day_start_local + timedelta(days=1)
+    since_utc = day_start_local.astimezone(timezone.utc).isoformat()
+    until_utc = day_end_local.astimezone(timezone.utc).isoformat()
+
+    try:
+        log_result = git_runner(
+            [
+                "git",
+                "-C",
+                str(repo_root),
+                "log",
+                "--reverse",
+                f"--since={since_utc}",
+                f"--until={until_utc}",
+                "--format=%H",
+                "--",
+                state_path_in_repo,
+            ]
+        )
+    except Exception:
+        return None
+
+    commits = [line.strip() for line in log_result.stdout.splitlines() if line.strip()]
+    if not commits:
+        return None
+
+    commit_hash = commits[0]
+    try:
+        show_result = git_runner(
+            [
+                "git",
+                "-C",
+                str(repo_root),
+                "show",
+                f"{commit_hash}:{state_path_in_repo}",
+            ]
+        )
+    except Exception:
+        return None
+
+    try:
+        return json.loads(show_result.stdout)
+    except json.JSONDecodeError:
+        return None
+
+
+def snapshot_timestamp(snapshot: dict[str, Any] | None) -> datetime | None:
+    if not snapshot:
+        return None
+    raw_value = snapshot.get("last_success_at")
+    if not raw_value:
+        return None
+    try:
+        return parse_now_iso(str(raw_value))
+    except ValueError:
+        return None
+
+
+def load_daily_baseline_snapshot(
+    daily_baseline_path: Path,
+    state_file_path: Path,
+    local_now: datetime,
+    *,
+    git_runner: Callable[..., subprocess.CompletedProcess[str]] = run_git_command,
+) -> tuple[dict[str, Any] | None, str]:
+    file_snapshot = load_state(daily_baseline_path)
+    historical_snapshot = load_historical_daily_baseline(state_file_path, local_now, git_runner=git_runner)
+
+    if file_snapshot and historical_snapshot:
+        file_timestamp = snapshot_timestamp(file_snapshot)
+        historical_timestamp = snapshot_timestamp(historical_snapshot)
+        if historical_timestamp and (file_timestamp is None or historical_timestamp < file_timestamp):
+            return historical_snapshot, "git_history"
+        return file_snapshot, "daily_file"
+
+    if file_snapshot:
+        return file_snapshot, "daily_file"
+    if historical_snapshot:
+        return historical_snapshot, "git_history"
+    return None, "missing"
+
+
 def write_github_step_summary(result: dict[str, Any], path: Path | None = None) -> None:
     raw_summary_path = str(path) if path is not None else os.getenv("GITHUB_STEP_SUMMARY", "")
     if not raw_summary_path:
@@ -622,6 +745,7 @@ def write_github_step_summary(result: dict[str, Any], path: Path | None = None) 
                 f"- Baseline created: {result.get('baseline_created')}",
                 f"- Daily baseline created: {result.get('daily_baseline_created')}",
                 f"- Daily baseline path: {result.get('daily_baseline_path', '')}",
+                f"- Daily baseline source: {result.get('daily_baseline_source', '')}",
                 f"- Events detected: {result.get('event_count', 0)}",
                 f"- New records: {result.get('new_record_count', 0)}",
                 f"- New steps: {result.get('new_step_count', 0)}",
@@ -678,7 +802,11 @@ def run_monitor(
     daily_baseline_path = daily_baseline_path_for(config.state_file_path, local_now)
 
     if report_mode == REPORT_MODE_DAILY_SUMMARY:
-        daily_baseline_snapshot = load_state(daily_baseline_path)
+        daily_baseline_snapshot, daily_baseline_source = load_daily_baseline_snapshot(
+            daily_baseline_path,
+            config.state_file_path,
+            local_now,
+        )
         if daily_baseline_snapshot is None:
             return attach_monitor_diagnostics(
                 {
@@ -687,6 +815,7 @@ def run_monitor(
                     "events": [],
                     "state_changed": False,
                     "state_file_path": str(config.state_file_path),
+                    "daily_baseline_source": daily_baseline_source,
                 },
                 config=config,
                 events=[],
@@ -706,6 +835,7 @@ def run_monitor(
                     "events": [],
                     "state_changed": False,
                     "state_file_path": str(config.state_file_path),
+                    "daily_baseline_source": daily_baseline_source,
                 },
                 config=config,
                 events=[],
@@ -725,6 +855,7 @@ def run_monitor(
                     "events": [],
                     "state_changed": False,
                     "state_file_path": str(config.state_file_path),
+                    "daily_baseline_source": daily_baseline_source,
                 },
                 config=config,
                 events=[],
@@ -747,6 +878,7 @@ def run_monitor(
                 "state_changed": False,
                 "state_file_path": str(config.state_file_path),
                 "email_subject": subject,
+                "daily_baseline_source": daily_baseline_source,
             },
             config=config,
             events=events,
@@ -759,7 +891,18 @@ def run_monitor(
     records = fetch_records(config.keyword)
     current_snapshot = build_snapshot(records, now_iso)
     baseline_snapshot = build_snapshot(records, now_iso)
-    daily_baseline_created = ensure_daily_baseline(daily_baseline_path, baseline_snapshot)
+    existing_daily_baseline, existing_daily_baseline_source = load_daily_baseline_snapshot(
+        daily_baseline_path,
+        config.state_file_path,
+        local_now,
+    )
+    daily_baseline_created = False
+    if existing_daily_baseline is None:
+        save_state(daily_baseline_path, baseline_snapshot)
+        daily_baseline_created = True
+    elif existing_daily_baseline_source == "git_history" and not daily_baseline_path.exists():
+        save_state(daily_baseline_path, existing_daily_baseline)
+        daily_baseline_created = True
     previous_snapshot = load_state(config.state_file_path)
     if previous_snapshot is None:
         save_state(config.state_file_path, current_snapshot)
