@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import importlib
 import os
 import re
 import smtplib
@@ -14,8 +15,6 @@ from pathlib import Path
 from typing import Any, Callable
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
-
-import fitz
 
 
 API_URL = "https://neris.csrc.gov.cn/alappr-delare/home/approval-progress/v1/list"
@@ -502,18 +501,28 @@ def build_pdf_lines(events: list[dict[str, Any]], local_now: datetime) -> list[s
     return lines
 
 
+def load_fitz_module() -> Any:
+    try:
+        return importlib.import_module("fitz")
+    except ModuleNotFoundError as exc:
+        raise RuntimeError("PyMuPDF is required to generate the daily summary PDF attachment.") from exc
+
+
 def generate_daily_summary_pdf(events: list[dict[str, Any]], local_now: datetime) -> dict[str, Any]:
+    fitz = load_fitz_module()
     document = fitz.open()
-    page = document.new_page()
-    y = 40
-    for line in build_pdf_lines(events, local_now):
-        if y > 790:
-            page = document.new_page()
-            y = 40
-        page.insert_textbox(fitz.Rect(40, y, 555, y + 18), line, fontsize=11, fontname="helv")
-        y += 18
-    content = document.tobytes()
-    document.close()
+    try:
+        page = document.new_page()
+        y = 40
+        for line in build_pdf_lines(events, local_now):
+            if y > 790:
+                page = document.new_page()
+                y = 40
+            page.insert_textbox(fitz.Rect(40, y, 555, y + 18), line, fontsize=11, fontname="helv")
+            y += 18
+        content = document.tobytes()
+    finally:
+        document.close()
     return {
         "filename": f"指数基金审批日报{local_now:%Y-%m-%d}.pdf",
         "content": content,

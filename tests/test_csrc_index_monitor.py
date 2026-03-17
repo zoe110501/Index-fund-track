@@ -2,6 +2,7 @@ import json
 import os
 import tempfile
 import unittest
+from datetime import datetime
 from pathlib import Path
 from unittest import mock
 
@@ -272,12 +273,13 @@ class IncrementalModeTests(unittest.TestCase):
                 send_email_func=lambda **kwargs: None,
                 now_iso="2026-03-17T09:00:00Z",
             )
-            result = monitor.run_monitor(
-                config=config,
-                fetch_records=lambda keyword: second_records,
-                send_email_func=lambda **kwargs: email_calls.append(kwargs),
-                now_iso="2026-03-17T10:00:00Z",
-            )
+            with mock.patch("csrc_index_monitor.importlib.import_module", side_effect=AssertionError("fitz should not load in incremental mode")):
+                result = monitor.run_monitor(
+                    config=config,
+                    fetch_records=lambda keyword: second_records,
+                    send_email_func=lambda **kwargs: email_calls.append(kwargs),
+                    now_iso="2026-03-17T10:00:00Z",
+                )
 
             self.assertEqual(result["report_mode"], "incremental")
             self.assertEqual(result["email_subject"], "\u6307\u6570\u57fa\u91d1\u5ba1\u6279\u8fdb\u5ea6\uff0818\uff1a00\uff09")
@@ -326,6 +328,13 @@ class IncrementalModeTests(unittest.TestCase):
 
 
 class DailySummaryTests(unittest.TestCase):
+    def test_generate_daily_summary_pdf_reports_missing_pymupdf(self):
+        local_now = datetime(2026, 3, 17, 19, 30, tzinfo=monitor.SHANGHAI_TZ)
+
+        with mock.patch("csrc_index_monitor.importlib.import_module", side_effect=ModuleNotFoundError("No module named 'fitz'")):
+            with self.assertRaisesRegex(RuntimeError, "PyMuPDF"):
+                monitor.generate_daily_summary_pdf([], local_now)
+
     def test_daily_summary_sends_pdf_attachment(self):
         baseline_records = [
             build_record(

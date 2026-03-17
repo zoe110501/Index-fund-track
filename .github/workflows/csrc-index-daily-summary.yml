@@ -43,6 +43,9 @@ jobs:
 
           mkdir -p state-branch/state
 
+      - name: Install PDF dependency
+        run: python -m pip install --disable-pip-version-check PyMuPDF
+
       - name: Run daily summary
         env:
           REPORT_MODE: daily_summary
