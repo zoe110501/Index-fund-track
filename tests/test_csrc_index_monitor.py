@@ -328,11 +328,11 @@ class IncrementalModeTests(unittest.TestCase):
 
 
 class DailySummaryTests(unittest.TestCase):
-    def test_generate_daily_summary_pdf_reports_missing_pymupdf(self):
+    def test_generate_daily_summary_pdf_reports_missing_font(self):
         local_now = datetime(2026, 3, 17, 19, 30, tzinfo=monitor.SHANGHAI_TZ)
 
-        with mock.patch("csrc_index_monitor.importlib.import_module", side_effect=ModuleNotFoundError("No module named 'fitz'")):
-            with self.assertRaisesRegex(RuntimeError, "PyMuPDF"):
+        with mock.patch("csrc_index_monitor.find_pdf_font_path", side_effect=RuntimeError("font missing")):
+            with self.assertRaisesRegex(RuntimeError, "font missing"):
                 monitor.generate_daily_summary_pdf([], local_now)
 
     def test_daily_summary_sends_pdf_attachment(self):
@@ -402,6 +402,10 @@ class DailySummaryTests(unittest.TestCase):
             self.assertEqual(attachment["filename"], "\u6307\u6570\u57fa\u91d1\u5ba1\u6279\u65e5\u62a52026-03-17.pdf")
             self.assertEqual(attachment["subtype"], "pdf")
             self.assertGreater(len(attachment["content"]), 0)
+            fitz = monitor.load_fitz_module()
+            pdf = fitz.open(stream=attachment["content"], filetype="pdf")
+            pix = pdf[0].get_pixmap()
+            self.assertTrue(any(channel != 255 for channel in pix.samples))
 
     def test_daily_summary_skips_email_when_no_changes(self):
         records = [

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import io
 import json
 import importlib
 import os
@@ -27,6 +28,13 @@ REPORT_MODE_INCREMENTAL = "incremental"
 REPORT_MODE_DAILY_SUMMARY = "daily_summary"
 EVENT_ID_SEPARATOR = "|"
 SHANGHAI_TZ = timezone(timedelta(hours=8))
+DEFAULT_PDF_FONT_CANDIDATES = (
+    Path("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"),
+    Path("/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc"),
+    Path("/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc"),
+    Path("C:/Windows/Fonts/simsun.ttc"),
+    Path("C:/Windows/Fonts/msyh.ttc"),
+)
 DISPLAY_ETF_SOURCE = "交易型开放式指数证券投资基金"
 DISPLAY_ETF_TARGET = "ETF"
 TITLE_PATTERN = re.compile(r"^关于(?P<manager>.+?)的《公开募集基金募集申请注册-(?P<product_name>.+?)》$")
@@ -509,21 +517,84 @@ def load_fitz_module() -> Any:
         raise RuntimeError("PyMuPDF is required to generate the daily summary PDF attachment.") from exc
 
 
-def generate_daily_summary_pdf(events: list[dict[str, Any]], local_now: datetime) -> dict[str, Any]:
-    fitz = load_fitz_module()
-    document = fitz.open()
+def load_pillow_modules() -> tuple[Any, Any, Any]:
     try:
-        page = document.new_page()
-        y = 40
-        for line in build_pdf_lines(events, local_now):
-            if y > 790:
-                page = document.new_page()
-                y = 40
-            page.insert_textbox(fitz.Rect(40, y, 555, y + 18), line, fontsize=11, fontname="helv")
-            y += 18
-        content = document.tobytes()
-    finally:
-        document.close()
+        pillow_image = importlib.import_module("PIL.Image")
+        pillow_draw = importlib.import_module("PIL.ImageDraw")
+        pillow_font = importlib.import_module("PIL.ImageFont")
+    except ModuleNotFoundError as exc:
+        raise RuntimeError("Pillow is required to generate the daily summary PDF attachment.") from exc
+    return pillow_image, pillow_draw, pillow_font
+
+
+def find_pdf_font_path() -> Path:
+    env_value = os.getenv("PDF_FONT_PATH", "").strip()
+    candidates = [Path(env_value)] if env_value else []
+    candidates.extend(DEFAULT_PDF_FONT_CANDIDATES)
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    raise RuntimeError("A Chinese font is required to generate the daily summary PDF attachment.")
+
+
+def wrap_pdf_text(draw: Any, text: str, font: Any, max_width: int) -> list[str]:
+    if not text:
+        return [""]
+
+    lines: list[str] = []
+    current = ""
+    for char in text:
+        trial = f"{current}{char}"
+        if current and draw.textlength(trial, font=font) > max_width:
+            lines.append(current)
+            current = char
+        else:
+            current = trial
+    if current:
+        lines.append(current)
+    return lines
+
+
+def generate_daily_summary_pdf(events: list[dict[str, Any]], local_now: datetime) -> dict[str, Any]:
+    image_module, draw_module, font_module = load_pillow_modules()
+    font_path = find_pdf_font_path()
+    page_width, page_height = 1240, 1754
+    margin_x, margin_y = 72, 72
+    content_width = page_width - (margin_x * 2)
+
+    title_font = font_module.truetype(str(font_path), 34)
+    heading_font = font_module.truetype(str(font_path), 28)
+    body_font = font_module.truetype(str(font_path), 24)
+    pages: list[Any] = []
+
+    def new_page() -> tuple[Any, Any, int]:
+        image = image_module.new("RGB", (page_width, page_height), "white")
+        return image, draw_module.Draw(image), margin_y
+
+    image, draw, y = new_page()
+    for index, raw_line in enumerate(build_pdf_lines(events, local_now)):
+        font = body_font
+        if index == 0:
+            font = title_font
+        elif raw_line and not raw_line[:1].isdigit() and raw_line.endswith("）"):
+            font = heading_font
+
+        line_height = font.size + 16
+        wrapped_lines = wrap_pdf_text(draw, raw_line, font, content_width)
+        for line in wrapped_lines:
+            if y + line_height > page_height - margin_y:
+                pages.append(image)
+                image, draw, y = new_page()
+            draw.text((margin_x, y), line, fill="black", font=font)
+            y += line_height
+
+        if raw_line == "":
+            y += 6
+
+    pages.append(image)
+    buffer = io.BytesIO()
+    pages[0].save(buffer, format="PDF", resolution=150.0, save_all=True, append_images=pages[1:])
+    content = buffer.getvalue()
     return {
         "filename": f"指数基金审批日报{local_now:%Y-%m-%d}.pdf",
         "content": content,
