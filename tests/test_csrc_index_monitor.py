@@ -169,7 +169,7 @@ class OrchestrationTests(unittest.TestCase):
         first_records = [
             {
                 "record_id": "alpha",
-                "title": "甲中证机器人指数证券投资基金",
+                "title": "关于易方达基金管理有限公司的《公开募集基金募集申请注册-易方达中证机器人指数证券投资基金》",
                 "app_date": "2026-03-16",
                 "steps": [{"task_name": "接收材料", "fnsh_date": "2026-03-16", "step_id": "接收材料|2026-03-16|-"}],
             }
@@ -177,7 +177,7 @@ class OrchestrationTests(unittest.TestCase):
         second_records = [
             {
                 "record_id": "alpha",
-                "title": "甲中证机器人指数证券投资基金",
+                "title": "关于易方达基金管理有限公司的《公开募集基金募集申请注册-易方达上证综指交易型开放式指数证券投资基金联接基金》",
                 "app_date": "2026-03-16",
                 "steps": [
                     {"task_name": "接收材料", "fnsh_date": "2026-03-16", "step_id": "接收材料|2026-03-16|-"},
@@ -186,9 +186,15 @@ class OrchestrationTests(unittest.TestCase):
             },
             {
                 "record_id": "gamma",
-                "title": "丙沪深300指数增强证券投资基金",
+                "title": "关于华夏基金管理有限公司的《公开募集基金募集申请注册-华夏创业板人工智能交易型开放式指数证券投资基金》",
                 "app_date": "2026-03-17",
                 "steps": [{"task_name": "接收材料", "fnsh_date": "2026-03-17", "step_id": "接收材料|2026-03-17|-"}],
+            },
+            {
+                "record_id": "delta",
+                "title": "关于国泰基金管理有限公司的《公开募集基金募集申请注册-国泰沪深300指数增强证券投资基金》",
+                "app_date": "2026-03-18",
+                "steps": [{"task_name": "接收材料", "fnsh_date": "2026-03-18", "step_id": "接收材料|2026-03-18|-"}],
             },
         ]
         email_calls = []
@@ -221,10 +227,17 @@ class OrchestrationTests(unittest.TestCase):
             )
 
             self.assertEqual(len(email_calls), 1)
-            self.assertEqual(result["event_count"], 2)
-            self.assertIn("新产品 1 条", email_calls[0]["subject"])
-            self.assertIn("甲中证机器人指数证券投资基金", email_calls[0]["body"])
-            self.assertIn("受理通知", email_calls[0]["body"])
+            self.assertEqual(result["event_count"], 3)
+            self.assertIn("新产品 2 条", email_calls[0]["subject"])
+            self.assertIn("新节点 1 条", email_calls[0]["subject"])
+            self.assertIn("序号 | 管理人 | 产品名称 | 产品类型 | 上报日期", email_calls[0]["body"])
+            self.assertIn("序号 | 管理人 | 产品名称 | 产品类型 | 上报日期 | 最新状态 | 最新状态日期", email_calls[0]["body"])
+            self.assertIn("1 | 华夏 | 华夏创业板人工智能交易型开放式指数证券投资基金 | ETF | 2026-03-17", email_calls[0]["body"])
+            self.assertIn("2 | 国泰 | 国泰沪深300指数增强证券投资基金 | 普通指数 | 2026-03-18", email_calls[0]["body"])
+            self.assertIn(
+                "1 | 易方达 | 易方达上证综指交易型开放式指数证券投资基金联接基金 | ETF联接 | 2026-03-16 | 受理通知 | 2026-03-17",
+                email_calls[0]["body"],
+            )
 
     def test_run_monitor_does_not_update_state_when_email_fails(self):
         first_records = [
@@ -302,6 +315,17 @@ class ConfigTests(unittest.TestCase):
                 ["one@example.com", "two@example.com", "three@example.com"],
             )
             self.assertEqual(config.state_file_path, state_file)
+
+
+class DisplayFieldTests(unittest.TestCase):
+    def test_extract_display_fields_from_raw_title(self):
+        display = monitor.extract_display_fields(
+            "关于易方达基金管理有限公司的《公开募集基金募集申请注册-易方达创业板新能源交易型开放式指数证券投资基金》"
+        )
+
+        self.assertEqual(display["manager"], "易方达")
+        self.assertEqual(display["product_name"], "易方达创业板新能源交易型开放式指数证券投资基金")
+        self.assertEqual(display["product_type"], "ETF")
 
 
 if __name__ == "__main__":

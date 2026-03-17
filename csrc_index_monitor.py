@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import smtplib
 import sys
 from dataclasses import dataclass
@@ -18,6 +19,23 @@ DEFAULT_KEYWORD = "指数"
 DEFAULT_PAGE_SIZE = 1000
 DEFAULT_STATE_FILE = Path("state/csrc_index_monitor_state.json")
 EVENT_ID_SEPARATOR = "|"
+TITLE_PATTERN = re.compile(r"^关于(?P<manager>.+?)的《公开募集基金募集申请注册-(?P<product_name>.+?)》$")
+MANAGER_SUFFIXES = (
+    "基金管理有限责任公司",
+    "基金管理有限公司",
+    "基金管理公司",
+    "基金管理",
+    "资产管理有限责任公司",
+    "资产管理有限公司",
+    "资产管理公司",
+    "资产管理",
+    "管理有限责任公司",
+    "管理有限公司",
+    "股份有限公司",
+    "有限责任公司",
+    "有限公司",
+    "公司",
+)
 
 
 @dataclass(frozen=True)
@@ -201,6 +219,45 @@ def split_step_id(step_id: str) -> tuple[str, str, str]:
     return parts[0], parts[1], parts[2]
 
 
+def abbreviate_manager_name(name: str) -> str:
+    for suffix in MANAGER_SUFFIXES:
+        if name.endswith(suffix):
+            return name[: -len(suffix)]
+    return name
+
+
+def classify_product_type(product_name: str) -> str:
+    if "交易型开放式指数证券投资基金联接基金" in product_name:
+        return "ETF联接"
+    if "交易型开放式指数证券投资基金" in product_name:
+        return "ETF"
+    return "普通指数"
+
+
+def extract_display_fields(title: str) -> dict[str, str]:
+    match = TITLE_PATTERN.match(title)
+    if match:
+        manager_raw = match.group("manager")
+        product_name = match.group("product_name")
+        manager = abbreviate_manager_name(manager_raw)
+    else:
+        product_name = title
+        manager = ""
+
+    return {
+        "manager": manager,
+        "product_name": product_name,
+        "product_type": classify_product_type(product_name),
+    }
+
+
+def format_table(headers: list[str], rows: list[list[str]]) -> str:
+    lines = [" | ".join(headers)]
+    for row in rows:
+        lines.append(" | ".join(row))
+    return "\n".join(lines)
+
+
 def format_email_summary(events: list[dict[str, Any]]) -> tuple[str, str]:
     new_records = [event for event in events if event["event_type"] == "new_record"]
     new_steps = [event for event in events if event["event_type"] == "new_step"]
@@ -211,18 +268,45 @@ def format_email_summary(events: list[dict[str, Any]]) -> tuple[str, str]:
     sections.append("")
     sections.append(f"新产品（{len(new_records)} 条）")
     if new_records:
-        for event in new_records:
-            sections.append(f"- {event['title']} | 申请日期：{event['app_date']} | 记录ID：{event['record_id']}")
+        rows: list[list[str]] = []
+        for index, event in enumerate(new_records, start=1):
+            display = extract_display_fields(event["title"])
+            rows.append(
+                [
+                    str(index),
+                    display["manager"],
+                    display["product_name"],
+                    display["product_type"],
+                    event["app_date"],
+                ]
+            )
+        sections.append(format_table(["序号", "管理人", "产品名称", "产品类型", "上报日期"], rows))
     else:
         sections.append("- 无")
 
     sections.append("")
-    sections.append(f"审批新节点（{len(new_steps)} 条）")
+    sections.append(f"新节点产品（{len(new_steps)} 条）")
     if new_steps:
-        for event in new_steps:
-            sections.append(
-                f"- {event['title']} | 节点：{event['task_name']} | 完成日期：{event['fnsh_date']} | 附件代码：{event['al_file_cde']}"
+        rows = []
+        for index, event in enumerate(new_steps, start=1):
+            display = extract_display_fields(event["title"])
+            rows.append(
+                [
+                    str(index),
+                    display["manager"],
+                    display["product_name"],
+                    display["product_type"],
+                    event["app_date"],
+                    event["task_name"],
+                    event["fnsh_date"],
+                ]
             )
+        sections.append(
+            format_table(
+                ["序号", "管理人", "产品名称", "产品类型", "上报日期", "最新状态", "最新状态日期"],
+                rows,
+            )
+        )
     else:
         sections.append("- 无")
 
