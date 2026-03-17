@@ -370,28 +370,14 @@ def format_email_summary(events: list[dict[str, Any]]) -> tuple[str, str]:
     new_steps = [event for event in events if event["event_type"] == "new_step"]
     subject = f"CSRC 指数审批进展提醒：新产品 {len(new_records)} 条，新节点 {len(new_steps)} 条"
 
-    sections: list[str] = []
-    sections.append("本轮检测到以下增量：")
-    sections.append("")
-    sections.append(f"新产品（{len(new_records)} 条）")
-    if new_records:
-        sections.append(format_table(["序号", "管理人", "产品名称", "产品类型", "上报日期"], build_record_rows(new_records)))
-    else:
-        sections.append("- 无")
-
-    sections.append("")
-    sections.append(f"新节点产品（{len(new_steps)} 条）")
-    if new_steps:
-        sections.append(
-            format_table(
-                ["序号", "管理人", "产品名称", "产品类型", "上报日期", "最新状态", "最新状态日期"],
-                build_step_rows(new_steps),
-            )
-        )
-    else:
-        sections.append("- 无")
-
-    return subject, "\n".join(sections)
+    body = "\n".join(
+        [
+            "请查看支持 HTML 的邮件正文获取完整表格。",
+            f"新产品：{len(new_records)} 条",
+            f"新节点：{len(new_steps)} 条",
+        ]
+    )
+    return subject, body
 
 
 def send_email(

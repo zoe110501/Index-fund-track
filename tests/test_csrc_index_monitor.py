@@ -230,15 +230,11 @@ class OrchestrationTests(unittest.TestCase):
             self.assertEqual(result["event_count"], 3)
             self.assertIn("新产品 2 条", email_calls[0]["subject"])
             self.assertIn("新节点 1 条", email_calls[0]["subject"])
-            self.assertIn("序号 | 管理人 | 产品名称", email_calls[0]["body"])
-            self.assertIn("最新状态日期", email_calls[0]["body"])
-            self.assertIn("-----+--------+", email_calls[0]["body"])
-            self.assertIn("1    | 华夏", email_calls[0]["body"])
-            self.assertIn("2    | 国泰", email_calls[0]["body"])
-            self.assertIn(
-                "1    | 易方达 | 易方达上证综指交易型开放式指数证券投资基金联接基金",
-                email_calls[0]["body"],
-            )
+            self.assertIn("请查看支持 HTML 的邮件正文获取完整表格。", email_calls[0]["body"])
+            self.assertIn("新产品：2 条", email_calls[0]["body"])
+            self.assertIn("新节点：1 条", email_calls[0]["body"])
+            self.assertNotIn("本轮检测到以下增量", email_calls[0]["body"])
+            self.assertNotIn("序号 | 管理人 | 产品名称", email_calls[0]["body"])
             self.assertIn("html_body", email_calls[0])
             self.assertIn("font-family: FangSong", email_calls[0]["html_body"])
             self.assertIn("<th", email_calls[0]["html_body"])
