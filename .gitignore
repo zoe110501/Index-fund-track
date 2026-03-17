@@ -17,3 +17,4 @@ etf_competitor_matrix_data.json
 
 etf_work/__pycache__/
 tests/__pycache__/
+etf_work/test_output.txt
