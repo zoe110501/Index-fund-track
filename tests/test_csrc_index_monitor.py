@@ -367,6 +367,10 @@ class DailySummaryTests(unittest.TestCase):
                 json.dumps(monitor.build_snapshot(baseline_records, "2026-03-17T00:05:00Z"), ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )
+            state_file.write_text(
+                json.dumps(monitor.build_snapshot(current_records, "2026-03-17T11:05:00Z"), ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
             config = monitor.MonitorConfig(
                 keyword=KEYWORD,
                 state_file_path=state_file,
@@ -379,13 +383,13 @@ class DailySummaryTests(unittest.TestCase):
             )
             email_calls = []
 
-            result = monitor.run_monitor(
-                config=config,
-                fetch_records=lambda keyword: current_records,
-                send_email_func=lambda **kwargs: email_calls.append(kwargs),
-                now_iso="2026-03-17T11:30:00Z",
-                report_mode="daily_summary",
-            )
+            with mock.patch("csrc_index_monitor.fetch_all_records", side_effect=AssertionError("daily summary should reuse latest state snapshot")):
+                result = monitor.run_monitor(
+                    config=config,
+                    send_email_func=lambda **kwargs: email_calls.append(kwargs),
+                    now_iso="2026-03-17T11:30:00Z",
+                    report_mode="daily_summary",
+                )
 
             self.assertEqual(result["report_mode"], "daily_summary")
             self.assertEqual(result["email_subject"], "\u6307\u6570\u57fa\u91d1\u5ba1\u6279\u65e5\u62a52026-03-17")
@@ -412,6 +416,10 @@ class DailySummaryTests(unittest.TestCase):
                 json.dumps(monitor.build_snapshot(records, "2026-03-17T00:05:00Z"), ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )
+            state_file.write_text(
+                json.dumps(monitor.build_snapshot(records, "2026-03-17T11:05:00Z"), ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
             config = monitor.MonitorConfig(
                 keyword=KEYWORD,
                 state_file_path=state_file,
@@ -424,13 +432,13 @@ class DailySummaryTests(unittest.TestCase):
             )
             email_calls = []
 
-            result = monitor.run_monitor(
-                config=config,
-                fetch_records=lambda keyword: records,
-                send_email_func=lambda **kwargs: email_calls.append(kwargs),
-                now_iso="2026-03-17T11:30:00Z",
-                report_mode="daily_summary",
-            )
+            with mock.patch("csrc_index_monitor.fetch_all_records", side_effect=AssertionError("daily summary should not fetch live records")):
+                result = monitor.run_monitor(
+                    config=config,
+                    send_email_func=lambda **kwargs: email_calls.append(kwargs),
+                    now_iso="2026-03-17T11:30:00Z",
+                    report_mode="daily_summary",
+                )
 
             self.assertEqual(result["email_delivery"]["status"], "skipped_no_changes")
             self.assertEqual(result["skipped_reason"], "no_daily_changes")
@@ -455,7 +463,6 @@ class DailySummaryTests(unittest.TestCase):
             )
             result = monitor.run_monitor(
                 config=config,
-                fetch_records=lambda keyword: records,
                 send_email_func=lambda **kwargs: None,
                 now_iso="2026-03-17T11:30:00Z",
                 report_mode="daily_summary",
@@ -463,6 +470,41 @@ class DailySummaryTests(unittest.TestCase):
 
             self.assertEqual(result["email_delivery"]["status"], "skipped_missing_baseline")
             self.assertEqual(result["skipped_reason"], "missing_daily_baseline")
+
+    def test_daily_summary_skips_when_latest_state_missing(self):
+        baseline_records = [
+            build_record("alpha", "alpha", "2026-03-17", [build_step(TASK_RECEIVE, "2026-03-17")])
+        ]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state_file = Path(tmpdir) / "state.json"
+            baseline_path = Path(tmpdir) / "daily" / "2026-03-17.json"
+            baseline_path.parent.mkdir(parents=True, exist_ok=True)
+            baseline_path.write_text(
+                json.dumps(monitor.build_snapshot(baseline_records, "2026-03-17T00:05:00Z"), ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            config = monitor.MonitorConfig(
+                keyword=KEYWORD,
+                state_file_path=state_file,
+                smtp_host="smtp.example.com",
+                smtp_port=465,
+                smtp_username="bot@example.com",
+                smtp_password="secret",
+                alert_email_from="bot@example.com",
+                alert_email_to=["me@example.com"],
+            )
+
+            with mock.patch("csrc_index_monitor.fetch_all_records", side_effect=AssertionError("daily summary should not fetch live records")):
+                result = monitor.run_monitor(
+                    config=config,
+                    send_email_func=lambda **kwargs: None,
+                    now_iso="2026-03-17T11:30:00Z",
+                    report_mode="daily_summary",
+                )
+
+            self.assertEqual(result["email_delivery"]["status"], "skipped_missing_latest_state")
+            self.assertEqual(result["skipped_reason"], "missing_latest_state")
 
 
 class ObservabilityTests(unittest.TestCase):

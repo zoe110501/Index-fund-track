@@ -675,9 +675,6 @@ def run_monitor(
     now_utc = parse_now_iso(now_iso)
     now_iso = now_utc.replace(microsecond=0).isoformat().replace("+00:00", "Z")
     local_now = now_utc.astimezone(SHANGHAI_TZ)
-    records = fetch_records(config.keyword)
-    current_snapshot = build_snapshot(records, now_iso)
-    baseline_snapshot = build_snapshot(records, now_iso)
     daily_baseline_path = daily_baseline_path_for(config.state_file_path, local_now)
 
     if report_mode == REPORT_MODE_DAILY_SUMMARY:
@@ -700,7 +697,26 @@ def run_monitor(
                 skipped_reason="missing_daily_baseline",
             )
 
-        events = diff_snapshots(daily_baseline_snapshot, current_snapshot)
+        latest_snapshot = load_state(config.state_file_path)
+        if latest_snapshot is None:
+            return attach_monitor_diagnostics(
+                {
+                    "baseline_created": False,
+                    "event_count": 0,
+                    "events": [],
+                    "state_changed": False,
+                    "state_file_path": str(config.state_file_path),
+                },
+                config=config,
+                events=[],
+                email_attempted=False,
+                email_status="skipped_missing_latest_state",
+                report_mode=report_mode,
+                daily_baseline_path=daily_baseline_path,
+                skipped_reason="missing_latest_state",
+            )
+
+        events = diff_snapshots(daily_baseline_snapshot, latest_snapshot)
         if not events:
             return attach_monitor_diagnostics(
                 {
@@ -740,6 +756,9 @@ def run_monitor(
             daily_baseline_path=daily_baseline_path,
         )
 
+    records = fetch_records(config.keyword)
+    current_snapshot = build_snapshot(records, now_iso)
+    baseline_snapshot = build_snapshot(records, now_iso)
     daily_baseline_created = ensure_daily_baseline(daily_baseline_path, baseline_snapshot)
     previous_snapshot = load_state(config.state_file_path)
     if previous_snapshot is None:
