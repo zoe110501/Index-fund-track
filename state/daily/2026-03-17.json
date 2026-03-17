@@ -49519,9 +49519,5 @@
       ]
     }
   },
-  "last_notified_event_ids": [
-    "new-step|08684cdc87d54835b1dabe161fcdcb7f|行政许可决定书|2026-03-10|e2948b66e7c447f7b175ee3f88b9cdec",
-    "new-step|788764bbed3e4e5782f276dc06cbfe4e|行政许可决定书|2026-03-10|b6b6f16894e44e07a1afcf2656d707a8",
-    "new-step|ef427a55c8974c5d81abeb2303a4ce6e|行政许可决定书|2026-03-10|31872666fa044ded9ffdb62c300b96c0"
-  ]
+  "last_notified_event_ids": []
 }
