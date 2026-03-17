@@ -1,0 +1,28 @@
+{
+  "code": "0000",
+  "message": "success",
+  "data": {
+    "records": [
+      {
+        "alAppLtCde": "gamma",
+        "showCntnt": "关于丙公司的《公开募集基金募集申请注册-丙沪深300指数增强证券投资基金》",
+        "appDate": "2026-03-14",
+        "aprvSchdPubFlowViewResultList": [
+          {
+            "taskName": "接收材料",
+            "fnshDate": "2026-03-14",
+            "alFileCde": null
+          },
+          {
+            "taskName": "受理通知",
+            "fnshDate": "2026-03-16",
+            "alFileCde": "file-001"
+          }
+        ]
+      }
+    ],
+    "total": 3,
+    "size": 2,
+    "current": 2
+  }
+}

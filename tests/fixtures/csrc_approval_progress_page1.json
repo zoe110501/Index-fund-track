@@ -1,0 +1,35 @@
+{
+  "code": "0000",
+  "message": "success",
+  "data": {
+    "records": [
+      {
+        "alAppLtCde": "alpha",
+        "showCntnt": "关于甲公司的《公开募集基金募集申请注册-甲中证机器人指数证券投资基金》",
+        "appDate": "2026-03-16",
+        "aprvSchdPubFlowViewResultList": [
+          {
+            "taskName": "接收材料",
+            "fnshDate": "2026-03-16",
+            "alFileCde": null
+          }
+        ]
+      },
+      {
+        "alAppLtCde": "beta",
+        "showCntnt": "关于乙公司的《公开募集基金募集申请注册-乙主动权益基金》",
+        "appDate": "2026-03-15",
+        "aprvSchdPubFlowViewResultList": [
+          {
+            "taskName": "接收材料",
+            "fnshDate": "2026-03-15",
+            "alFileCde": null
+          }
+        ]
+      }
+    ],
+    "total": 3,
+    "size": 2,
+    "current": 1
+  }
+}

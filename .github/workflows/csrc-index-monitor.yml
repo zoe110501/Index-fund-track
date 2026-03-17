@@ -1,0 +1,72 @@
+name: CSRC Index Monitor
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "5 * * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: csrc-index-monitor
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Prepare state branch worktree
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if git ls-remote --exit-code --heads origin state >/dev/null 2>&1; then
+            git fetch origin state:refs/remotes/origin/state
+            git worktree add --force state-branch --detach origin/state
+            git -C state-branch switch -C state --track origin/state
+          else
+            git worktree add --force --orphan state-branch state
+            find state-branch -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+          fi
+
+          mkdir -p state-branch/state
+
+      - name: Run monitor
+        env:
+          CSRC_QUERY_KEYWORD: 指数
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          ALERT_EMAIL_FROM: ${{ secrets.ALERT_EMAIL_FROM }}
+          ALERT_EMAIL_TO: ${{ secrets.ALERT_EMAIL_TO }}
+          STATE_FILE_PATH: state-branch/state/csrc_index_monitor_state.json
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python csrc_index_monitor.py
+
+      - name: Commit state updates
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if git -C state-branch status --short -- state/csrc_index_monitor_state.json | grep -q .; then
+            git -C state-branch config user.name "github-actions[bot]"
+            git -C state-branch config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git -C state-branch add state/csrc_index_monitor_state.json
+            git -C state-branch commit -m "chore: update CSRC index monitor state"
+            git -C state-branch push origin HEAD:state
+          else
+            echo "No state changes to commit."
+          fi
