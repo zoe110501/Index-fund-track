@@ -3,10 +3,13 @@
 !.github/
 !.github/workflows/
 !.github/workflows/csrc-index-monitor.yml
+!.github/workflows/csrc-index-watchdog.yml
 !csrc_index_monitor.py
+!csrc_watchdog.py
 !tests/
 tests/*
 !tests/test_csrc_index_monitor.py
+!tests/test_csrc_watchdog.py
 !tests/fixtures/
 tests/fixtures/*
 !tests/fixtures/csrc_approval_progress_page1.json

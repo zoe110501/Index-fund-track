@@ -21,6 +21,10 @@ DEFAULT_KEYWORD = "指数"
 DEFAULT_PAGE_SIZE = 1000
 DEFAULT_STATE_FILE = Path("state/csrc_index_monitor_state.json")
 EVENT_ID_SEPARATOR = "|"
+DEFAULT_WATCHDOG_STATE = {
+    "last_catchup_target_slot": None,
+    "last_catchup_triggered_at": None,
+}
 TITLE_PATTERN = re.compile(r"^关于(?P<manager>.+?)的《公开募集基金募集申请注册-(?P<product_name>.+?)》$")
 MANAGER_SUFFIXES = (
     "基金管理有限责任公司",
@@ -148,7 +152,24 @@ def event_id_for(event_type: str, record_id: str, step_id: str | None = None) ->
     return f"{prefix}{EVENT_ID_SEPARATOR}{record_id}"
 
 
-def build_snapshot(records: list[dict[str, Any]], now_iso: str, notified_event_ids: list[str] | None = None) -> dict[str, Any]:
+def normalize_watchdog_state(watchdog_state: dict[str, Any] | None) -> dict[str, Any]:
+    normalized = dict(DEFAULT_WATCHDOG_STATE)
+    if watchdog_state:
+        normalized.update(
+            {
+                "last_catchup_target_slot": watchdog_state.get("last_catchup_target_slot"),
+                "last_catchup_triggered_at": watchdog_state.get("last_catchup_triggered_at"),
+            }
+        )
+    return normalized
+
+
+def build_snapshot(
+    records: list[dict[str, Any]],
+    now_iso: str,
+    notified_event_ids: list[str] | None = None,
+    watchdog_state: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     snapshot_records: dict[str, dict[str, Any]] = {}
     for record in records:
         snapshot_records[record["record_id"]] = {
@@ -160,6 +181,7 @@ def build_snapshot(records: list[dict[str, Any]], now_iso: str, notified_event_i
         "last_success_at": now_iso,
         "records": snapshot_records,
         "last_notified_event_ids": notified_event_ids or [],
+        "watchdog": normalize_watchdog_state(watchdog_state),
     }
 
 
@@ -433,8 +455,9 @@ def run_monitor(
     now_iso = now_iso or datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
     previous_snapshot = load_state(config.state_file_path)
+    previous_watchdog_state = (previous_snapshot or {}).get("watchdog")
     records = fetch_records(config.keyword)
-    current_snapshot = build_snapshot(records, now_iso)
+    current_snapshot = build_snapshot(records, now_iso, watchdog_state=previous_watchdog_state)
 
     if previous_snapshot is None:
         save_state(config.state_file_path, current_snapshot)
@@ -461,7 +484,12 @@ def run_monitor(
     html_body = format_html_summary(events)
     send_email_func(config=config, subject=subject, body=body, html_body=html_body, events=events)
 
-    notified_snapshot = build_snapshot(records, now_iso, notified_event_ids=[event["event_id"] for event in events])
+    notified_snapshot = build_snapshot(
+        records,
+        now_iso,
+        notified_event_ids=[event["event_id"] for event in events],
+        watchdog_state=previous_watchdog_state,
+    )
     save_state(config.state_file_path, notified_snapshot)
     return {
         "baseline_created": False,

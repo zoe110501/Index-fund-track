@@ -1,0 +1,70 @@
+name: CSRC Index Watchdog
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/15 0-14 * * *"
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: csrc-index-watchdog
+  cancel-in-progress: false
+
+jobs:
+  watchdog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Prepare state branch worktree
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if git ls-remote --exit-code --heads origin state >/dev/null 2>&1; then
+            git fetch origin state:refs/remotes/origin/state
+            git worktree add --force state-branch --detach origin/state
+            git -C state-branch switch -C state --track origin/state
+          else
+            git worktree add --force --orphan -b state state-branch
+            find state-branch -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+          fi
+
+          mkdir -p state-branch/state
+
+      - name: Run watchdog
+        env:
+          STATE_FILE_PATH: state-branch/state/csrc_index_monitor_state.json
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_API_URL: ${{ github.api_url }}
+          TARGET_WORKFLOW_FILENAME: csrc-index-monitor.yml
+          WATCHDOG_THRESHOLD_MINUTES: "90"
+        run: python csrc_watchdog.py
+
+      - name: Commit watchdog state updates
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if git -C state-branch status --short -- state/csrc_index_monitor_state.json | grep -q .; then
+            git -C state-branch config user.name "github-actions[bot]"
+            git -C state-branch config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git -C state-branch add state/csrc_index_monitor_state.json
+            git -C state-branch commit -m "chore: update CSRC watchdog state"
+            git -C state-branch push origin HEAD:state
+          else
+            echo "No watchdog state changes to commit."
+          fi
