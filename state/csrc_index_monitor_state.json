@@ -1,5 +1,5 @@
 {
-  "last_success_at": "2026-03-18T10:39:53Z",
+  "last_success_at": "2026-03-18T11:53:47Z",
   "records": {
     "c5255649e23d4900afa3a4b3e4e3f32b": {
       "title": "关于建信基金管理有限责任公司的《公开募集基金募集申请注册-建信上证科创板芯片指数型发起式证券投资基金》",
@@ -49561,14 +49561,5 @@
       ]
     }
   },
-  "last_notified_event_ids": [
-    "new-record|c5255649e23d4900afa3a4b3e4e3f32b",
-    "new-record|070fcb243ffd46d18ac13ebee29df79d",
-    "new-record|c06a914824434d4f8b83620eb59f3e87",
-    "new-record|2811fbce6a0543338ae8853f952daa1e",
-    "new-record|efb5f88333cd4842a126b6e5b86f1171",
-    "new-record|4b389d152eb14f78b24f8631a1a1f3a3",
-    "new-record|18417fdb033e40c9836e926d37ba26ba",
-    "new-record|b80efb0919ab49e18dcc9036153bd3ba"
-  ]
+  "last_notified_event_ids": []
 }
