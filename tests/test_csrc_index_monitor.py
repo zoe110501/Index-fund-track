@@ -194,6 +194,19 @@ class DisplayTests(unittest.TestCase):
         self.assertEqual(display["product_type"], "ETF")
         self.assertIn("ETF", display["product_name"])
 
+    def test_extract_display_fields_classifies_etf_linked_fund_variants(self):
+        product_name = (
+            "\u534e\u590f\u4e2d\u8bc1A500"
+            "\u4ea4\u6613\u578b\u5f00\u653e\u5f0f\u6307\u6570\u8bc1\u5238\u6295\u8d44\u57fa\u91d1"
+            "\u53d1\u8d77\u5f0f\u8054\u63a5\u57fa\u91d1"
+        )
+
+        display = monitor.extract_display_fields(
+            build_title("\u534e\u590f\u57fa\u91d1\u7ba1\u7406\u6709\u9650\u516c\u53f8", product_name)
+        )
+
+        self.assertEqual(display["product_type"], "ETF\u8054\u63a5")
+
     def test_format_product_name_for_display_replaces_etf_phrase(self):
         formatted = monitor.format_product_name_for_display("\u534e\u590f\u4eba\u5de5\u667a\u80fd" + ETF_PHRASE)
 

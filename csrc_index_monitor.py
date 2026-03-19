@@ -37,6 +37,8 @@ DEFAULT_PDF_FONT_CANDIDATES = (
 )
 DISPLAY_ETF_SOURCE = "交易型开放式指数证券投资基金"
 DISPLAY_ETF_TARGET = "ETF"
+LINKED_FUND_KEYWORD = "联接基金"
+ETF_LINKED_TYPE = "ETF联接"
 TITLE_PATTERN = re.compile(r"^关于(?P<manager>.+?)的《公开募集基金募集申请注册-(?P<product_name>.+?)》$")
 MANAGER_SUFFIXES = (
     "基金管理有限责任公司",
@@ -331,8 +333,10 @@ def format_product_name_for_display(product_name: str) -> str:
 
 
 def classify_product_type(product_name: str) -> str:
-    if "交易型开放式指数证券投资基金联接基金" in product_name:
-        return "ETF联接"
+    if LINKED_FUND_KEYWORD in product_name and (
+        DISPLAY_ETF_SOURCE in product_name or "交易型开放式指数" in product_name or "ETF" in product_name
+    ):
+        return ETF_LINKED_TYPE
     if DISPLAY_ETF_SOURCE in product_name:
         return "ETF"
     return "普通指数"
