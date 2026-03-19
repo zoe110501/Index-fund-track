@@ -1,5 +1,5 @@
 {
-  "last_success_at": "2026-03-19T11:31:57Z",
+  "last_success_at": "2026-03-19T11:47:01Z",
   "records": {
     "87c91cc52d464441ad89426c2d8118b0": {
       "title": "关于富国基金管理有限公司的《公开募集基金募集申请注册-富国恒生A股电网设备交易型开放式指数证券投资基金》",
@@ -49648,18 +49648,5 @@
       ]
     }
   },
-  "last_notified_event_ids": [
-    "new-record|87c91cc52d464441ad89426c2d8118b0",
-    "new-record|467622032ba940baaae565d359a571c3",
-    "new-record|aa61a5f7d0b94306b420c71c414f0a11",
-    "new-record|695b0ed99b3d4c6e91026de41d0de195",
-    "new-record|1cc16eac5685497793704e9da9d4dfc0",
-    "new-record|5b17970279164dbbb9ecb0c5237ff6ec",
-    "new-record|fda5ac59524a42b8a5c3caf1e1ac3f40",
-    "new-record|c37ed2e0840f4974839d846e9c9f1a6c",
-    "new-record|8becdd2447644bf883316f4fd0af32ab",
-    "new-record|26d76e3ead774f34b268133c1555a74b",
-    "new-record|be48a4df1bc44df0b71ae45533c06455",
-    "new-record|7355b5842e474ca99b54ac5959b11025"
-  ]
+  "last_notified_event_ids": []
 }
