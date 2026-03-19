@@ -341,6 +341,39 @@ class IncrementalModeTests(unittest.TestCase):
 
 
 class DailySummaryTests(unittest.TestCase):
+    def build_daily_summary_events(self, record_count: int = 1, step_count: int = 1) -> list[dict[str, str]]:
+        events: list[dict[str, str]] = []
+        for index in range(record_count):
+            events.append(
+                {
+                    "event_type": "new_record",
+                    "title": build_title(
+                        "中银基金管理有限公司",
+                        f"中银有色金属{index + 1}" + ETF_PHRASE,
+                    ),
+                    "app_date": "2026-03-17",
+                    "record_id": f"record-{index}",
+                    "event_id": f"new-record|record-{index}",
+                }
+            )
+        for index in range(step_count):
+            events.append(
+                {
+                    "event_type": "new_step",
+                    "title": build_title(
+                        "华夏基金管理有限公司",
+                        f"华夏人工智能{index + 1}" + ETF_PHRASE,
+                    ),
+                    "app_date": "2026-03-17",
+                    "record_id": f"step-{index}",
+                    "event_id": f"new-step|step-{index}|x",
+                    "task_name": TASK_ACCEPT,
+                    "fnsh_date": "2026-03-17",
+                    "al_file_cde": "x",
+                }
+            )
+        return events
+
     def test_build_pdf_table_sections_matches_email_tables(self):
         events = [
             {
@@ -369,12 +402,53 @@ class DailySummaryTests(unittest.TestCase):
         self.assertEqual(sections[1]["headers"], ["\u5e8f\u53f7", "\u7ba1\u7406\u4eba", "\u4ea7\u54c1\u540d\u79f0", "\u4ea7\u54c1\u7c7b\u578b", "\u4e0a\u62a5\u65e5\u671f", "\u6700\u65b0\u8282\u70b9", "\u8282\u70b9\u65e5\u671f"])
         self.assertEqual(sections[1]["rows"][0][1:], ["\u534e\u590f", "\u534e\u590f\u4eba\u5de5\u667a\u80fdETF", "ETF", "2026-03-17", TASK_ACCEPT, "2026-03-17"])
 
-    def test_generate_daily_summary_pdf_reports_missing_font(self):
+    def test_generate_daily_summary_pdf_reports_missing_cjk_font(self):
         local_now = datetime(2026, 3, 17, 19, 30, tzinfo=monitor.SHANGHAI_TZ)
 
-        with mock.patch("csrc_index_monitor.find_pdf_font_path", side_effect=RuntimeError("font missing")):
-            with self.assertRaisesRegex(RuntimeError, "font missing"):
+        with mock.patch(
+            "csrc_index_monitor.find_pdf_font_paths",
+            side_effect=RuntimeError("Missing required PDF font: FangSong (仿宋, simfang.ttf)."),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "FangSong"):
                 monitor.generate_daily_summary_pdf([], local_now)
+
+    def test_generate_daily_summary_pdf_reports_missing_times_new_roman_font(self):
+        local_now = datetime(2026, 3, 17, 19, 30, tzinfo=monitor.SHANGHAI_TZ)
+
+        with mock.patch(
+            "csrc_index_monitor.find_pdf_font_paths",
+            side_effect=RuntimeError("Missing required PDF font: Times New Roman regular (times.ttf)."),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "Times New Roman"):
+                monitor.generate_daily_summary_pdf([], local_now)
+
+    def test_generate_daily_summary_pdf_contains_extractable_report_text(self):
+        local_now = datetime(2026, 3, 17, 19, 30, tzinfo=monitor.SHANGHAI_TZ)
+        attachment = monitor.generate_daily_summary_pdf(self.build_daily_summary_events(), local_now)
+
+        pdf = monitor.load_fitz_module().open(stream=attachment["content"], filetype="pdf")
+        extracted = "\n".join(page.get_text() for page in pdf)
+
+        self.assertIn("指数基金审批日报 2026-03-17", extracted)
+        self.assertIn("今日累计汇总如下：", extracted)
+        self.assertIn("今日新产品（1 条）", extracted)
+        self.assertIn("今日新增节点产品（1 条）", extracted)
+        self.assertIn("产品类型", extracted)
+
+    def test_generate_daily_summary_pdf_repeats_headers_on_paginated_tables(self):
+        local_now = datetime(2026, 3, 17, 19, 30, tzinfo=monitor.SHANGHAI_TZ)
+        attachment = monitor.generate_daily_summary_pdf(self.build_daily_summary_events(record_count=0, step_count=60), local_now)
+
+        pdf = monitor.load_fitz_module().open(stream=attachment["content"], filetype="pdf")
+
+        self.assertGreaterEqual(pdf.page_count, 2)
+        first_page_text = pdf[0].get_text()
+        second_page_text = pdf[1].get_text()
+
+        self.assertIn("序号", first_page_text)
+        self.assertIn("最新节点", first_page_text)
+        self.assertIn("序号", second_page_text)
+        self.assertIn("最新节点", second_page_text)
 
     def test_daily_summary_sends_pdf_attachment(self):
         baseline_records = [

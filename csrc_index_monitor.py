@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, Callable
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
+from xml.sax.saxutils import escape as xml_escape
 
 
 API_URL = "https://neris.csrc.gov.cn/alappr-delare/home/approval-progress/v1/list"
@@ -28,18 +29,31 @@ REPORT_MODE_INCREMENTAL = "incremental"
 REPORT_MODE_DAILY_SUMMARY = "daily_summary"
 EVENT_ID_SEPARATOR = "|"
 SHANGHAI_TZ = timezone(timedelta(hours=8))
-DEFAULT_PDF_FONT_CANDIDATES = (
-    Path("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"),
+DEFAULT_PDF_CJK_FONT_CANDIDATES = (
+    Path("C:/Windows/Fonts/simfang.ttf"),
     Path("/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc"),
+    Path("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"),
     Path("/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc"),
     Path("C:/Windows/Fonts/simsun.ttc"),
     Path("C:/Windows/Fonts/msyh.ttc"),
 )
+DEFAULT_PDF_LATIN_FONT_CANDIDATES = (
+    Path("C:/Windows/Fonts/times.ttf"),
+    Path("/usr/share/fonts/truetype/msttcorefonts/Times_New_Roman.ttf"),
+)
+DEFAULT_PDF_LATIN_BOLD_FONT_CANDIDATES = (
+    Path("C:/Windows/Fonts/timesbd.ttf"),
+    Path("/usr/share/fonts/truetype/msttcorefonts/Times_New_Roman_Bold.ttf"),
+)
+PDF_FONT_FAMILY_CJK = "IndexMonitorSimFang"
+PDF_FONT_FAMILY_LATIN = "IndexMonitorTimesNewRoman"
+PDF_FONT_FAMILY_LATIN_BOLD = "IndexMonitorTimesNewRomanBold"
 DISPLAY_ETF_SOURCE = "交易型开放式指数证券投资基金"
 DISPLAY_ETF_TARGET = "ETF"
 LINKED_FUND_KEYWORD = "联接基金"
 ETF_LINKED_TYPE = "ETF联接"
 TITLE_PATTERN = re.compile(r"^关于(?P<manager>.+?)的《公开募集基金募集申请注册-(?P<product_name>.+?)》$")
+ASCII_TEXT_PATTERN = re.compile(r"[\x00-\x7F]+")
 MANAGER_SUFFIXES = (
     "基金管理有限责任公司",
     "基金管理有限公司",
@@ -552,14 +566,88 @@ def load_pillow_modules() -> tuple[Any, Any, Any]:
     return pillow_image, pillow_draw, pillow_font
 
 
-def find_pdf_font_path() -> Path:
-    env_value = os.getenv("PDF_FONT_PATH", "").strip()
-    candidates = [Path(env_value)] if env_value else []
-    candidates.extend(DEFAULT_PDF_FONT_CANDIDATES)
+def _find_existing_font_path(candidates: list[Path], label: str) -> Path:
     for candidate in candidates:
         if candidate.exists():
             return candidate
-    raise RuntimeError("A Chinese font is required to generate the daily summary PDF attachment.")
+    raise RuntimeError(f"Missing required PDF font: {label}.")
+
+
+def find_pdf_font_paths() -> dict[str, Path]:
+    cjk_env = os.getenv("PDF_FONT_PATH", "").strip() or os.getenv("PDF_CJK_FONT_PATH", "").strip()
+    latin_env = os.getenv("PDF_LATIN_FONT_PATH", "").strip()
+    latin_bold_env = os.getenv("PDF_LATIN_BOLD_FONT_PATH", "").strip()
+    return {
+        "cjk": _find_existing_font_path(
+            ([Path(cjk_env)] if cjk_env else []) + list(DEFAULT_PDF_CJK_FONT_CANDIDATES),
+            "FangSong (仿宋, simfang.ttf)",
+        ),
+        "latin": _find_existing_font_path(
+            ([Path(latin_env)] if latin_env else []) + list(DEFAULT_PDF_LATIN_FONT_CANDIDATES),
+            "Times New Roman regular (times.ttf)",
+        ),
+        "latin_bold": _find_existing_font_path(
+            ([Path(latin_bold_env)] if latin_bold_env else []) + list(DEFAULT_PDF_LATIN_BOLD_FONT_CANDIDATES),
+            "Times New Roman bold (timesbd.ttf)",
+        ),
+    }
+
+
+def find_pdf_font_path() -> Path:
+    return find_pdf_font_paths()["cjk"]
+
+
+def load_reportlab_modules() -> dict[str, Any]:
+    try:
+        colors = importlib.import_module("reportlab.lib.colors")
+        pagesizes = importlib.import_module("reportlab.lib.pagesizes")
+        styles = importlib.import_module("reportlab.lib.styles")
+        enums = importlib.import_module("reportlab.lib.enums")
+        units = importlib.import_module("reportlab.lib.units")
+        platypus = importlib.import_module("reportlab.platypus")
+        pdfmetrics = importlib.import_module("reportlab.pdfbase.pdfmetrics")
+        ttfonts = importlib.import_module("reportlab.pdfbase.ttfonts")
+    except ModuleNotFoundError as exc:
+        raise RuntimeError("ReportLab is required to generate the daily summary PDF attachment.") from exc
+    return {
+        "colors": colors,
+        "pagesizes": pagesizes,
+        "styles": styles,
+        "enums": enums,
+        "units": units,
+        "platypus": platypus,
+        "pdfmetrics": pdfmetrics,
+        "ttfonts": ttfonts,
+    }
+
+
+def register_pdf_fonts(pdfmetrics: Any, ttfonts: Any, font_paths: dict[str, Path]) -> None:
+    registered = set(pdfmetrics.getRegisteredFontNames())
+    registrations = [
+        (PDF_FONT_FAMILY_CJK, font_paths["cjk"]),
+        (PDF_FONT_FAMILY_LATIN, font_paths["latin"]),
+        (PDF_FONT_FAMILY_LATIN_BOLD, font_paths["latin_bold"]),
+    ]
+    for font_name, font_path in registrations:
+        if font_name not in registered:
+            pdfmetrics.registerFont(ttfonts.TTFont(font_name, str(font_path)))
+
+
+def build_pdf_rich_text(text: str, *, latin_bold: bool = False) -> str:
+    if not text:
+        return ""
+
+    latin_font = PDF_FONT_FAMILY_LATIN_BOLD if latin_bold else PDF_FONT_FAMILY_LATIN
+    parts: list[str] = []
+    last_index = 0
+    for match in ASCII_TEXT_PATTERN.finditer(text):
+        if match.start() > last_index:
+            parts.append(f"<font name='{PDF_FONT_FAMILY_CJK}'>{xml_escape(text[last_index:match.start()])}</font>")
+        parts.append(f"<font name='{latin_font}'>{xml_escape(match.group(0))}</font>")
+        last_index = match.end()
+    if last_index < len(text):
+        parts.append(f"<font name='{PDF_FONT_FAMILY_CJK}'>{xml_escape(text[last_index:])}</font>")
+    return "".join(parts)
 
 
 def wrap_pdf_text(draw: Any, text: str, font: Any, max_width: int) -> list[str]:
@@ -589,107 +677,142 @@ def normalized_column_widths(widths: list[int], total_width: int) -> list[int]:
 
 
 def generate_daily_summary_pdf(events: list[dict[str, Any]], local_now: datetime) -> dict[str, Any]:
-    image_module, draw_module, font_module = load_pillow_modules()
-    font_path = find_pdf_font_path()
-    page_width, page_height = 1240, 1754
-    margin_x, margin_y = 72, 72
-    content_width = page_width - (margin_x * 2)
+    reportlab = load_reportlab_modules()
+    font_paths = find_pdf_font_paths()
+    register_pdf_fonts(reportlab["pdfmetrics"], reportlab["ttfonts"], font_paths)
 
-    title_font = font_module.truetype(str(font_path), 36)
-    meta_font = font_module.truetype(str(font_path), 24)
-    section_font = font_module.truetype(str(font_path), 28)
-    header_font = font_module.truetype(str(font_path), 22)
-    body_font = font_module.truetype(str(font_path), 20)
-    pages: list[Any] = []
+    colors = reportlab["colors"]
+    A4 = reportlab["pagesizes"].A4
+    ParagraphStyle = reportlab["styles"].ParagraphStyle
+    getSampleStyleSheet = reportlab["styles"].getSampleStyleSheet
+    TA_CENTER = reportlab["enums"].TA_CENTER
+    TA_LEFT = reportlab["enums"].TA_LEFT
+    mm = reportlab["units"].mm
+    SimpleDocTemplate = reportlab["platypus"].SimpleDocTemplate
+    Spacer = reportlab["platypus"].Spacer
+    Paragraph = reportlab["platypus"].Paragraph
+    Table = reportlab["platypus"].LongTable
+    TableStyle = reportlab["platypus"].TableStyle
 
-    def new_page() -> tuple[Any, Any, int]:
-        image = image_module.new("RGB", (page_width, page_height), "white")
-        return image, draw_module.Draw(image), margin_y
-
-    def draw_title_block(draw: Any, y: int) -> int:
-        summary_lines = [
-            f"指数基金审批日报{local_now:%Y-%m-%d}",
-            f"生成时间：{local_now:%Y-%m-%d %H:%M}",
-            f"合计：新产品 {sum(1 for event in events if event['event_type'] == 'new_record')} 条，新增节点产品 {sum(1 for event in events if event['event_type'] == 'new_step')} 条",
-        ]
-        for index, line in enumerate(summary_lines):
-            font = title_font if index == 0 else meta_font
-            line_height = font.size + 16
-            draw.text((margin_x, y), line, fill="#111827", font=font)
-            y += line_height
-        return y + 8
-
-    def draw_table(draw: Any, y: int, section: dict[str, Any]) -> tuple[Any, Any, int]:
-        nonlocal image
-        section_title = section["title"]
-        headers = section["headers"]
-        rows = section["rows"]
-        column_widths = normalized_column_widths(section["column_widths"], content_width)
-        cell_padding = 10
-        grid_color = "#1f2937"
-        header_fill = "#dbeafe"
-        header_text_color = "#0f172a"
-        body_text_color = "#111827"
-
-        def draw_table_header(current_draw: Any, current_y: int) -> int:
-            current_draw.text((margin_x, current_y), section_title, fill="#111827", font=section_font)
-            current_y += section_font.size + 14
-
-            header_height = header_font.size + (cell_padding * 2)
-            x = margin_x
-            for header, width in zip(headers, column_widths):
-                current_draw.rectangle((x, current_y, x + width, current_y + header_height), fill=header_fill, outline=grid_color, width=2)
-                current_draw.text((x + cell_padding, current_y + cell_padding), header, fill=header_text_color, font=header_font)
-                x += width
-            return current_y + header_height
-
-        def start_new_page() -> int:
-            nonlocal image, draw
-            pages.append(image)
-            image, draw, next_y = new_page()
-            next_y = draw_title_block(draw, next_y)
-            return draw_table_header(draw, next_y)
-
-        y = draw_table_header(draw, y)
-        if not rows:
-            draw.text((margin_x + 4, y + 14), "无", fill=body_text_color, font=body_font)
-            return image, draw, y + body_font.size + 26
-
-        line_height = body_font.size + 12
-        for row in rows:
-            wrapped_cells = [
-                wrap_pdf_text(draw, str(value), body_font, max(width - (cell_padding * 2), 40))
-                for value, width in zip(row, column_widths)
-            ]
-            row_height = max(len(lines) for lines in wrapped_cells) * line_height + (cell_padding * 2)
-            if y + row_height > page_height - margin_y:
-                y = start_new_page()
-                wrapped_cells = [
-                    wrap_pdf_text(draw, str(value), body_font, max(width - (cell_padding * 2), 40))
-                    for value, width in zip(row, column_widths)
-                ]
-                row_height = max(len(lines) for lines in wrapped_cells) * line_height + (cell_padding * 2)
-
-            x = margin_x
-            for lines, width in zip(wrapped_cells, column_widths):
-                draw.rectangle((x, y, x + width, y + row_height), outline=grid_color, width=2)
-                text_y = y + cell_padding
-                for line in lines:
-                    draw.text((x + cell_padding, text_y), line, fill=body_text_color, font=body_font)
-                    text_y += line_height
-                x += width
-            y += row_height
-
-        return image, draw, y + 20
-
-    image, draw, y = new_page()
-    y = draw_title_block(draw, y)
-    for section in build_pdf_table_sections(events):
-        image, draw, y = draw_table(draw, y, section)
-
-    pages.append(image)
     buffer = io.BytesIO()
-    pages[0].save(buffer, format="PDF", resolution=150.0, save_all=True, append_images=pages[1:])
+    document = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        leftMargin=18 * mm,
+        rightMargin=18 * mm,
+        topMargin=18 * mm,
+        bottomMargin=16 * mm,
+        title=f"指数基金审批日报 {local_now:%Y-%m-%d}",
+        author="csrc_index_monitor",
+        subject="指数基金审批进度日报",
+    )
+    content_width = document.width
+    new_record_count, new_step_count = count_events_by_type(events)
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        "IndexMonitorTitle",
+        parent=styles["Title"],
+        fontName=PDF_FONT_FAMILY_CJK,
+        fontSize=19,
+        leading=24,
+        alignment=TA_CENTER,
+        textColor=colors.HexColor("#0f172a"),
+        spaceAfter=8,
+    )
+    summary_style = ParagraphStyle(
+        "IndexMonitorSummary",
+        parent=styles["Normal"],
+        fontName=PDF_FONT_FAMILY_CJK,
+        fontSize=10.5,
+        leading=15,
+        alignment=TA_CENTER,
+        textColor=colors.HexColor("#334155"),
+        spaceAfter=2,
+    )
+    intro_style = ParagraphStyle(
+        "IndexMonitorIntro",
+        parent=styles["Normal"],
+        fontName=PDF_FONT_FAMILY_CJK,
+        fontSize=11.5,
+        leading=18,
+        alignment=TA_LEFT,
+        textColor=colors.HexColor("#1f2937"),
+        spaceAfter=10,
+    )
+    section_style = ParagraphStyle(
+        "IndexMonitorSection",
+        parent=styles["Heading2"],
+        fontName=PDF_FONT_FAMILY_CJK,
+        fontSize=13.5,
+        leading=18,
+        alignment=TA_LEFT,
+        textColor=colors.HexColor("#0f172a"),
+        spaceBefore=10,
+        spaceAfter=8,
+    )
+    cell_style = ParagraphStyle(
+        "IndexMonitorCell",
+        parent=styles["BodyText"],
+        fontName=PDF_FONT_FAMILY_CJK,
+        fontSize=9.5,
+        leading=13,
+        alignment=TA_LEFT,
+        textColor=colors.HexColor("#111827"),
+        wordWrap="CJK",
+    )
+    header_style = ParagraphStyle(
+        "IndexMonitorHeader",
+        parent=cell_style,
+        fontSize=9.8,
+        leading=12,
+        alignment=TA_CENTER,
+        textColor=colors.white,
+    )
+
+    story: list[Any] = [
+        Paragraph(build_pdf_rich_text(f"指数基金审批日报 {local_now:%Y-%m-%d}", latin_bold=True), title_style),
+        Paragraph(build_pdf_rich_text(f"生成时间：{local_now:%Y-%m-%d %H:%M}"), summary_style),
+        Paragraph(build_pdf_rich_text(f"今日新产品：{new_record_count} 条"), summary_style),
+        Paragraph(build_pdf_rich_text(f"今日新增节点产品：{new_step_count} 条"), summary_style),
+        Spacer(1, 8),
+        Paragraph(build_pdf_rich_text("今日累计汇总如下："), intro_style),
+    ]
+
+    for section in build_pdf_table_sections(events):
+        story.append(Paragraph(build_pdf_rich_text(section["title"], latin_bold=True), section_style))
+        column_widths = normalized_column_widths(section["column_widths"], int(content_width))
+        table_rows = [
+            [Paragraph(build_pdf_rich_text(header, latin_bold=True), header_style) for header in section["headers"]]
+        ]
+        body_rows = section["rows"] or [["无"] + [""] * (len(section["headers"]) - 1)]
+        for row in body_rows:
+            normalized_row = list(row) + [""] * (len(section["headers"]) - len(row))
+            table_rows.append([Paragraph(build_pdf_rich_text(str(value)), cell_style) for value in normalized_row[: len(section["headers"])]])
+
+        table = Table(table_rows, colWidths=column_widths, repeatRows=1)
+        table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1f4f82")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("GRID", (0, 0), (-1, -1), 0.6, colors.HexColor("#1f2937")),
+                    ("BOX", (0, 0), (-1, -1), 0.8, colors.HexColor("#1f2937")),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 6),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+                    ("TOPPADDING", (0, 0), (-1, 0), 7),
+                    ("BOTTOMPADDING", (0, 0), (-1, 0), 7),
+                    ("TOPPADDING", (0, 1), (-1, -1), 6),
+                    ("BOTTOMPADDING", (0, 1), (-1, -1), 6),
+                    ("BACKGROUND", (0, 1), (-1, -1), colors.white),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8fafc")]),
+                ]
+            )
+        )
+        story.append(table)
+        story.append(Spacer(1, 10))
+
+    document.build(story)
     content = buffer.getvalue()
     return {
         "filename": f"指数基金审批日报{local_now:%Y-%m-%d}.pdf",
