@@ -1,5 +1,5 @@
 {
-  "last_success_at": "2026-03-20T10:52:26Z",
+  "last_success_at": "2026-03-20T11:39:47Z",
   "records": {
     "7bcbda74424c4192a318c326b249978b": {
       "title": "关于工银瑞信基金管理有限公司的《公开募集基金募集申请注册-工银瑞信恒生A股电网设备交易型开放式指数证券投资基金》",
@@ -49774,17 +49774,5 @@
       ]
     }
   },
-  "last_notified_event_ids": [
-    "new-record|7bcbda74424c4192a318c326b249978b",
-    "new-record|8b9626e0f43b43d0a7619c1c985edb6d",
-    "new-record|ffc0385d57fe4f2095a760a36cb797b1",
-    "new-record|fdc93c14108041e4a7cb68e349c8e341",
-    "new-record|6008effc04e640ecb234c9a6ce5d8a44",
-    "new-record|e6c846804d3b44498952dcb1d1f525a9",
-    "new-record|c1dd0147409c4310b5222fca39a3dd70",
-    "new-record|eadc6e50686d4fd4b7ecb8a3a3d4f1de",
-    "new-record|c9cc82c756f94e46a82c8878e9952a06",
-    "new-record|6d1cba6fde97482c9a3267c4ab605fae",
-    "new-record|609406fc50594310be1308705ed90ffe"
-  ]
+  "last_notified_event_ids": []
 }
