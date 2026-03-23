@@ -572,30 +572,36 @@ def load_pillow_modules() -> tuple[Any, Any, Any]:
     return pillow_image, pillow_draw, pillow_font
 
 
-def _find_existing_font_path(candidates: list[Path], label: str) -> Path:
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
+def _find_existing_font_paths(candidates: list[Path], label: str) -> list[Path]:
+    existing = [candidate for candidate in candidates if candidate.exists()]
+    if existing:
+        return existing
     raise RuntimeError(f"Missing required PDF font: {label}.")
 
 
-def find_pdf_font_paths() -> dict[str, Path]:
+def _find_existing_font_path(candidates: list[Path], label: str) -> Path:
+    for candidate in _find_existing_font_paths(candidates, label):
+        return candidate
+    raise RuntimeError(f"Missing required PDF font: {label}.")
+
+
+def find_pdf_font_candidates() -> dict[str, list[Path]]:
     cjk_env = os.getenv("PDF_FONT_PATH", "").strip() or os.getenv("PDF_CJK_FONT_PATH", "").strip()
     latin_env = os.getenv("PDF_LATIN_FONT_PATH", "").strip()
     latin_bold_env = os.getenv("PDF_LATIN_BOLD_FONT_PATH", "").strip()
     return {
-        "cjk": _find_existing_font_path(
-            ([Path(cjk_env)] if cjk_env else []) + list(DEFAULT_PDF_CJK_FONT_CANDIDATES),
-            "FangSong (仿宋, simfang.ttf)",
-        ),
-        "latin": _find_existing_font_path(
-            ([Path(latin_env)] if latin_env else []) + list(DEFAULT_PDF_LATIN_FONT_CANDIDATES),
-            "Times New Roman regular (times.ttf)",
-        ),
-        "latin_bold": _find_existing_font_path(
-            ([Path(latin_bold_env)] if latin_bold_env else []) + list(DEFAULT_PDF_LATIN_BOLD_FONT_CANDIDATES),
-            "Times New Roman bold (timesbd.ttf)",
-        ),
+        "cjk": ([Path(cjk_env)] if cjk_env else []) + list(DEFAULT_PDF_CJK_FONT_CANDIDATES),
+        "latin": ([Path(latin_env)] if latin_env else []) + list(DEFAULT_PDF_LATIN_FONT_CANDIDATES),
+        "latin_bold": ([Path(latin_bold_env)] if latin_bold_env else []) + list(DEFAULT_PDF_LATIN_BOLD_FONT_CANDIDATES),
+    }
+
+
+def find_pdf_font_paths() -> dict[str, Path]:
+    candidates = find_pdf_font_candidates()
+    return {
+        "cjk": _find_existing_font_path(candidates["cjk"], "FangSong (仿宋, simfang.ttf)"),
+        "latin": _find_existing_font_path(candidates["latin"], "Times New Roman regular (times.ttf)"),
+        "latin_bold": _find_existing_font_path(candidates["latin_bold"], "Times New Roman bold (timesbd.ttf)"),
     }
 
 
@@ -627,16 +633,30 @@ def load_reportlab_modules() -> dict[str, Any]:
     }
 
 
-def register_pdf_fonts(pdfmetrics: Any, ttfonts: Any, font_paths: dict[str, Path]) -> None:
+def register_pdf_fonts(pdfmetrics: Any, ttfonts: Any, font_candidates: dict[str, list[Path]]) -> dict[str, Path]:
     registered = set(pdfmetrics.getRegisteredFontNames())
     registrations = [
-        (PDF_FONT_FAMILY_CJK, font_paths["cjk"]),
-        (PDF_FONT_FAMILY_LATIN, font_paths["latin"]),
-        (PDF_FONT_FAMILY_LATIN_BOLD, font_paths["latin_bold"]),
+        ("cjk", PDF_FONT_FAMILY_CJK, "FangSong (仿宋, simfang.ttf)"),
+        ("latin", PDF_FONT_FAMILY_LATIN, "Times New Roman regular (times.ttf)"),
+        ("latin_bold", PDF_FONT_FAMILY_LATIN_BOLD, "Times New Roman bold (timesbd.ttf)"),
     ]
-    for font_name, font_path in registrations:
+    resolved_paths: dict[str, Path] = {}
+    for key, font_name, label in registrations:
         if font_name not in registered:
-            pdfmetrics.registerFont(ttfonts.TTFont(font_name, str(font_path)))
+            last_error: Exception | None = None
+            for font_path in _find_existing_font_paths(font_candidates[key], label):
+                try:
+                    pdfmetrics.registerFont(ttfonts.TTFont(font_name, str(font_path)))
+                    resolved_paths[key] = font_path
+                    break
+                except Exception as exc:
+                    last_error = exc
+            else:
+                tried = ", ".join(str(path) for path in _find_existing_font_paths(font_candidates[key], label))
+                raise RuntimeError(f"Unable to register PDF font {label}. Tried: {tried}") from last_error
+        else:
+            resolved_paths[key] = _find_existing_font_path(font_candidates[key], label)
+    return resolved_paths
 
 
 def build_pdf_rich_text(text: str, *, latin_bold: bool = False) -> str:
@@ -684,8 +704,8 @@ def normalized_column_widths(widths: list[int], total_width: int) -> list[int]:
 
 def generate_daily_summary_pdf(events: list[dict[str, Any]], local_now: datetime) -> dict[str, Any]:
     reportlab = load_reportlab_modules()
-    font_paths = find_pdf_font_paths()
-    register_pdf_fonts(reportlab["pdfmetrics"], reportlab["ttfonts"], font_paths)
+    font_candidates = find_pdf_font_candidates()
+    register_pdf_fonts(reportlab["pdfmetrics"], reportlab["ttfonts"], font_candidates)
 
     colors = reportlab["colors"]
     A4 = reportlab["pagesizes"].A4
