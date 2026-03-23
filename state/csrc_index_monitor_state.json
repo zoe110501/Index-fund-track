@@ -1,5 +1,5 @@
 {
-  "last_success_at": "2026-03-23T11:44:30Z",
+  "last_success_at": "2026-03-23T11:52:41Z",
   "records": {
     "e3f2f0f924ad4987bbcda1f72dcad6e8": {
       "title": "关于易方达基金管理有限公司的《公开募集基金募集申请注册-易方达中证科创创业人工智能交易型开放式指数证券投资基金发起式联接基金》",
@@ -49873,41 +49873,5 @@
       ]
     }
   },
-  "last_notified_event_ids": [
-    "new-record|e3f2f0f924ad4987bbcda1f72dcad6e8",
-    "new-record|9d5a77057eec4a5caa7f784f5566c3b8",
-    "new-record|20ea10c3e0e34a0e94f0e27723e04e87",
-    "new-record|63865412595f42cea0e51d73a6a9b48b",
-    "new-record|afbb83caf3264621ba0132c01be67118",
-    "new-record|1bed909d52474a078895a07d6e6b208d",
-    "new-record|d9842c08b735463c976682f72cd9e3a7",
-    "new-record|afe42c91b1444119885a2dd2fe4a13d0",
-    "new-record|fd621815f3a44c50850a2a2432179a0a",
-    "new-record|85e9c073d2444436a3d35dbd44d077c4",
-    "new-step|070fcb243ffd46d18ac13ebee29df79d|受理通知|2026-03-20|3b5a86f828ab40c9aa91efd436394575",
-    "new-step|c06a914824434d4f8b83620eb59f3e87|受理通知|2026-03-20|2b14c3b5e9ce4999ba9495eb66825f94",
-    "new-step|efb5f88333cd4842a126b6e5b86f1171|受理通知|2026-03-20|ff0023d941ea4ee09052e84bc839b20e",
-    "new-step|4b389d152eb14f78b24f8631a1a1f3a3|受理通知|2026-03-20|2819b8b2b46a49cda9826ef389db858d",
-    "new-step|18417fdb033e40c9836e926d37ba26ba|受理通知|2026-03-20|9fe256d416944673acf18c85caab525a",
-    "new-step|92000cad752e4aebb1f90fda27bad04e|受理通知|2026-03-20|4e418ba10c964daa9d26f8fa643be129",
-    "new-step|de80a9a33d1c4d3d896c36c019a6b598|受理通知|2026-03-20|5e12bec48cef44d7802081b57acdb4cf",
-    "new-step|e8580596753f43e5976a93bdd344eef9|受理通知|2026-03-20|8a65f645e1a34538a4fcf2244f2834ef",
-    "new-step|79bedacb8ee046358eaf8257a519bfa9|受理通知|2026-03-20|7a1258924abd4df6bf1b16ddf4de864b",
-    "new-step|56a0e1acd7534d7eb6bea3d3f1afde05|受理通知|2026-03-20|5aa5d92fb4d947f783e21008ade70d08",
-    "new-step|6a55304c2c7847619e8185659740cde3|受理通知|2026-03-20|c5fab4706b7b481e8fdf246f5f27d6ad",
-    "new-step|2d52aa48acd14fa1b059d82409af1232|受理通知|2026-03-20|dc9c6588e82f43a6915c2ae62bff7e36",
-    "new-step|12cbb688e86c42ec8cf30a488996235b|受理通知|2026-03-20|dce36424c78f43ffa5b18ec8e62705ab",
-    "new-step|e75689cc2f9f4277ac4b3f37afc4a9bc|受理通知|2026-03-20|9f46b03289fe40118ecd122a12ff22e6",
-    "new-step|a9e9d4b4f4f541dcaefcd3e9994e534a|受理通知|2026-03-20|ce88ce22492243938f5386fdd1e1ca46",
-    "new-step|1ca3f0e3967a49bba52146238bd0d7ae|受理通知|2026-03-20|8077d6c4e89c4550811abde9a4d45122",
-    "new-step|b0817460fad24ea3b3b9958cf0430d59|受理通知|2026-03-20|444bcf0d3ae44556b2f08d65ca6916ee",
-    "new-step|8660976a6e774da78f8de653fbeb4141|受理通知|2026-03-20|a04132d185764d7da9bf90c48dedaaea",
-    "new-step|577ad65c9f8e4149ae0e1965b7e6ae84|受理通知|2026-03-20|63ea810c29164f3a9abc5bf803ad61e6",
-    "new-step|6007583f96fb4bb0ac614409615cdae3|受理通知|2026-03-20|2184f97d92274dcc996b5c5c3b8c3bd9",
-    "new-step|db96d43b4a2f4e64b21dc388953bf36b|受理通知|2026-03-20|b14645ae5b2c4c46821a7bdb43c8b9c1",
-    "new-step|f806d9c60118417bb5ea45db1bfb409e|受理通知|2026-03-20|f6632f06446340f39c3c5a5238bec140",
-    "new-step|819351b35d3746559ca19f4d0e3d6e75|受理通知|2026-03-20|a7dbb8ec283447939af65a9f2fcd45fc",
-    "new-step|4a3e5335c602475aaefb532e55edb56d|受理通知|2026-03-20|04bf9427ad0a4a938e5f6e72c30fb466",
-    "new-step|e998042b325046b8aa33695b46650c99|受理通知|2026-03-20|4f7c9b0498374040932a453b1ec313e0"
-  ]
+  "last_notified_event_ids": []
 }
