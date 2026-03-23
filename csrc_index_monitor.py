@@ -1010,6 +1010,16 @@ def load_daily_baseline_snapshot(
     return None, "missing"
 
 
+def emit_github_error_annotation(message: str, *, stream: Any | None = None) -> None:
+    annotation = (
+        message.replace("%", "%25")
+        .replace("\r", "%0D")
+        .replace("\n", "%0A")
+    )
+    target_stream = stream if stream is not None else sys.stderr
+    print(f"::error::{annotation}", file=target_stream)
+
+
 def write_github_step_summary(result: dict[str, Any], path: Path | None = None) -> None:
     raw_summary_path = str(path) if path is not None else os.getenv("GITHUB_STEP_SUMMARY", "")
     if not raw_summary_path:
@@ -1301,6 +1311,7 @@ def main() -> int:
         }
         if config is not None:
             error_payload["email_diagnostics"] = build_email_diagnostics(config)
+        emit_github_error_annotation(f"{exc.__class__.__name__}: {exc}")
         write_github_step_summary(error_payload)
         print(json.dumps(error_payload, ensure_ascii=False, indent=2), file=sys.stderr)
         return 1

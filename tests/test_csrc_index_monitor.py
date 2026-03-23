@@ -1,3 +1,4 @@
+import io
 import json
 import os
 import tempfile
@@ -704,6 +705,19 @@ class DailySummaryTests(unittest.TestCase):
 
 
 class ObservabilityTests(unittest.TestCase):
+    def test_emit_github_error_annotation_escapes_special_characters(self):
+        buffer = io.StringIO()
+
+        monitor.emit_github_error_annotation(
+            "SMTPDataError: line 1\nline 2 with 50% payload\rline 3",
+            stream=buffer,
+        )
+
+        self.assertEqual(
+            buffer.getvalue(),
+            "::error::SMTPDataError: line 1%0Aline 2 with 50%25 payload%0Dline 3\n",
+        )
+
     def test_write_github_step_summary_includes_skip_reason(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             summary_path = Path(tmpdir) / "summary.md"
