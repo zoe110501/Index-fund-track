@@ -467,16 +467,73 @@ class DailySummaryTests(unittest.TestCase):
                     self.fontName = font_name
                     self.path = path
 
-        with mock.patch("pathlib.Path.exists", autospec=True, return_value=True):
-            resolved = monitor.register_pdf_fonts(FakePdfMetrics(), FakeTtFonts(), font_candidates)
+        class FakeCidFonts:
+            class UnicodeCIDFont:
+                def __init__(self, font_name):
+                    self.fontName = font_name
+                    self.path = font_name
 
-        self.assertEqual(resolved["cjk"], cjk_good)
-        self.assertEqual(resolved["latin"], latin_regular)
-        self.assertEqual(resolved["latin_bold"], latin_bold)
+        with mock.patch("pathlib.Path.exists", autospec=True, return_value=True):
+            resolved = monitor.register_pdf_fonts(FakePdfMetrics(), FakeTtFonts(), FakeCidFonts(), font_candidates)
+
+        self.assertEqual(resolved["cjk"], monitor.PDF_FONT_FAMILY_CJK)
+        self.assertEqual(resolved["latin"], monitor.PDF_FONT_FAMILY_LATIN)
+        self.assertEqual(resolved["latin_bold"], monitor.PDF_FONT_FAMILY_LATIN_BOLD)
         self.assertEqual(
             registered_fonts,
             [
                 (monitor.PDF_FONT_FAMILY_CJK, str(cjk_good)),
+                (monitor.PDF_FONT_FAMILY_LATIN, str(latin_regular)),
+                (monitor.PDF_FONT_FAMILY_LATIN_BOLD, str(latin_bold)),
+            ],
+        )
+
+    def test_register_pdf_fonts_falls_back_to_builtin_cjk_font_when_all_files_fail(self):
+        cjk_bad = Path("/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc")
+        cjk_bad_two = Path("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc")
+        latin_regular = Path("/usr/share/fonts/truetype/liberation2/LiberationSerif-Regular.ttf")
+        latin_bold = Path("/usr/share/fonts/truetype/liberation2/LiberationSerif-Bold.ttf")
+        font_candidates = {
+            "cjk": [cjk_bad, cjk_bad_two],
+            "latin": [latin_regular],
+            "latin_bold": [latin_bold],
+        }
+        registered_fonts: list[tuple[str, str]] = []
+
+        class FakePdfMetrics:
+            def getRegisteredFontNames(self):
+                return []
+
+            def registerFont(self, font_obj):
+                registered_fonts.append((font_obj.fontName, font_obj.path))
+
+        class FakeTtFonts:
+            class TTFError(Exception):
+                pass
+
+            class TTFont:
+                def __init__(self, font_name, path):
+                    if path in {str(cjk_bad), str(cjk_bad_two)}:
+                        raise FakeTtFonts.TTFError("unsupported outlines")
+                    self.fontName = font_name
+                    self.path = path
+
+        class FakeCidFonts:
+            class UnicodeCIDFont:
+                def __init__(self, font_name):
+                    self.fontName = font_name
+                    self.path = font_name
+
+        with mock.patch("pathlib.Path.exists", autospec=True, return_value=True):
+            resolved = monitor.register_pdf_fonts(FakePdfMetrics(), FakeTtFonts(), FakeCidFonts(), font_candidates)
+
+        self.assertEqual(resolved["cjk"], "STSong-Light")
+        self.assertEqual(resolved["latin"], monitor.PDF_FONT_FAMILY_LATIN)
+        self.assertEqual(resolved["latin_bold"], monitor.PDF_FONT_FAMILY_LATIN_BOLD)
+        self.assertEqual(
+            registered_fonts,
+            [
+                ("STSong-Light", "STSong-Light"),
                 (monitor.PDF_FONT_FAMILY_LATIN, str(latin_regular)),
                 (monitor.PDF_FONT_FAMILY_LATIN_BOLD, str(latin_bold)),
             ],

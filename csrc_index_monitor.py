@@ -54,6 +54,7 @@ DEFAULT_PDF_LATIN_BOLD_FONT_CANDIDATES = (
 PDF_FONT_FAMILY_CJK = "IndexMonitorSimFang"
 PDF_FONT_FAMILY_LATIN = "IndexMonitorTimesNewRoman"
 PDF_FONT_FAMILY_LATIN_BOLD = "IndexMonitorTimesNewRomanBold"
+PDF_FONT_FAMILY_CJK_CID_FALLBACK = "STSong-Light"
 DISPLAY_ETF_SOURCE = "交易型开放式指数证券投资基金"
 DISPLAY_ETF_TARGET = "ETF"
 LINKED_FUND_KEYWORD = "联接基金"
@@ -619,6 +620,7 @@ def load_reportlab_modules() -> dict[str, Any]:
         platypus = importlib.import_module("reportlab.platypus")
         pdfmetrics = importlib.import_module("reportlab.pdfbase.pdfmetrics")
         ttfonts = importlib.import_module("reportlab.pdfbase.ttfonts")
+        cidfonts = importlib.import_module("reportlab.pdfbase.cidfonts")
     except ModuleNotFoundError as exc:
         raise RuntimeError("ReportLab is required to generate the daily summary PDF attachment.") from exc
     return {
@@ -630,49 +632,65 @@ def load_reportlab_modules() -> dict[str, Any]:
         "platypus": platypus,
         "pdfmetrics": pdfmetrics,
         "ttfonts": ttfonts,
+        "cidfonts": cidfonts,
     }
 
 
-def register_pdf_fonts(pdfmetrics: Any, ttfonts: Any, font_candidates: dict[str, list[Path]]) -> dict[str, Path]:
+def register_pdf_fonts(pdfmetrics: Any, ttfonts: Any, cidfonts: Any, font_candidates: dict[str, list[Path]]) -> dict[str, str]:
     registered = set(pdfmetrics.getRegisteredFontNames())
     registrations = [
         ("cjk", PDF_FONT_FAMILY_CJK, "FangSong (仿宋, simfang.ttf)"),
         ("latin", PDF_FONT_FAMILY_LATIN, "Times New Roman regular (times.ttf)"),
         ("latin_bold", PDF_FONT_FAMILY_LATIN_BOLD, "Times New Roman bold (timesbd.ttf)"),
     ]
-    resolved_paths: dict[str, Path] = {}
+    resolved_font_names: dict[str, str] = {}
     for key, font_name, label in registrations:
         if font_name not in registered:
             last_error: Exception | None = None
             for font_path in _find_existing_font_paths(font_candidates[key], label):
                 try:
                     pdfmetrics.registerFont(ttfonts.TTFont(font_name, str(font_path)))
-                    resolved_paths[key] = font_path
+                    resolved_font_names[key] = font_name
+                    registered.add(font_name)
                     break
                 except Exception as exc:
                     last_error = exc
             else:
-                tried = ", ".join(str(path) for path in _find_existing_font_paths(font_candidates[key], label))
-                raise RuntimeError(f"Unable to register PDF font {label}. Tried: {tried}") from last_error
+                if key == "cjk":
+                    fallback_font_name = PDF_FONT_FAMILY_CJK_CID_FALLBACK
+                    if fallback_font_name not in registered:
+                        pdfmetrics.registerFont(cidfonts.UnicodeCIDFont(fallback_font_name))
+                        registered.add(fallback_font_name)
+                    resolved_font_names[key] = fallback_font_name
+                else:
+                    tried = ", ".join(str(path) for path in _find_existing_font_paths(font_candidates[key], label))
+                    raise RuntimeError(f"Unable to register PDF font {label}. Tried: {tried}") from last_error
         else:
-            resolved_paths[key] = _find_existing_font_path(font_candidates[key], label)
-    return resolved_paths
+            resolved_font_names[key] = font_name
+    return resolved_font_names
 
 
-def build_pdf_rich_text(text: str, *, latin_bold: bool = False) -> str:
+def build_pdf_rich_text(
+    text: str,
+    *,
+    cjk_font_name: str = PDF_FONT_FAMILY_CJK,
+    latin_font_name: str = PDF_FONT_FAMILY_LATIN,
+    latin_bold_font_name: str = PDF_FONT_FAMILY_LATIN_BOLD,
+    latin_bold: bool = False,
+) -> str:
     if not text:
         return ""
 
-    latin_font = PDF_FONT_FAMILY_LATIN_BOLD if latin_bold else PDF_FONT_FAMILY_LATIN
+    latin_font = latin_bold_font_name if latin_bold else latin_font_name
     parts: list[str] = []
     last_index = 0
     for match in ASCII_TEXT_PATTERN.finditer(text):
         if match.start() > last_index:
-            parts.append(f"<font name='{PDF_FONT_FAMILY_CJK}'>{xml_escape(text[last_index:match.start()])}</font>")
+            parts.append(f"<font name='{cjk_font_name}'>{xml_escape(text[last_index:match.start()])}</font>")
         parts.append(f"<font name='{latin_font}'>{xml_escape(match.group(0))}</font>")
         last_index = match.end()
     if last_index < len(text):
-        parts.append(f"<font name='{PDF_FONT_FAMILY_CJK}'>{xml_escape(text[last_index:])}</font>")
+        parts.append(f"<font name='{cjk_font_name}'>{xml_escape(text[last_index:])}</font>")
     return "".join(parts)
 
 
@@ -705,7 +723,24 @@ def normalized_column_widths(widths: list[int], total_width: int) -> list[int]:
 def generate_daily_summary_pdf(events: list[dict[str, Any]], local_now: datetime) -> dict[str, Any]:
     reportlab = load_reportlab_modules()
     font_candidates = find_pdf_font_candidates()
-    register_pdf_fonts(reportlab["pdfmetrics"], reportlab["ttfonts"], font_candidates)
+    font_names = register_pdf_fonts(
+        reportlab["pdfmetrics"],
+        reportlab["ttfonts"],
+        reportlab["cidfonts"],
+        font_candidates,
+    )
+    cjk_font_name = font_names["cjk"]
+    latin_font_name = font_names["latin"]
+    latin_bold_font_name = font_names["latin_bold"]
+
+    def rich_text(value: str, *, latin_bold: bool = False) -> str:
+        return build_pdf_rich_text(
+            value,
+            cjk_font_name=cjk_font_name,
+            latin_font_name=latin_font_name,
+            latin_bold_font_name=latin_bold_font_name,
+            latin_bold=latin_bold,
+        )
 
     colors = reportlab["colors"]
     A4 = reportlab["pagesizes"].A4
@@ -738,7 +773,7 @@ def generate_daily_summary_pdf(events: list[dict[str, Any]], local_now: datetime
     title_style = ParagraphStyle(
         "IndexMonitorTitle",
         parent=styles["Title"],
-        fontName=PDF_FONT_FAMILY_CJK,
+        fontName=cjk_font_name,
         fontSize=19,
         leading=24,
         alignment=TA_CENTER,
@@ -748,7 +783,7 @@ def generate_daily_summary_pdf(events: list[dict[str, Any]], local_now: datetime
     summary_style = ParagraphStyle(
         "IndexMonitorSummary",
         parent=styles["Normal"],
-        fontName=PDF_FONT_FAMILY_CJK,
+        fontName=cjk_font_name,
         fontSize=10.5,
         leading=15,
         alignment=TA_CENTER,
@@ -758,7 +793,7 @@ def generate_daily_summary_pdf(events: list[dict[str, Any]], local_now: datetime
     intro_style = ParagraphStyle(
         "IndexMonitorIntro",
         parent=styles["Normal"],
-        fontName=PDF_FONT_FAMILY_CJK,
+        fontName=cjk_font_name,
         fontSize=11.5,
         leading=18,
         alignment=TA_LEFT,
@@ -768,7 +803,7 @@ def generate_daily_summary_pdf(events: list[dict[str, Any]], local_now: datetime
     section_style = ParagraphStyle(
         "IndexMonitorSection",
         parent=styles["Heading2"],
-        fontName=PDF_FONT_FAMILY_CJK,
+        fontName=cjk_font_name,
         fontSize=13.5,
         leading=18,
         alignment=TA_LEFT,
@@ -779,7 +814,7 @@ def generate_daily_summary_pdf(events: list[dict[str, Any]], local_now: datetime
     cell_style = ParagraphStyle(
         "IndexMonitorCell",
         parent=styles["BodyText"],
-        fontName=PDF_FONT_FAMILY_CJK,
+        fontName=cjk_font_name,
         fontSize=9.5,
         leading=13,
         alignment=TA_LEFT,
@@ -796,24 +831,24 @@ def generate_daily_summary_pdf(events: list[dict[str, Any]], local_now: datetime
     )
 
     story: list[Any] = [
-        Paragraph(build_pdf_rich_text(f"指数基金审批日报 {local_now:%Y-%m-%d}", latin_bold=True), title_style),
-        Paragraph(build_pdf_rich_text(f"生成时间：{local_now:%Y-%m-%d %H:%M}"), summary_style),
-        Paragraph(build_pdf_rich_text(f"今日新产品：{new_record_count} 条"), summary_style),
-        Paragraph(build_pdf_rich_text(f"今日新增节点产品：{new_step_count} 条"), summary_style),
+        Paragraph(rich_text(f"指数基金审批日报 {local_now:%Y-%m-%d}", latin_bold=True), title_style),
+        Paragraph(rich_text(f"生成时间：{local_now:%Y-%m-%d %H:%M}"), summary_style),
+        Paragraph(rich_text(f"今日新产品：{new_record_count} 条"), summary_style),
+        Paragraph(rich_text(f"今日新增节点产品：{new_step_count} 条"), summary_style),
         Spacer(1, 8),
-        Paragraph(build_pdf_rich_text("今日累计汇总如下："), intro_style),
+        Paragraph(rich_text("今日累计汇总如下："), intro_style),
     ]
 
     for section in build_pdf_table_sections(events):
-        story.append(Paragraph(build_pdf_rich_text(section["title"], latin_bold=True), section_style))
+        story.append(Paragraph(rich_text(section["title"], latin_bold=True), section_style))
         column_widths = normalized_column_widths(section["column_widths"], int(content_width))
         table_rows = [
-            [Paragraph(build_pdf_rich_text(header, latin_bold=True), header_style) for header in section["headers"]]
+            [Paragraph(rich_text(header, latin_bold=True), header_style) for header in section["headers"]]
         ]
         body_rows = section["rows"] or [["无"] + [""] * (len(section["headers"]) - 1)]
         for row in body_rows:
             normalized_row = list(row) + [""] * (len(section["headers"]) - len(row))
-            table_rows.append([Paragraph(build_pdf_rich_text(str(value)), cell_style) for value in normalized_row[: len(section["headers"])]])
+            table_rows.append([Paragraph(rich_text(str(value)), cell_style) for value in normalized_row[: len(section["headers"])]])
 
         table = Table(table_rows, colWidths=column_widths, repeatRows=1)
         table.setStyle(
