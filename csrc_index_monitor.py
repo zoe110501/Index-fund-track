@@ -40,10 +40,16 @@ DEFAULT_PDF_CJK_FONT_CANDIDATES = (
 DEFAULT_PDF_LATIN_FONT_CANDIDATES = (
     Path("C:/Windows/Fonts/times.ttf"),
     Path("/usr/share/fonts/truetype/msttcorefonts/Times_New_Roman.ttf"),
+    Path("/usr/share/fonts/truetype/liberation2/LiberationSerif-Regular.ttf"),
+    Path("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf"),
+    Path("/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf"),
 )
 DEFAULT_PDF_LATIN_BOLD_FONT_CANDIDATES = (
     Path("C:/Windows/Fonts/timesbd.ttf"),
     Path("/usr/share/fonts/truetype/msttcorefonts/Times_New_Roman_Bold.ttf"),
+    Path("/usr/share/fonts/truetype/liberation2/LiberationSerif-Bold.ttf"),
+    Path("/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf"),
+    Path("/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf"),
 )
 PDF_FONT_FAMILY_CJK = "IndexMonitorSimFang"
 PDF_FONT_FAMILY_LATIN = "IndexMonitorTimesNewRoman"

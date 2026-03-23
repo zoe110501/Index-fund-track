@@ -423,6 +423,20 @@ class DailySummaryTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "Times New Roman"):
                 monitor.generate_daily_summary_pdf([], local_now)
 
+    def test_find_pdf_font_paths_uses_linux_serif_fallbacks_when_times_is_missing(self):
+        cjk_font = Path("C:/Windows/Fonts/simfang.ttf")
+        liberation_regular = Path("/usr/share/fonts/truetype/liberation2/LiberationSerif-Regular.ttf")
+        liberation_bold = Path("/usr/share/fonts/truetype/liberation2/LiberationSerif-Bold.ttf")
+
+        def fake_exists(path_obj: Path) -> bool:
+            return path_obj in {cjk_font, liberation_regular, liberation_bold}
+
+        with mock.patch("pathlib.Path.exists", autospec=True, side_effect=fake_exists):
+            font_paths = monitor.find_pdf_font_paths()
+
+        self.assertEqual(font_paths["latin"], liberation_regular)
+        self.assertEqual(font_paths["latin_bold"], liberation_bold)
+
     def test_generate_daily_summary_pdf_contains_extractable_report_text(self):
         local_now = datetime(2026, 3, 17, 19, 30, tzinfo=monitor.SHANGHAI_TZ)
         attachment = monitor.generate_daily_summary_pdf(self.build_daily_summary_events(), local_now)
