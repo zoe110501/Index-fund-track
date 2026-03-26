@@ -1,5 +1,5 @@
 {
-  "last_success_at": "2026-03-26T11:07:22Z",
+  "last_success_at": "2026-03-26T13:52:19Z",
   "records": {
     "0dd66d829b3746ccb8e5e6c24de50e38": {
       "title": "关于博时基金管理有限公司的《公开募集基金募集申请注册-博时恒生港股通高股息低波动交易型开放式指数证券投资基金》",
@@ -50007,10 +50007,5 @@
       ]
     }
   },
-  "last_notified_event_ids": [
-    "new-record|0dd66d829b3746ccb8e5e6c24de50e38",
-    "new-record|3139010500e94e74851db40dcea01d75",
-    "new-record|4e803701dcf14a6680ffbd419d1f1971",
-    "new-record|43db55a7aec34a44958827ccfbbf08d4"
-  ]
+  "last_notified_event_ids": []
 }
