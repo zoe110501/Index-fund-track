@@ -1004,10 +1004,11 @@ def load_historical_daily_baseline(
     except ValueError:
         return None
 
-    day_start_local = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
-    day_end_local = day_start_local + timedelta(days=1)
-    since_utc = day_start_local.astimezone(timezone.utc).isoformat()
-    until_utc = day_end_local.astimezone(timezone.utc).isoformat()
+    current_day_start_local = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+    previous_day_start_local = current_day_start_local - timedelta(days=1)
+    previous_day_end_local = current_day_start_local
+    since_utc = previous_day_start_local.astimezone(timezone.utc).isoformat()
+    until_utc = previous_day_end_local.astimezone(timezone.utc).isoformat()
 
     try:
         log_result = git_runner(
@@ -1031,7 +1032,7 @@ def load_historical_daily_baseline(
     if not commits:
         return None
 
-    commit_hash = commits[0]
+    commit_hash = commits[-1]
     try:
         show_result = git_runner(
             [
