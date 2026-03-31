@@ -1,5 +1,5 @@
 {
-  "last_success_at": "2026-03-31T03:24:17Z",
+  "last_success_at": "2026-03-31T05:49:23Z",
   "records": {
     "dab78337176144578e54bf892e75490f": {
       "title": "关于嘉实基金管理有限公司的《公开募集基金募集申请注册-嘉实中证沪港深云计算产业交易型开放式指数证券投资基金》",
@@ -50255,8 +50255,5 @@
       ]
     }
   },
-  "last_notified_event_ids": [
-    "new-step|9f7991f4c02b4392af52f2d0f8285671|接收书面回复|2026-03-31|de1817da522249d490309bc08e238c00",
-    "new-step|9aa268cb6ad7406aa85b4de799b0d885|接收书面回复|2026-03-31|d483cdf8f4fb4505825bca71e0570fb6"
-  ]
+  "last_notified_event_ids": []
 }
