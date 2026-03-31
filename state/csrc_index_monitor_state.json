@@ -1,5 +1,5 @@
 {
-  "last_success_at": "2026-03-31T10:23:24Z",
+  "last_success_at": "2026-03-31T11:06:22Z",
   "records": {
     "747009713d36422e976031501aa29b33": {
       "title": "关于平安基金管理有限公司的《公开募集基金募集申请注册-平安中证农业主题指数型发起式证券投资基金》",
@@ -50305,11 +50305,5 @@
       ]
     }
   },
-  "last_notified_event_ids": [
-    "new-record|747009713d36422e976031501aa29b33",
-    "new-record|cd8b7776c8d449ae845c73fe85ccd80e",
-    "new-record|589f7044229449b183a26002090399d1",
-    "new-record|535d277137b64566bf60ba54d7ddc2f4",
-    "new-record|cb4870346b424c078b04985e180fa089"
-  ]
+  "last_notified_event_ids": []
 }
