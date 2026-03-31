@@ -50255,8 +50255,5 @@
       ]
     }
   },
-  "last_notified_event_ids": [
-    "new-step|9f7991f4c02b4392af52f2d0f8285671|接收书面回复|2026-03-31|de1817da522249d490309bc08e238c00",
-    "new-step|9aa268cb6ad7406aa85b4de799b0d885|接收书面回复|2026-03-31|d483cdf8f4fb4505825bca71e0570fb6"
-  ]
+  "last_notified_event_ids": []
 }
