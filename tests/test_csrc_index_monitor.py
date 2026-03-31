@@ -1,11 +1,13 @@
 import io
 import json
 import os
+import ssl
 import tempfile
 import unittest
 from datetime import datetime
 from pathlib import Path
 from unittest import mock
+from urllib.error import URLError
 
 import csrc_index_monitor as monitor
 
@@ -142,6 +144,34 @@ class FetchTests(unittest.TestCase):
 
         self.assertEqual([record["record_id"] for record in records], ["alpha", "beta"])
         self.assertEqual(records[1]["steps"][0]["task_name"], TASK_ACCEPT)
+
+    def test_fetch_page_from_api_retries_without_ssl_verification_after_cert_failure(self):
+        payload = {"code": "0000", "data": {"records": [], "total": 0, "size": 1, "current": 1}}
+        response = mock.MagicMock()
+        response.__enter__.return_value.read.return_value = json.dumps(payload).encode("utf-8")
+        response.__exit__.return_value = False
+
+        with mock.patch(
+            "csrc_index_monitor.urlopen",
+            side_effect=[
+                URLError(ssl.SSLCertVerificationError("certificate verify failed")),
+                response,
+            ],
+        ) as mocked_urlopen:
+            result = monitor.fetch_page_from_api(1, 1, KEYWORD)
+
+        self.assertEqual(result, payload)
+        self.assertEqual(mocked_urlopen.call_count, 2)
+        self.assertNotIn("context", mocked_urlopen.call_args_list[0].kwargs)
+        self.assertIn("context", mocked_urlopen.call_args_list[1].kwargs)
+
+    def test_fetch_page_from_api_does_not_retry_non_ssl_url_errors(self):
+        with mock.patch(
+            "csrc_index_monitor.urlopen",
+            side_effect=URLError("timed out"),
+        ):
+            with self.assertRaises(URLError):
+                monitor.fetch_page_from_api(1, 1, KEYWORD)
 
 
 class ConfigTests(unittest.TestCase):
