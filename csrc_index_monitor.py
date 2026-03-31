@@ -5,6 +5,7 @@ import json
 import importlib
 import os
 import re
+import ssl
 import smtplib
 import subprocess
 import sys
@@ -16,6 +17,7 @@ from html import escape
 from pathlib import Path
 from typing import Any, Callable
 from urllib.parse import urlencode
+from urllib.error import URLError
 from urllib.request import Request, urlopen
 from xml.sax.saxutils import escape as xml_escape
 
@@ -227,11 +229,25 @@ def fetch_page_from_api(page_num: int, page_size: int, keyword: str) -> dict[str
             "Referer": "https://neris.csrc.gov.cn/alappr-delare-front/home/toPubFlow",
         },
     )
-    with urlopen(request, timeout=30) as response:
+    with open_url_with_ssl_fallback(request) as response:
         payload = json.loads(response.read().decode("utf-8"))
     if payload.get("code") != "0000":
         raise RuntimeError(f"CSRC API returned error: {payload.get('code')} {payload.get('message')}")
     return payload
+
+
+def open_url_with_ssl_fallback(request: Request, timeout: int = 30):
+    try:
+        return urlopen(request, timeout=timeout)
+    except URLError as exc:
+        if not isinstance(exc.reason, ssl.SSLCertVerificationError):
+            raise
+    print(
+        "Warning: SSL certificate verification failed for CSRC API; retrying without certificate verification.",
+        file=sys.stderr,
+    )
+    insecure_context = ssl._create_unverified_context()
+    return urlopen(request, timeout=timeout, context=insecure_context)
 
 
 def fetch_all_records(
