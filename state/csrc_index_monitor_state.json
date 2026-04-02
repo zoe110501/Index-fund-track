@@ -1,5 +1,5 @@
 {
-  "last_success_at": "2026-04-02T11:04:12Z",
+  "last_success_at": "2026-04-02T11:55:21Z",
   "records": {
     "1fb9652fb3fb4b8e948d028f62e5513f": {
       "title": "关于万家基金管理有限公司的《公开募集基金募集申请注册-万家中证金融科技主题指数型证券投资基金》",
@@ -50418,7 +50418,5 @@
       ]
     }
   },
-  "last_notified_event_ids": [
-    "new-step|a2fa4b471a324da79c9df548d5e384aa|受理通知|2026-04-01|34c909ae9c0c4053b7f7d6e72c76b541"
-  ]
+  "last_notified_event_ids": []
 }
