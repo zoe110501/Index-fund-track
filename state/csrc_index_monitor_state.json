@@ -1,5 +1,5 @@
 {
-  "last_success_at": "2026-04-02T03:20:25Z",
+  "last_success_at": "2026-04-02T05:46:18Z",
   "records": {
     "06ca0fc3caac4341a536fabafe13ae98": {
       "title": "关于摩根基金管理（中国）有限公司的《公开募集基金募集申请注册-摩根中证科创创业人工智能交易型开放式指数证券投资基金发起式联接基金》",
@@ -50321,7 +50321,5 @@
       ]
     }
   },
-  "last_notified_event_ids": [
-    "new-step|a9e9d4b4f4f541dcaefcd3e9994e534a|接收书面回复|2026-04-02|fcd086fd85704c46b60b8c65f131f064"
-  ]
+  "last_notified_event_ids": []
 }
