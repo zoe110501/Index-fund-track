@@ -1,5 +1,5 @@
 {
-  "last_success_at": "2026-04-03T09:07:05Z",
+  "last_success_at": "2026-04-03T10:57:17Z",
   "records": {
     "889299ef805744579385fdd454bceb00": {
       "title": "关于景顺长城基金管理有限公司的《公开募集基金募集申请注册-景顺长城中证工程机械主题交易型开放式指数证券投资基金》",
@@ -50507,17 +50507,5 @@
       ]
     }
   },
-  "last_notified_event_ids": [
-    "new-record|889299ef805744579385fdd454bceb00",
-    "new-record|4e51154d4d7444ab82751fad635b4b42",
-    "new-record|ce702241e2bc4fe2a03dd1c06708010a",
-    "new-record|c79cc6ba73eb464a8115fb6be72eda73",
-    "new-record|49ca0fa9e0454128962b91f6428b5569",
-    "new-record|2c1c2445c89c422880ec75e80eef07fd",
-    "new-record|7a8092c45eec43e0930a562b596e0f3b",
-    "new-record|362723de049c4408ae599aae96e9f1a3",
-    "new-record|388bdf1b615a4eeb86fac72428df7a41",
-    "new-record|b5fdbca7823a445fb430309c37a38936",
-    "new-record|1a77d7a6d65e43b8b23376b64c92a603"
-  ]
+  "last_notified_event_ids": []
 }
