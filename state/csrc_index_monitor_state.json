@@ -1,5 +1,5 @@
 {
-  "last_success_at": "2026-04-03T03:22:22Z",
+  "last_success_at": "2026-04-03T05:46:31Z",
   "records": {
     "1fb9652fb3fb4b8e948d028f62e5513f": {
       "title": "关于万家基金管理有限公司的《公开募集基金募集申请注册-万家中证金融科技主题指数型证券投资基金》",
@@ -50430,18 +50430,5 @@
       ]
     }
   },
-  "last_notified_event_ids": [
-    "new-step|070fcb243ffd46d18ac13ebee29df79d|行政许可决定书|2026-03-27|4f986d69c97345bd8e3125e15414aab0",
-    "new-step|c06a914824434d4f8b83620eb59f3e87|行政许可决定书|2026-03-27|16d788b937af442ca63204753be2cf11",
-    "new-step|18417fdb033e40c9836e926d37ba26ba|行政许可决定书|2026-03-27|8ad3dadcfc0c4ea694652b95a0d95486",
-    "new-step|92000cad752e4aebb1f90fda27bad04e|行政许可决定书|2026-03-27|d924eae8011a4e40a5f9d2972980b60c",
-    "new-step|e8580596753f43e5976a93bdd344eef9|行政许可决定书|2026-03-27|f9e1b827649c43619a76988ab486d5fe",
-    "new-step|2d52aa48acd14fa1b059d82409af1232|行政许可决定书|2026-03-27|7d16a37861b14c268ffeb9913d86b9ec",
-    "new-step|12cbb688e86c42ec8cf30a488996235b|行政许可决定书|2026-03-27|0af133dcc3c0461bae69320fd40152c1",
-    "new-step|1ca3f0e3967a49bba52146238bd0d7ae|行政许可决定书|2026-03-27|2e8691743265415da9d9412910d901bb",
-    "new-step|8660976a6e774da78f8de653fbeb4141|行政许可决定书|2026-03-27|e0a0866fc40b4f11abd80702b322a2fe",
-    "new-step|577ad65c9f8e4149ae0e1965b7e6ae84|行政许可决定书|2026-03-27|c6a89f6692104e7a9591e375f651c180",
-    "new-step|4a3e5335c602475aaefb532e55edb56d|行政许可决定书|2026-03-27|16b3a66666b446bf9f5a0a9fcce3273a",
-    "new-step|8bd5d7a1658543d5b9937f6d18ca48cb|行政许可决定书|2026-03-27|e3fdd7b74aa3408a83cd04502a2c1181"
-  ]
+  "last_notified_event_ids": []
 }
