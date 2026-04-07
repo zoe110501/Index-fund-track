@@ -1,5 +1,5 @@
 {
-  "last_success_at": "2026-04-07T09:17:06Z",
+  "last_success_at": "2026-04-07T11:10:12Z",
   "records": {
     "7a49c9012be843d9af92d74df7d3637f": {
       "title": "关于博时基金管理有限公司的《公开募集基金募集申请注册-博时中证半导体产业交易型开放式指数证券投资基金发起式联接基金》",
@@ -50535,10 +50535,5 @@
       ]
     }
   },
-  "last_notified_event_ids": [
-    "new-record|7a49c9012be843d9af92d74df7d3637f",
-    "new-record|703798bc59774145949eba7fb21db2a3",
-    "new-record|08dbc022f8ea4788a60a636377e01c8f",
-    "new-record|8cc365a735f54e4a96f85f2f1ae49038"
-  ]
+  "last_notified_event_ids": []
 }
