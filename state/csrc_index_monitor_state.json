@@ -1,5 +1,5 @@
 {
-  "last_success_at": "2026-04-09T09:52:06Z",
+  "last_success_at": "2026-04-09T11:12:16Z",
   "records": {
     "19cc27248dbf4ce98e9184bef50189e2": {
       "title": "关于鹏华基金管理有限公司的《公开募集基金募集申请注册-鹏华中证全指医疗器械交易型开放式指数证券投资基金》",
@@ -50619,13 +50619,5 @@
       ]
     }
   },
-  "last_notified_event_ids": [
-    "new-step|7a49c9012be843d9af92d74df7d3637f|受理通知|2026-04-08|5a7968b0726e478ba13a04fcd81df46b",
-    "new-step|08dbc022f8ea4788a60a636377e01c8f|受理通知|2026-04-08|d06f6026f4ad4affba6f6c48a803e481",
-    "new-step|889299ef805744579385fdd454bceb00|受理通知|2026-04-08|d9adbb1681854c25bb9e84aabb038c40",
-    "new-step|4e51154d4d7444ab82751fad635b4b42|受理通知|2026-04-08|d4fd7fedc45c41988c397141fa636928",
-    "new-step|2c1c2445c89c422880ec75e80eef07fd|受理通知|2026-04-08|79e8031299e244ab91b59503c3dbf6ee",
-    "new-step|7a8092c45eec43e0930a562b596e0f3b|受理通知|2026-04-08|d169416378f645fda912819d928ec38e",
-    "new-step|362723de049c4408ae599aae96e9f1a3|受理通知|2026-04-08|0b0b08b10775421994dec5403028ac12"
-  ]
+  "last_notified_event_ids": []
 }
