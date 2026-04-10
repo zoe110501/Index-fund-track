@@ -1,5 +1,5 @@
 {
-  "last_success_at": "2026-04-10T09:47:15Z",
+  "last_success_at": "2026-04-10T10:14:30Z",
   "records": {
     "d195a7b288624654b6ab51aa57c5aa7e": {
       "title": "关于华夏基金管理有限公司的《公开募集基金募集申请注册-华夏中证稀有金属主题交易型开放式指数证券投资基金》",
@@ -33763,8 +33763,8 @@
       "step_ids": [
         "接收材料|2021-06-01|-",
         "补正通知|2021-06-07|ed353f74072e4611b8e6169f291084ea",
-        "补正材料交接||ed353f74072e4611b8e6169f291084ea",
         "接收补正材料|2021-08-06|ed353f74072e4611b8e6169f291084ea",
+        "补正材料交接||ed353f74072e4611b8e6169f291084ea",
         "受理通知|2021-08-06|6d2f4ba5efda437aab26da0f9f24b7d1",
         "一次书面反馈|2021-08-20|56c73b1c0aab4085a1999c811d8d5460"
       ]
@@ -50675,14 +50675,5 @@
       ]
     }
   },
-  "last_notified_event_ids": [
-    "new-record|d195a7b288624654b6ab51aa57c5aa7e",
-    "new-record|52ba287185904fc891d86df74f7e92e8",
-    "new-record|71a0b216e4cd4ba78a93e1e0ec86553f",
-    "new-record|1ea94161d4e845d2b3f5a28b0affc7aa",
-    "new-record|a56cd2082d574514873145a99b5034e2",
-    "new-record|c08ce010411648c197e5a0bd13b7bff6",
-    "new-record|d292d1b6ffb44e38a50ed7c8b9d5bcba",
-    "new-record|2e1d9af21dc147ac9f60f857d1d9d88c"
-  ]
+  "last_notified_event_ids": []
 }
