@@ -1,5 +1,5 @@
 {
-  "last_success_at": "2026-04-15T03:34:14Z",
+  "last_success_at": "2026-04-15T06:06:32Z",
   "records": {
     "abbdd135f914489d823219645963e40c": {
       "title": "关于广发基金管理有限公司的《公开募集基金募集申请注册-广发中证银行交易型开放式指数证券投资基金》",
@@ -50720,8 +50720,5 @@
       ]
     }
   },
-  "last_notified_event_ids": [
-    "new-record|abbdd135f914489d823219645963e40c",
-    "new-record|b0e9519a017b414c80186ccb6291d45b"
-  ]
+  "last_notified_event_ids": []
 }
