@@ -1,5 +1,5 @@
 {
-  "last_success_at": "2026-04-16T10:14:02Z",
+  "last_success_at": "2026-04-16T10:23:52Z",
   "records": {
     "cdfef77f32c74dd7ad8862ee7ba9fe53": {
       "title": "关于招商基金管理有限公司的《公开募集基金募集申请注册-招商国证粮食产业指数型发起式证券投资基金》",
@@ -50843,39 +50843,5 @@
       ]
     }
   },
-  "last_notified_event_ids": [
-    "new-record|cdfef77f32c74dd7ad8862ee7ba9fe53",
-    "new-record|5e87f59090b34b06913762e8ead01fe3",
-    "new-record|3661960b360144419745408d7ea941cc",
-    "new-record|90d7b14e5440423fbbf30af1e12a13d3",
-    "new-record|067ee1ec33144e4c8d00cdd357b07452",
-    "new-record|a7a2b2ef34c5487ea2cc4aa5c6090ce2",
-    "new-record|d15da2ce52664890a86ff03b087756fc",
-    "new-record|ebce909f0a7442659c62749a4eb21501",
-    "new-record|8b3757cbd2bf4ea99cf4e8a2e55c894c",
-    "new-step|13fd03fa3f9341e9a56bb0d90c5aef48|受理通知|2026-04-15|25e3226cd8f24039a2009ffc1971a2d7",
-    "new-step|d195a7b288624654b6ab51aa57c5aa7e|受理通知|2026-04-15|75a8a2fbaa1441b7a6384d8dc3ffa13d",
-    "new-step|52ba287185904fc891d86df74f7e92e8|受理通知|2026-04-15|41870dc948404ef8b4f0786b625038b8",
-    "new-step|71a0b216e4cd4ba78a93e1e0ec86553f|受理通知|2026-04-15|f12f2598e4ed467f9ca4a6f1f57c214a",
-    "new-step|a56cd2082d574514873145a99b5034e2|受理通知|2026-04-15|87d3949b31c14ecb86ebc2bda56ba197",
-    "new-step|c08ce010411648c197e5a0bd13b7bff6|受理通知|2026-04-15|b25c5dfc03a34ea092809edf5f70ee55",
-    "new-step|2e1d9af21dc147ac9f60f857d1d9d88c|受理通知|2026-04-15|b4fdc3466b5a425d94a2c1b13a4b09fd",
-    "new-step|19cc27248dbf4ce98e9184bef50189e2|受理通知|2026-04-15|d58643da2f29419a95598e91927cc7b8",
-    "new-step|9fb097263f664e298c659bc7c65762c0|受理通知|2026-04-15|1052a54b53fa469ab5e880c081a50251",
-    "new-step|573e458d46d84ba8881811f0b9e38fd5|受理通知|2026-04-15|0be6c142085141b2b34db705b6aca7f6",
-    "new-step|28c429d01c5e48ff94b19460503af6d8|受理通知|2026-04-15|7d883f029d1d4c588e31b1d7340517ea",
-    "new-step|6cccd67a11ac4f1d99bd766bbf918b3f|一次书面反馈|2026-04-14|0a2deb7da08b4c2b9dedcd12002547cb",
-    "new-step|923f7ddf641f442f868139fe00148372|一次书面反馈|2026-04-08|47616ddc66de44a8afe0d4f2ba4761a1",
-    "new-step|d9842c08b735463c976682f72cd9e3a7|一次书面反馈|2026-04-01|ecf8b200e89548f7bd9159fd5154ae36",
-    "new-step|7bcbda74424c4192a318c326b249978b|一次书面反馈|2026-04-01|397f0252b30f4a1cbbb30957c9ca7d36",
-    "new-step|8b9626e0f43b43d0a7619c1c985edb6d|一次书面反馈|2026-04-01|5bc953139ebe47008d545a9377d1af41",
-    "new-step|6008effc04e640ecb234c9a6ce5d8a44|一次书面反馈|2026-04-01|d0cabacdad4c4de9ba358a40894f34b6",
-    "new-step|e6c846804d3b44498952dcb1d1f525a9|一次书面反馈|2026-04-01|5e0e92e03b3d45479b8a53e362b844e4",
-    "new-step|c1dd0147409c4310b5222fca39a3dd70|一次书面反馈|2026-04-01|713719e5cac9445f82ea4b1eced2ba8b",
-    "new-step|609406fc50594310be1308705ed90ffe|一次书面反馈|2026-04-01|9c14dd1bd9214fb2a428235f4449636f",
-    "new-step|b281b7a4611b49bc83336423074cdc9c|一次书面反馈|2026-04-01|8bf88aff3cd347498fb5b8f03c75139a",
-    "new-step|87c91cc52d464441ad89426c2d8118b0|一次书面反馈|2026-04-01|7ccc97c3d6774b04925566795fb6cb2a",
-    "new-step|5b17970279164dbbb9ecb0c5237ff6ec|一次书面反馈|2026-04-01|fec9127f31c7419cae1e9b101bd05a66",
-    "new-step|668487c9da2a4c95ab1927623cc705fd|接收书面回复|2026-04-16|23f6483b25d24e0e87514f91069890b4"
-  ]
+  "last_notified_event_ids": []
 }
