@@ -1,5 +1,5 @@
 {
-  "last_success_at": "2026-04-16T03:40:26Z",
+  "last_success_at": "2026-04-16T06:09:42Z",
   "records": {
     "08d4a01ca9de4bd5a29561c7aae4ccfc": {
       "title": "关于鹏安基金管理有限公司的《公开募集基金募集申请注册-鹏安中债绿色普惠主题金融债券优选指数证券投资基金》",
@@ -50756,7 +50756,5 @@
       ]
     }
   },
-  "last_notified_event_ids": [
-    "new-step|e3a2d79f4c73476f961b356b4a70f818|接收书面回复|2026-04-16|28ad11655f9a4f8ab2bd83306c7e1c38"
-  ]
+  "last_notified_event_ids": []
 }
