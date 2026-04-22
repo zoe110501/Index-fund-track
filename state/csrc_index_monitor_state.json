@@ -1,5 +1,5 @@
 {
-  "last_success_at": "2026-04-22T10:39:30Z",
+  "last_success_at": "2026-04-22T12:05:06Z",
   "records": {
     "299d74cbbc8f47ee878df90e48f181ba": {
       "title": "关于富国基金管理有限公司的《公开募集基金募集申请注册-富国上证科创板芯片设计主题交易型开放式指数证券投资基金》",
@@ -34142,8 +34142,8 @@
       "step_ids": [
         "接收材料|2021-06-01|-",
         "补正通知|2021-06-07|ed353f74072e4611b8e6169f291084ea",
-        "补正材料交接||ed353f74072e4611b8e6169f291084ea",
         "接收补正材料|2021-08-06|ed353f74072e4611b8e6169f291084ea",
+        "补正材料交接||ed353f74072e4611b8e6169f291084ea",
         "受理通知|2021-08-06|6d2f4ba5efda437aab26da0f9f24b7d1",
         "一次书面反馈|2021-08-20|56c73b1c0aab4085a1999c811d8d5460"
       ]
@@ -51054,21 +51054,5 @@
       ]
     }
   },
-  "last_notified_event_ids": [
-    "new-record|299d74cbbc8f47ee878df90e48f181ba",
-    "new-record|a45bf5d9e5614052b299db995ed80792",
-    "new-record|a944cc9ea0544b0e86d55eda12d3dfd1",
-    "new-step|08dbc022f8ea4788a60a636377e01c8f|行政许可决定书|2026-04-14|64802bd43ccd4edba205f2292f0dab64",
-    "new-step|889299ef805744579385fdd454bceb00|行政许可决定书|2026-04-14|fd22c42999b147d0a50e315ff4008190",
-    "new-step|4e51154d4d7444ab82751fad635b4b42|行政许可决定书|2026-04-14|90dd738399034f098e7fc698038c5d8d",
-    "new-step|ce702241e2bc4fe2a03dd1c06708010a|行政许可决定书|2026-04-14|a36e3a82992a4ab09ade4fc33a96ce62",
-    "new-step|49ca0fa9e0454128962b91f6428b5569|行政许可决定书|2026-04-14|f1d9eecef1564282870b96777504376a",
-    "new-step|2c1c2445c89c422880ec75e80eef07fd|行政许可决定书|2026-04-14|21134fdccf684f259218a427d0e478e3",
-    "new-step|7a8092c45eec43e0930a562b596e0f3b|行政许可决定书|2026-04-14|a100fdce517346cbb4bd64b982d98e4e",
-    "new-step|7fcd9ea7f11e45cba0b4825080e2b36d|行政许可决定书|2026-04-14|def1837d83164a4a92cc30b14aa1f67a",
-    "new-step|b17ac1c60bab4fbdaaa3d490c7c7e5f7|行政许可决定书|2026-04-14|b3558bf6415243be96b67171e1f42a58",
-    "new-step|ec641f5e88af46e8a51a39c61f8e2572|行政许可决定书|2026-04-14|fdd52cfeb2564b5fa83d670e5b692f4d",
-    "new-step|3f252a9c8e9640dbb00cdbf2b6fa32d4|行政许可决定书|2026-04-14|765572e6a4814f1a9468f292fbbec8eb",
-    "new-step|589f7044229449b183a26002090399d1|行政许可决定书|2026-04-14|6b969286752c4c3685aea261a283686c"
-  ]
+  "last_notified_event_ids": []
 }
