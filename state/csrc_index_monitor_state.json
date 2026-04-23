@@ -1,5 +1,5 @@
 {
-  "last_success_at": "2026-04-23T08:59:26Z",
+  "last_success_at": "2026-04-23T10:42:03Z",
   "records": {
     "f503f15061fd40b99ad91494c7421245": {
       "title": "关于嘉实基金管理有限公司的《公开募集基金募集申请注册-嘉实中证工程机械主题交易型开放式指数证券投资基金》",
@@ -51131,17 +51131,5 @@
       ]
     }
   },
-  "last_notified_event_ids": [
-    "new-record|f503f15061fd40b99ad91494c7421245",
-    "new-record|9d78b9ec4d5f451cac580dea8e51f4ed",
-    "new-record|eb7dec536c564d7d807e8a1b6a55a13b",
-    "new-record|6670724c6f4a46c4b4ded8fb65d58900",
-    "new-record|c74d12177da94cddab458f5a630211d3",
-    "new-record|0142abd2297d4f9c991d2c1cdd28c04c",
-    "new-record|7964ca128d4948c3918298aae05639bc",
-    "new-record|07017684af404dbdb10b66c1a499c682",
-    "new-record|cb9cf7ca53d54b07a187538054fb5110",
-    "new-record|81e0d4b479934dcebe5162f9be89df3a",
-    "new-record|c11a40cd15ba4238b471e4687a163cb5"
-  ]
+  "last_notified_event_ids": []
 }
