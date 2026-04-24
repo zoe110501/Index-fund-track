@@ -1,5 +1,5 @@
 {
-  "last_success_at": "2026-04-24T11:17:16Z",
+  "last_success_at": "2026-04-24T14:01:05Z",
   "records": {
     "5fee8db3216f41579a092e1c48327480": {
       "title": "关于华夏基金管理有限公司的《公开募集基金募集申请注册-华夏中证全指软件交易型开放式指数证券投资基金》",
@@ -51191,35 +51191,5 @@
       ]
     }
   },
-  "last_notified_event_ids": [
-    "new-record|5fee8db3216f41579a092e1c48327480",
-    "new-record|624d3e846fdf4c8e9975fc463ab83f9f",
-    "new-record|b859d2f006164c8c91a5aade6c201e81",
-    "new-record|ee33c938b66b47a2aae4b7e33a1e37d6",
-    "new-record|de31c7f23dae4fc7a4990052273a3a63",
-    "new-step|622fa7cad6a04187b698b8b1badc915b|受理通知|2026-04-22|410c7f699fef4383842f224b8b127dc9",
-    "new-step|40db0c561c9a455da8ba06b167ec2b0c|受理通知|2026-04-22|c6cf7a6a4f7a40eebfe380f72352034f",
-    "new-step|7071cbfae6d74357862a5c999b2178fa|受理通知|2026-04-22|93b04779390948f184d86ba8578c619d",
-    "new-step|8501d04881bf49e08664ed073ba7c7f4|受理通知|2026-04-22|df05cf421a014011987bce3ae95de78b",
-    "new-step|4a6555359c4946df9c91fdb8ab7787ab|受理通知|2026-04-22|52640eda7ca3435da32922e994f0a8d4",
-    "new-step|1f2e825c79e643c1bad0e85a32a2cb77|受理通知|2026-04-22|03c692a0816d42588ca6b968aea905a6",
-    "new-step|c7d8d0c62cf64ae0884c08afbe57c053|受理通知|2026-04-22|c664ae2d948a4e71a36f404721856d04",
-    "new-step|c957f4f960d843859335f884cadf6cca|受理通知|2026-04-22|0d5f4088fcef4855a35dc8b3a3b3c2e3",
-    "new-step|05512b7c8dd24a1cad507cf263a53ee6|受理通知|2026-04-22|dc869373c74342b0b71825aa593fb7ea",
-    "new-step|6426d8e898f041a6b86be581886c524e|受理通知|2026-04-22|ebc4857c34f144308f80e2d337152963",
-    "new-step|1024c4bb292f48a0afe3ece71d5179a3|受理通知|2026-04-22|498f0333287b4ac9b0f5c8daf81afab8",
-    "new-step|07802e7944fb4a8f9ef2a9ed3f896ba2|受理通知|2026-04-22|1dd4cf02d71a41c9a9643bc1084b421a",
-    "new-step|632dba7a748143ce8f7187fcd75a872a|受理通知|2026-04-22|ae100c24b33a460f8cc3bcbd950e319c",
-    "new-step|4af0698ae8524a34956959baf73d30a6|受理通知|2026-04-22|1e5c7c80606442d8a9cf898e8730b89d",
-    "new-step|f041d1aed17f47a8b3d2a59432ae0b1d|受理通知|2026-04-22|edf28e7867a140f284edf5f3ebe3bcde",
-    "new-step|a4b825b74dee4b46a4504e86142a254e|受理通知|2026-04-22|f1cd7772190a4df98c4c9e18719f0b19",
-    "new-step|cdfef77f32c74dd7ad8862ee7ba9fe53|受理通知|2026-04-22|40b9169f36384dbb9995df1ae4678aa0",
-    "new-step|90d7b14e5440423fbbf30af1e12a13d3|受理通知|2026-04-22|e437d6ebf8564eec83297ffba7fdccc8",
-    "new-step|067ee1ec33144e4c8d00cdd357b07452|受理通知|2026-04-22|15a1ed6aee2b4572bbd29739a7b406cb",
-    "new-step|8b3757cbd2bf4ea99cf4e8a2e55c894c|受理通知|2026-04-22|707e83ed7a4d4f9092f92ab651f7cc15",
-    "new-step|3a28a0cd05a449ebbce936468a2fcb65|受理通知|2026-04-22|a67702153d6a4089975d85c32306e35c",
-    "new-step|71a4f3ac34b349f48ed29fd560abcaf6|受理通知|2026-04-22|53de09c103c348b29bf2d4f6357b5b83",
-    "new-step|869f47adb2954357a41fe732749b3214|受理通知|2026-04-22|27b3de7ff1574aafbb14d1ee1a430bb0",
-    "new-step|abbdd135f914489d823219645963e40c|受理通知|2026-04-22|a4ee5c54bf4e4416bc27ddf9108d799b"
-  ]
+  "last_notified_event_ids": []
 }
