@@ -1,5 +1,5 @@
 {
-  "last_success_at": "2026-04-27T11:55:00Z",
+  "last_success_at": "2026-04-27T14:22:06Z",
   "records": {
     "5f5ed30bb7a14b9aa1e8cefe3f43c78a": {
       "title": "关于汇添富基金管理股份有限公司的《公开募集基金募集申请注册-汇添富中证信息安全主题指数型证券投资基金》",
@@ -51238,11 +51238,5 @@
       ]
     }
   },
-  "last_notified_event_ids": [
-    "new-record|5f5ed30bb7a14b9aa1e8cefe3f43c78a",
-    "new-record|7ff04c8264f94149b5fc9eb0188d6b47",
-    "new-record|08b6b75dd5e54af19c152f94e3d89b22",
-    "new-record|112f23c944764e12906804f27eccec74",
-    "new-record|246710b12d4d4afe9c382b6ecc5fced2"
-  ]
+  "last_notified_event_ids": []
 }
