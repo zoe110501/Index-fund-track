@@ -1,5 +1,5 @@
 {
-  "last_success_at": "2026-04-27T03:54:25Z",
+  "last_success_at": "2026-04-27T06:38:05Z",
   "records": {
     "5fee8db3216f41579a092e1c48327480": {
       "title": "关于华夏基金管理有限公司的《公开募集基金募集申请注册-华夏中证全指软件交易型开放式指数证券投资基金》",
@@ -51193,8 +51193,5 @@
       ]
     }
   },
-  "last_notified_event_ids": [
-    "new-step|b1548aea3d40498992716217302ec369|行政许可决定书|2026-04-21|cef96d3e7dfc44ddb72a1196b0fe0edd",
-    "new-step|f0152bd0758d4b80b1bbbe94231fb537|行政许可决定书|2026-04-21|4646e5fb23cc4d4ab5d59cff80660472"
-  ]
+  "last_notified_event_ids": []
 }
