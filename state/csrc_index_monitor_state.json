@@ -1,5 +1,5 @@
 {
-  "last_success_at": "2026-04-28T09:31:19Z",
+  "last_success_at": "2026-04-28T11:56:35Z",
   "records": {
     "41cb6ffe37c546c99ae6dc8448b10746": {
       "title": "关于汇泉基金管理有限公司的《公开募集基金募集申请注册-汇泉中证有色金属矿业主题指数证券投资基金》",
@@ -34354,8 +34354,8 @@
       "step_ids": [
         "接收材料|2021-06-01|-",
         "补正通知|2021-06-07|ed353f74072e4611b8e6169f291084ea",
-        "补正材料交接||ed353f74072e4611b8e6169f291084ea",
         "接收补正材料|2021-08-06|ed353f74072e4611b8e6169f291084ea",
+        "补正材料交接||ed353f74072e4611b8e6169f291084ea",
         "受理通知|2021-08-06|6d2f4ba5efda437aab26da0f9f24b7d1",
         "一次书面反馈|2021-08-20|56c73b1c0aab4085a1999c811d8d5460"
       ]
@@ -51266,10 +51266,5 @@
       ]
     }
   },
-  "last_notified_event_ids": [
-    "new-record|41cb6ffe37c546c99ae6dc8448b10746",
-    "new-record|e9827640249345eaa25b4be788aeaea1",
-    "new-record|6d0315805df249b09d7c30735b9d1a31",
-    "new-record|6fe78d5012674d0a8bbb06feaefe6aa9"
-  ]
+  "last_notified_event_ids": []
 }
