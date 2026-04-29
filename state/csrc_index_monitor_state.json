@@ -1,5 +1,5 @@
 {
-  "last_success_at": "2026-04-29T09:20:08Z",
+  "last_success_at": "2026-04-29T11:48:27Z",
   "records": {
     "041459cf00be41ada11c21d332bdd35e": {
       "title": "关于鹏华基金管理有限公司的《公开募集基金募集申请注册-鹏华中证智能汽车主题交易型开放式指数证券投资基金》",
@@ -51350,23 +51350,5 @@
       ]
     }
   },
-  "last_notified_event_ids": [
-    "new-record|041459cf00be41ada11c21d332bdd35e",
-    "new-record|cb559fd056414351b86b11aadcd26734",
-    "new-record|837c615d2d2e44ab8c716533e4b28866",
-    "new-record|3ad66fd5f6b04826bfc6dc6c174b0eef",
-    "new-record|f8cf7c4a796c49f48840304275f3a852",
-    "new-record|6e875c81c7ea48b2a8ec5fb4ee3cb44b",
-    "new-record|dce3f8cbca224cf29ebfe8b62ee39204",
-    "new-record|894939face334792a462f9c73853980a",
-    "new-record|12ae9b90550c4c3786e3b4e6411edf0e",
-    "new-record|e5a89abd95c049f795e4457559f425b3",
-    "new-record|45ed382fa1714c7f908f6f5b0b69b7ff",
-    "new-step|0a563cc0e11e4bc9a24cdd9c9150bd17|行政许可决定书|2026-04-20|603a75a2d3f24aeb83031f20150897f1",
-    "new-step|1cd9095a18d04b0b9026c9d16ad95c49|行政许可决定书|2026-04-20|10b07349ab2c4812a19ed64b3b9bb9cf",
-    "new-step|bf95f214e5364929a10cc92337386262|行政许可决定书|2026-04-20|1f1beb7f51354f7798973930d60f65e2",
-    "new-step|48a02e5d624f47b3b01a9af717b3db44|行政许可决定书|2026-04-20|46ca7cf71bff4dd98d4a8dae82960d5d",
-    "new-step|d0315048c430418394025436fafcad2c|行政许可决定书|2026-04-20|911ebb6496194a958047a242cb526f17",
-    "new-step|e3a2d79f4c73476f961b356b4a70f818|行政许可决定书|2026-04-20|c4d41477830640faae0e0e57b4c08694"
-  ]
+  "last_notified_event_ids": []
 }
