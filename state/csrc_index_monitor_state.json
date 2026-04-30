@@ -1,5 +1,5 @@
 {
-  "last_success_at": "2026-04-30T11:47:48Z",
+  "last_success_at": "2026-04-30T14:20:44Z",
   "records": {
     "460bf73e86f04d3b8d5a058aeaf876d8": {
       "title": "关于博时基金管理有限公司的《公开募集基金募集申请注册-博时中证工程机械主题交易型开放式指数证券投资基金》",
@@ -51418,40 +51418,5 @@
       ]
     }
   },
-  "last_notified_event_ids": [
-    "new-record|460bf73e86f04d3b8d5a058aeaf876d8",
-    "new-record|7046b5ac04bb41dcb79ccac4da8bf79e",
-    "new-record|6b8c36659c8143fd96746bf0ed2b4d56",
-    "new-record|5ac3bed6cbc74f78a2b33d033c66879e",
-    "new-record|20cc93971be641029e0f6479d7555262",
-    "new-record|1ab63121387e48a3a7b5005c2c735785",
-    "new-record|f899c1988ff043138601550a36ee6fe2",
-    "new-record|a3163ac36fb341e18bf457f7f0097e02",
-    "new-record|a4086fc0f3a44a11b4248b74ab26c5f2",
-    "new-record|a0705755a6234f448543e056d0521936",
-    "new-record|6cc2b6abc1604383881f00078caea835",
-    "new-record|65804e35b4cb416eb9f283d8f371d536",
-    "new-record|c5e2408b2e304277b888731769872de0",
-    "new-record|def0a8d6a1cb432e8291e2340b1c3b0d",
-    "new-record|e6421087460444d59d65af3517f98061",
-    "new-step|7ff04c8264f94149b5fc9eb0188d6b47|受理通知|2026-04-29|a7c0fccc5c4b4c16adbcbe80bf74a073",
-    "new-step|08b6b75dd5e54af19c152f94e3d89b22|受理通知|2026-04-29|dc82fe4886a4413c91c6c4120190db09",
-    "new-step|112f23c944764e12906804f27eccec74|受理通知|2026-04-29|df2b5cf751cc4de99ee6784dfe925c55",
-    "new-step|246710b12d4d4afe9c382b6ecc5fced2|受理通知|2026-04-29|88d010751213413aabad2a8074b65f76",
-    "new-step|5fee8db3216f41579a092e1c48327480|受理通知|2026-04-29|fa56f13352b04bf19c55aa8630b82ce2",
-    "new-step|624d3e846fdf4c8e9975fc463ab83f9f|受理通知|2026-04-29|6400042a04e946fdb5703a88a96bfba1",
-    "new-step|b859d2f006164c8c91a5aade6c201e81|受理通知|2026-04-29|278d8fb1cdcf4d15bca6c2b0dbcefaf0",
-    "new-step|ee33c938b66b47a2aae4b7e33a1e37d6|受理通知|2026-04-29|78cd7ec860cb40fc9ddeacdd74bc476e",
-    "new-step|de31c7f23dae4fc7a4990052273a3a63|受理通知|2026-04-29|6b2efc6a809f4725ba9a0035ca7ba488",
-    "new-step|f503f15061fd40b99ad91494c7421245|受理通知|2026-04-29|4fc5fab231c847e09ed0139a28481096",
-    "new-step|9d78b9ec4d5f451cac580dea8e51f4ed|受理通知|2026-04-29|0f4cd9dfdc8c461d87b63ea93fb63a50",
-    "new-step|eb7dec536c564d7d807e8a1b6a55a13b|受理通知|2026-04-29|7672f61b798246b18e4b9a42606fcecc",
-    "new-step|c74d12177da94cddab458f5a630211d3|受理通知|2026-04-29|bdd9a38d89984628846149f4215e8601",
-    "new-step|0142abd2297d4f9c991d2c1cdd28c04c|受理通知|2026-04-29|572d781fec6b4088ba33d160c13ba55a",
-    "new-step|07017684af404dbdb10b66c1a499c682|受理通知|2026-04-29|2c5b77197d7c4967b3a2f835f3926611",
-    "new-step|cb9cf7ca53d54b07a187538054fb5110|受理通知|2026-04-29|7d5f0d70c5984a15962291218b01c201",
-    "new-step|81e0d4b479934dcebe5162f9be89df3a|受理通知|2026-04-29|ce92e2e9130f4b67b761208b71172407",
-    "new-step|c11a40cd15ba4238b471e4687a163cb5|受理通知|2026-04-29|cb08f4d3412940cbbbf9a0194b8ed61a",
-    "new-step|299d74cbbc8f47ee878df90e48f181ba|受理通知|2026-04-29|459c5439a0c54594a47e10e7d904050b"
-  ]
+  "last_notified_event_ids": []
 }
