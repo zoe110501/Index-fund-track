@@ -1,5 +1,5 @@
 {
-  "last_success_at": "2026-05-06T11:59:22Z",
+  "last_success_at": "2026-05-06T14:39:59Z",
   "records": {
     "db9dca6c8b8d43948d85a21e35004017": {
       "title": "关于银华基金管理股份有限公司的《公开募集基金募集申请注册-银华中证云计算50交易型开放式指数证券投资基金》",
@@ -51407,7 +51407,5 @@
       ]
     }
   },
-  "last_notified_event_ids": [
-    "new-step|f653022ea71645ccbcb14e300637bbd2|行政许可决定书|2026-04-21|c2506e0aed484f70bf3631a93a887aa0"
-  ]
+  "last_notified_event_ids": []
 }
