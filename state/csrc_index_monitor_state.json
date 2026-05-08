@@ -1,5 +1,5 @@
 {
-  "last_success_at": "2026-05-08T10:45:05Z",
+  "last_success_at": "2026-05-08T12:15:57Z",
   "records": {
     "8a04712fb53f4477aa4b2e254f7123fc": {
       "title": "关于永赢基金管理有限公司的《公开募集基金募集申请注册-永赢中证光伏产业指数型证券投资基金》",
@@ -51441,17 +51441,5 @@
       ]
     }
   },
-  "last_notified_event_ids": [
-    "new-record|8a04712fb53f4477aa4b2e254f7123fc",
-    "new-record|b819fd5fcb2c487faf4d70c327a89657",
-    "new-record|912c3b0b0ddd40d588cd0eb67ed083c9",
-    "new-record|1d8de4ed9e51425999f932f4234c6dee",
-    "new-record|51a6817f41a44b9fae8065180fb33468",
-    "new-record|4a99e866d22944b38f9bdaca68a05b83",
-    "new-record|8b254f0944e64353b28509b23b8e47a1",
-    "new-record|56d3af39888c49dc942e1a35098bbaae",
-    "new-record|aad600560bc24aee838abbac159fb189",
-    "new-record|e8f66b8afaf444bab536bec4c9066214",
-    "new-record|c8f23c5bf2d74640a7a84af7be0082c0"
-  ]
+  "last_notified_event_ids": []
 }
