@@ -1,5 +1,5 @@
 {
-  "last_success_at": "2026-05-09T10:14:52Z",
+  "last_success_at": "2026-05-09T11:57:11Z",
   "records": {
     "dbc59ed2226040dc96f06cda6e2b529c": {
       "title": "关于华夏基金管理有限公司的《公开募集基金募集申请注册-华夏上证科创板芯片交易型开放式指数证券投资基金》",
@@ -51384,7 +51384,5 @@
       ]
     }
   },
-  "last_notified_event_ids": [
-    "new-record|dbc59ed2226040dc96f06cda6e2b529c"
-  ]
+  "last_notified_event_ids": []
 }
