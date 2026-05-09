@@ -1,0 +1,21 @@
+[project]
+name = "financial-hot-terminal"
+version = "0.1.0"
+description = "Local financial hotspot research terminal for A-share, Hong Kong, index, ETF, and fund workflows."
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.110",
+  "jinja2>=3.1",
+  "pydantic>=2",
+  "uvicorn>=0.27",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+  "httpx>=0.27",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

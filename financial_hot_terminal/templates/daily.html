@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}日报 · 金融热点投研终端{% endblock %}
+{% block content %}
+<section class="daily-page">
+  <header class="daily-header">
+    <span class="eyebrow">Daily Brief</span>
+    <h1>{{ report.title }}</h1>
+    <p>{{ report.summary }}</p>
+    <small>{{ report.disclaimer }}</small>
+  </header>
+  {% for section in report.sections %}
+  <section class="daily-section">
+    <h2>{{ section.name }}</h2>
+    {% for item in section["items"] %}
+    <article class="daily-item">
+      <span>{{ item.market }} · {{ item.category }} · {{ item.hot_score }}</span>
+      <h3>{{ item.title }}</h3>
+      <p>{{ item.summary }}</p>
+      <div class="source-links">
+        {% for url in item.source_urls %}
+        <a href="{{ url }}" target="_blank" rel="noreferrer">来源{{ loop.index }}</a>
+        {% endfor %}
+      </div>
+    </article>
+    {% endfor %}
+  </section>
+  {% endfor %}
+</section>
+{% endblock %}

@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}热点 · 金融热点投研终端{% endblock %}
+{% block content %}
+<section class="terminal-grid">
+  <aside class="side-rail">
+    <div class="panel terminal-clock">
+      <span class="eyebrow">Research Feed</span>
+      <h1>精选金融热点</h1>
+      <p>{{ disclaimer }}</p>
+      <form method="post" action="/api/jobs/ingest" class="compact-form" data-ingest-form>
+        <button class="primary-button" type="submit">手动刷新</button>
+      </form>
+    </div>
+
+    <form class="panel filter-panel" method="get" action="/">
+      <label>
+        状态
+        <select name="status">
+          <option value="selected" {% if status == "selected" %}selected{% endif %}>精选/已复核</option>
+          <option value="candidate" {% if status == "candidate" %}selected{% endif %}>待复核</option>
+          <option value="" {% if not status %}selected{% endif %}>全部</option>
+        </select>
+      </label>
+      <label>
+        市场
+        <select name="market">
+          <option value="" {% if not market %}selected{% endif %}>全部市场</option>
+          <option value="A股" {% if market == "A股" %}selected{% endif %}>A股</option>
+          <option value="港股" {% if market == "港股" %}selected{% endif %}>港股</option>
+        </select>
+      </label>
+      <label>
+        分类
+        <input name="category" value="{{ category }}" placeholder="机器人 / 港股通">
+      </label>
+      <label>
+        搜索
+        <input name="q" value="{{ q }}" placeholder="关键词、产品、来源">
+      </label>
+      <button type="submit">筛选</button>
+    </form>
+
+    <div class="panel source-panel">
+      <div class="panel-title">
+        <span>源状态</span>
+        <a href="/api/sources/status">JSON</a>
+      </div>
+      {% for source in source_status %}
+      <div class="source-row">
+        <span>{{ source.name }}</span>
+        <b class="status-dot {{ source.latest_status }}">{{ source.latest_status }}</b>
+      </div>
+      {% endfor %}
+    </div>
+  </aside>
+
+  <section class="feed-column">
+    <div class="summary-strip">
+      <div>
+        <span class="metric">{{ items|length }}</span>
+        <span>当前结果</span>
+      </div>
+      <div>
+        <span class="metric">{{ candidates|length }}</span>
+        <span>待复核</span>
+      </div>
+      <div>
+        <span class="metric">{% if latest_daily %}{{ latest_daily.date }}{% else %}NA{% endif %}</span>
+        <span>最新日报</span>
+      </div>
+    </div>
+
+    {% for item in items %}
+    <article class="hotspot-card">
+      <div class="card-score">
+        <span>{{ "%.1f"|format(item.hot_score) }}</span>
+        <small>HOT</small>
+      </div>
+      <div class="card-main">
+        <div class="card-meta">
+          <span>{{ item.published_date }} {{ item.published_time }}</span>
+          <span>{{ item.market }}</span>
+          <span>{{ item.category }}</span>
+          <span class="review-status {{ item.review_status }}">{{ item.review_status }}</span>
+        </div>
+        <h2><a href="/api/items/{{ item.id }}">{{ item.title }}</a></h2>
+        <p class="summary">{{ item.summary }}</p>
+        <div class="score-grid">
+          <span>影响 {{ "%.0f"|format(item.market_impact) }}</span>
+          <span>产品 {{ "%.0f"|format(item.product_relevance) }}</span>
+          <span>验证 {{ "%.0f"|format(item.verification_confidence) }}</span>
+          <span>社媒 {{ "%.0f"|format(item.social_heat) }}</span>
+        </div>
+        <div class="product-links">
+          {% for link in item.product_links %}
+          <span title="{{ link.reason }}">{{ link.kind }} · {{ link.name }}</span>
+          {% endfor %}
+        </div>
+        <div class="evidence">
+          {% for evidence in item.evidence[:2] %}
+          <blockquote>{{ evidence }}</blockquote>
+          {% endfor %}
+        </div>
+        <div class="source-links">
+          {% for url in item.source_urls %}
+          <a href="{{ url }}" target="_blank" rel="noreferrer">来源{{ loop.index }}</a>
+          {% endfor %}
+          {% for tag in item.risk_tags %}
+          <span class="risk-tag">{{ tag }}</span>
+          {% endfor %}
+        </div>
+      </div>
+    </article>
+    {% else %}
+    <div class="empty-state">没有匹配的热点。</div>
+    {% endfor %}
+  </section>
+</section>
+{% endblock %}

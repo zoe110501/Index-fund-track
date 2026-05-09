@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}复核 · 金融热点投研终端{% endblock %}
+{% block content %}
+<section class="review-page">
+  <header class="review-header">
+    <span class="eyebrow">Review Queue</span>
+    <h1>待复核线索</h1>
+    <p>{{ disclaimer }}</p>
+  </header>
+  <div class="review-list">
+    {% for item in items %}
+    <article class="review-card" data-hotspot-id="{{ item.id }}">
+      <div>
+        <span class="review-status {{ item.review_status }}">{{ item.verification_status }}</span>
+        <h2>{{ item.title }}</h2>
+        <p>{{ item.summary }}</p>
+        <div class="source-links">
+          {% for url in item.source_urls %}
+          <a href="{{ url }}" target="_blank" rel="noreferrer">来源{{ loop.index }}</a>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="review-actions">
+        <button data-review-status="approved">通过</button>
+        <button data-review-status="rejected">驳回</button>
+      </div>
+    </article>
+    {% else %}
+    <div class="empty-state">暂无待复核线索。</div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

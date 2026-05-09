@@ -12,3 +12,17 @@ tests/*
 tests/fixtures/*
 !tests/fixtures/csrc_approval_progress_page1.json
 !tests/fixtures/csrc_approval_progress_page2.json
+!financial_hot_terminal/
+!financial_hot_terminal/**
+!config/
+!config/**
+!tests/financial_hot_terminal/
+!tests/financial_hot_terminal/**
+!pyproject.toml
+!README.md
+**/__pycache__/
+**/*.pyc
+.pytest_cache/
+.tmp_pytest/
+.tmp_server*.log
+data/
