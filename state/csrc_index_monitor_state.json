@@ -1,5 +1,5 @@
 {
-  "last_success_at": "2026-05-11T12:19:37Z",
+  "last_success_at": "2026-05-11T12:43:28Z",
   "records": {
     "bc0d7fc6152841bc91139bc251f06eaf": {
       "title": "关于永赢基金管理有限公司的《公开募集基金募集申请注册-永赢中证全指证券公司指数型证券投资基金》",
@@ -117,14 +117,16 @@
       "title": "关于永赢基金管理有限公司的《公开募集基金募集申请注册-永赢上证科创板芯片设计主题交易型开放式指数证券投资基金》",
       "app_date": "2026-05-07",
       "step_ids": [
-        "接收材料|2026-05-07|-"
+        "接收材料|2026-05-07|-",
+        "受理通知|2026-05-08|01dd01f0ec3c4fa9b5e4f44f2812bb22"
       ]
     },
     "db9dca6c8b8d43948d85a21e35004017": {
       "title": "关于银华基金管理股份有限公司的《公开募集基金募集申请注册-银华中证云计算50交易型开放式指数证券投资基金》",
       "app_date": "2026-05-06",
       "step_ids": [
-        "接收材料|2026-05-06|-"
+        "接收材料|2026-05-06|-",
+        "受理通知|2026-05-08|3fcfe9bc20d54debbc0beb0770216a66"
       ]
     },
     "d8451319aab64c909ca7ddbe346f41bf": {
@@ -51437,30 +51439,7 @@
     }
   },
   "last_notified_event_ids": [
-    "new-record|bc0d7fc6152841bc91139bc251f06eaf",
-    "new-record|0e8c073c13494675b6816bc9fb0870b3",
-    "new-record|a9a0c9669f3d402bab3cf35404232027",
-    "new-record|479a94679d6b4ee1a81c4de259dcdcb4",
-    "new-step|add30c51a5e64bdfb0f360729357a8a6|受理通知|2026-05-08|fb0dde7093794055acbbc68ddc5e1a42",
-    "new-step|32ec71c56af5436ebaa0a421e602b92b|受理通知|2026-05-08|df78fdee24c6483185402320832af9bd",
-    "new-step|05e6d9a3269b45f0bd2e692eaabb31d7|受理通知|2026-05-08|547da9cb70f3473f8b45fdb7b1b7b4b4",
-    "new-step|7046b5ac04bb41dcb79ccac4da8bf79e|受理通知|2026-05-08|b22d3a0626344a6a8faef123f0603951",
-    "new-step|6b8c36659c8143fd96746bf0ed2b4d56|受理通知|2026-05-08|a262c90756a94467ab4f2e359bf18fb3",
-    "new-step|5ac3bed6cbc74f78a2b33d033c66879e|受理通知|2026-05-08|e4c2bdc013f24eea858689473993e6ad",
-    "new-step|f899c1988ff043138601550a36ee6fe2|受理通知|2026-05-08|129966048fc9457ead9126a5f78e6bb3",
-    "new-step|a3163ac36fb341e18bf457f7f0097e02|受理通知|2026-05-08|6ed422322b374b10991615a34ee244e8",
-    "new-step|a4086fc0f3a44a11b4248b74ab26c5f2|受理通知|2026-05-08|668c1b2a8e9c44a89e17afaf06a0af3a",
-    "new-step|a0705755a6234f448543e056d0521936|受理通知|2026-05-08|bad4518aabb6470687b2f171d2c02c97",
-    "new-step|e6421087460444d59d65af3517f98061|受理通知|2026-05-08|3eea8fef5fd549ccad34b91d034a2b2b",
-    "new-step|cb559fd056414351b86b11aadcd26734|受理通知|2026-05-08|d6ac818dc4224b0b97aaae4915c0c7fd",
-    "new-step|837c615d2d2e44ab8c716533e4b28866|受理通知|2026-05-08|89bfbeba6a3347f1b0a201f8b29b85a0",
-    "new-step|894939face334792a462f9c73853980a|受理通知|2026-05-08|4802e58469e841888e6f76598d9b73b4",
-    "new-step|e5a89abd95c049f795e4457559f425b3|受理通知|2026-05-08|464cd1f27ae6424e8f393e6d8baa64cb",
-    "new-step|45ed382fa1714c7f908f6f5b0b69b7ff|受理通知|2026-05-08|82ef29334339453f83140e741f886257",
-    "new-step|41cb6ffe37c546c99ae6dc8448b10746|受理通知|2026-05-08|2cea170dd90f40faa9674b0457be8025",
-    "new-step|e9827640249345eaa25b4be788aeaea1|受理通知|2026-05-08|539ab76517c542289de7e2d10f34f78b",
-    "new-step|6d0315805df249b09d7c30735b9d1a31|受理通知|2026-05-08|b42a34d444204b59b95d99c015582d36",
-    "new-step|6fe78d5012674d0a8bbb06feaefe6aa9|受理通知|2026-05-08|e9f1424d2e324c2980efc39fb0a54016",
-    "new-step|553ac11f82524e5d92511f77102ca394|一次书面反馈|2026-05-08|130aa8f4a88d43cc8a6fabb633222609"
+    "new-step|bb4101e71f124223842d7a9c5c8a56a1|受理通知|2026-05-08|01dd01f0ec3c4fa9b5e4f44f2812bb22",
+    "new-step|db9dca6c8b8d43948d85a21e35004017|受理通知|2026-05-08|3fcfe9bc20d54debbc0beb0770216a66"
   ]
 }
