@@ -1,5 +1,5 @@
 {
-  "last_success_at": "2026-05-11T16:09:18Z",
+  "last_success_at": "2026-05-11T12:43:28Z",
   "records": {
     "bc0d7fc6152841bc91139bc251f06eaf": {
       "title": "关于永赢基金管理有限公司的《公开募集基金募集申请注册-永赢中证全指证券公司指数型证券投资基金》",
@@ -51438,5 +51438,8 @@
       ]
     }
   },
-  "last_notified_event_ids": []
+  "last_notified_event_ids": [
+    "new-step|bb4101e71f124223842d7a9c5c8a56a1|受理通知|2026-05-08|01dd01f0ec3c4fa9b5e4f44f2812bb22",
+    "new-step|db9dca6c8b8d43948d85a21e35004017|受理通知|2026-05-08|3fcfe9bc20d54debbc0beb0770216a66"
+  ]
 }
