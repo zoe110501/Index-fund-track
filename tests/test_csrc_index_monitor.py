@@ -900,7 +900,7 @@ class DailySummaryTests(unittest.TestCase):
 
 
 class SuspectedWithdrawalTests(unittest.TestCase):
-    def test_find_suspected_withdrawals_requires_missing_week_without_acceptance_and_excludes_bonds(self):
+    def test_find_suspected_withdrawals_uses_week_without_acceptance_or_missing_from_list(self):
         records_seen_before = [
             build_record(
                 "suspect",
@@ -945,11 +945,14 @@ class SuspectedWithdrawalTests(unittest.TestCase):
             datetime(2026, 3, 18, 19, 30, tzinfo=monitor.SHANGHAI_TZ),
         )
 
-        self.assertEqual([event["record_id"] for event in events], ["suspect"])
-        self.assertEqual(events[0]["event_type"], "suspected_withdrawal")
-        self.assertIn("疑似撤回", events[0]["reason"])
-        self.assertIn("未显示受理满 7 天", events[0]["reason"])
-        self.assertIn("公示列表中消失", events[0]["reason"])
+        events_by_id = {event["record_id"]: event for event in events}
+        self.assertEqual([event["record_id"] for event in events], ["recent", "visible", "suspect", "accepted"])
+        self.assertEqual(events_by_id["suspect"]["event_type"], "suspected_withdrawal")
+        self.assertIn("未显示受理满 7 天", events_by_id["suspect"]["reason"])
+        self.assertIn("公示列表中消失", events_by_id["suspect"]["reason"])
+        self.assertEqual(events_by_id["recent"]["reason"], "疑似撤回：已从公示列表中消失。")
+        self.assertEqual(events_by_id["visible"]["reason"], "疑似撤回：未显示受理满 7 天。")
+        self.assertEqual(events_by_id["accepted"]["reason"], "疑似撤回：已从公示列表中消失。")
 
     def test_find_suspected_withdrawals_excludes_pre_2025_applications_and_sorts_by_app_date_desc(self):
         records_seen_before = [
@@ -1066,7 +1069,7 @@ class SuspectedWithdrawalTests(unittest.TestCase):
             "visible",
             build_title("富国基金管理有限公司", "富国芯片" + ETF_PHRASE),
             "2026-03-10",
-            [build_step(TASK_RECEIVE, "2026-03-10")],
+            [build_step(TASK_RECEIVE, "2026-03-10"), build_step(TASK_ACCEPT, "2026-03-11", "file-a")],
         )
         latest_snapshot = monitor.build_snapshot([visible_record], "2026-03-18T02:00:00Z")
 
