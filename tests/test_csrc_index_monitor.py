@@ -899,6 +899,149 @@ class DailySummaryTests(unittest.TestCase):
             self.assertEqual(result["skipped_reason"], "missing_latest_state")
 
 
+class SuspectedWithdrawalTests(unittest.TestCase):
+    def test_find_suspected_withdrawals_requires_missing_week_without_acceptance_and_excludes_bonds(self):
+        records_seen_before = [
+            build_record(
+                "suspect",
+                build_title("华夏基金管理有限公司", "华夏人工智能" + ETF_PHRASE),
+                "2026-03-10",
+                [build_step(TASK_RECEIVE, "2026-03-10")],
+            ),
+            build_record(
+                "accepted",
+                build_title("易方达基金管理有限公司", "易方达机器人" + ETF_PHRASE),
+                "2026-03-10",
+                [build_step(TASK_RECEIVE, "2026-03-10"), build_step(TASK_ACCEPT, "2026-03-11", "file-a")],
+            ),
+            build_record(
+                "recent",
+                build_title("南方基金管理有限公司", "南方红利" + ETF_PHRASE),
+                "2026-03-16",
+                [build_step(TASK_RECEIVE, "2026-03-16")],
+            ),
+            build_record(
+                "bond",
+                build_title("广发基金管理有限公司", "广发中债短债指数证券投资基金"),
+                "2026-03-10",
+                [build_step(TASK_RECEIVE, "2026-03-10")],
+            ),
+            build_record(
+                "visible",
+                build_title("富国基金管理有限公司", "富国芯片" + ETF_PHRASE),
+                "2026-03-10",
+                [build_step(TASK_RECEIVE, "2026-03-10")],
+            ),
+        ]
+        first_snapshot = monitor.build_snapshot(records_seen_before, "2026-03-10T02:00:00Z")
+        latest_snapshot = monitor.build_snapshot(
+            [records_seen_before[-1]],
+            "2026-03-18T02:00:00Z",
+            previous_snapshot=first_snapshot,
+        )
+
+        events = monitor.find_suspected_withdrawal_events(
+            latest_snapshot,
+            datetime(2026, 3, 18, 19, 30, tzinfo=monitor.SHANGHAI_TZ),
+        )
+
+        self.assertEqual([event["record_id"] for event in events], ["suspect"])
+        self.assertEqual(events[0]["event_type"], "suspected_withdrawal")
+        self.assertIn("疑似撤回", events[0]["reason"])
+        self.assertIn("未显示受理满 7 天", events[0]["reason"])
+        self.assertIn("公示列表中消失", events[0]["reason"])
+
+    def test_suspected_withdrawal_daily_sends_pdf_attachment_from_latest_state(self):
+        records_seen_before = [
+            build_record(
+                "suspect",
+                build_title("华夏基金管理有限公司", "华夏人工智能" + ETF_PHRASE),
+                "2026-03-10",
+                [build_step(TASK_RECEIVE, "2026-03-10")],
+            )
+        ]
+        first_snapshot = monitor.build_snapshot(records_seen_before, "2026-03-10T02:00:00Z")
+        latest_snapshot = monitor.build_snapshot([], "2026-03-18T02:00:00Z", previous_snapshot=first_snapshot)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state_file = Path(tmpdir) / "state.json"
+            state_file.write_text(json.dumps(latest_snapshot, ensure_ascii=False, indent=2), encoding="utf-8")
+            config = monitor.MonitorConfig(
+                keyword=KEYWORD,
+                state_file_path=state_file,
+                smtp_host="smtp.example.com",
+                smtp_port=465,
+                smtp_username="bot@example.com",
+                smtp_password="secret",
+                alert_email_from="bot@example.com",
+                alert_email_to=["me@example.com"],
+            )
+            email_calls = []
+
+            with (
+                mock.patch("csrc_index_monitor.fetch_all_records", side_effect=AssertionError("suspected withdrawal report should reuse latest state")),
+                mock.patch(
+                    "csrc_index_monitor.generate_suspected_withdrawal_pdf",
+                    return_value={
+                        "filename": "疑似撤回产品日报2026-03-18.pdf",
+                        "content": b"pdf",
+                        "maintype": "application",
+                        "subtype": "pdf",
+                    },
+                ),
+            ):
+                result = monitor.run_monitor(
+                    config=config,
+                    send_email_func=lambda **kwargs: email_calls.append(kwargs),
+                    now_iso="2026-03-18T11:30:00Z",
+                    report_mode="suspected_withdrawal_daily",
+                )
+
+            self.assertEqual(result["report_mode"], "suspected_withdrawal_daily")
+            self.assertEqual(result["email_subject"], "指数产品疑似撤回日报2026-03-18")
+            self.assertEqual(result["event_count"], 1)
+            self.assertEqual(result["suspected_withdrawal_count"], 1)
+            self.assertEqual(len(email_calls), 1)
+            self.assertIn("疑似撤回产品", email_calls[0]["html_body"])
+            self.assertEqual(email_calls[0]["attachments"][0]["subtype"], "pdf")
+
+    def test_suspected_withdrawal_daily_skips_when_no_candidates(self):
+        visible_record = build_record(
+            "visible",
+            build_title("富国基金管理有限公司", "富国芯片" + ETF_PHRASE),
+            "2026-03-10",
+            [build_step(TASK_RECEIVE, "2026-03-10")],
+        )
+        latest_snapshot = monitor.build_snapshot([visible_record], "2026-03-18T02:00:00Z")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state_file = Path(tmpdir) / "state.json"
+            state_file.write_text(json.dumps(latest_snapshot, ensure_ascii=False, indent=2), encoding="utf-8")
+            config = monitor.MonitorConfig(
+                keyword=KEYWORD,
+                state_file_path=state_file,
+                smtp_host="smtp.example.com",
+                smtp_port=465,
+                smtp_username="bot@example.com",
+                smtp_password="secret",
+                alert_email_from="bot@example.com",
+                alert_email_to=["me@example.com"],
+            )
+            email_calls = []
+
+            result = monitor.run_monitor(
+                config=config,
+                send_email_func=lambda **kwargs: email_calls.append(kwargs),
+                now_iso="2026-03-18T11:30:00Z",
+                report_mode="suspected_withdrawal_daily",
+            )
+
+            self.assertEqual(result["email_delivery"]["status"], "skipped_no_suspected_withdrawals")
+            self.assertEqual(result["skipped_reason"], "no_suspected_withdrawals")
+            self.assertEqual(result["suspected_withdrawal_count"], 0)
+            self.assertEqual(email_calls, [])
+
+
 class ObservabilityTests(unittest.TestCase):
     def test_emit_github_error_annotation_escapes_special_characters(self):
         buffer = io.StringIO()

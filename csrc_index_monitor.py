@@ -29,8 +29,10 @@ DEFAULT_STATE_FILE = Path("state/csrc_index_monitor_state.json")
 DEFAULT_REPORT_MODE = "incremental"
 REPORT_MODE_INCREMENTAL = "incremental"
 REPORT_MODE_DAILY_SUMMARY = "daily_summary"
+REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY = "suspected_withdrawal_daily"
 EVENT_ID_SEPARATOR = "|"
 SHANGHAI_TZ = timezone(timedelta(hours=8))
+SUSPECTED_WITHDRAWAL_MIN_DAYS_WITHOUT_ACCEPTANCE = 7
 DEFAULT_PDF_CJK_FONT_CANDIDATES = (
     Path("C:/Windows/Fonts/simfang.ttf"),
     Path("/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc"),
@@ -63,6 +65,8 @@ LINKED_FUND_KEYWORD = "联接基金"
 ETF_LINKED_TYPE = "ETF联接"
 TITLE_PATTERN = re.compile(r"^关于(?P<manager>.+?)的《公开募集基金募集申请注册-(?P<product_name>.+?)》$")
 ASCII_TEXT_PATTERN = re.compile(r"[\x00-\x7F]+")
+BOND_PRODUCT_KEYWORDS = ("债",)
+ACCEPTANCE_STEP_KEYWORDS = ("受理",)
 MANAGER_SUFFIXES = (
     "基金管理有限责任公司",
     "基金管理有限公司",
@@ -152,6 +156,10 @@ def count_events_by_type(events: list[dict[str, Any]]) -> tuple[int, int]:
     return new_record_count, new_step_count
 
 
+def count_suspected_withdrawal_events(events: list[dict[str, Any]]) -> int:
+    return sum(1 for event in events if event.get("event_type") == "suspected_withdrawal")
+
+
 def attach_monitor_diagnostics(
     result: dict[str, Any],
     *,
@@ -168,6 +176,7 @@ def attach_monitor_diagnostics(
     result["report_mode"] = report_mode
     result["new_record_count"] = new_record_count
     result["new_step_count"] = new_step_count
+    result["suspected_withdrawal_count"] = count_suspected_withdrawal_events(events)
     result["daily_baseline_path"] = str(daily_baseline_path)
     result["daily_baseline_created"] = daily_baseline_created
     if skipped_reason:
@@ -285,7 +294,72 @@ def event_id_for(event_type: str, record_id: str, step_id: str | None = None) ->
     return f"{prefix}{EVENT_ID_SEPARATOR}{record_id}"
 
 
-def build_snapshot(records: list[dict[str, Any]], now_iso: str, notified_event_ids: list[str] | None = None) -> dict[str, Any]:
+def seed_record_history_from_snapshot(snapshot: dict[str, Any] | None) -> dict[str, dict[str, Any]]:
+    if not snapshot:
+        return {}
+
+    previous_success_at = str(snapshot.get("last_success_at") or "")
+    history: dict[str, dict[str, Any]] = {}
+    for record_id, record in (snapshot.get("record_history") or {}).items():
+        history[record_id] = {
+            "title": str(record.get("title", "")),
+            "app_date": str(record.get("app_date", "")),
+            "step_ids": list(record.get("step_ids") or []),
+            "first_seen_at": str(record.get("first_seen_at") or previous_success_at),
+            "last_seen_at": str(record.get("last_seen_at") or previous_success_at),
+        }
+        if record.get("missing_since"):
+            history[record_id]["missing_since"] = str(record.get("missing_since"))
+
+    for record_id, record in (snapshot.get("records") or {}).items():
+        if record_id in history:
+            continue
+        history[record_id] = {
+            "title": str(record.get("title", "")),
+            "app_date": str(record.get("app_date", "")),
+            "step_ids": list(record.get("step_ids") or []),
+            "first_seen_at": previous_success_at,
+            "last_seen_at": previous_success_at,
+        }
+    return history
+
+
+def merge_record_history(
+    records: list[dict[str, Any]],
+    snapshot_records: dict[str, dict[str, Any]],
+    now_iso: str,
+    previous_snapshot: dict[str, Any] | None,
+) -> dict[str, dict[str, Any]]:
+    history = seed_record_history_from_snapshot(previous_snapshot)
+    current_record_ids = set(snapshot_records)
+
+    for record in records:
+        record_id = record["record_id"]
+        snapshot_record = snapshot_records[record_id]
+        previous_record = history.get(record_id) or {}
+        history[record_id] = {
+            "title": snapshot_record["title"],
+            "app_date": snapshot_record["app_date"],
+            "step_ids": list(snapshot_record.get("step_ids") or []),
+            "first_seen_at": str(previous_record.get("first_seen_at") or now_iso),
+            "last_seen_at": now_iso,
+        }
+
+    for record_id, historical_record in history.items():
+        if record_id in current_record_ids:
+            continue
+        if not historical_record.get("missing_since"):
+            historical_record["missing_since"] = now_iso
+
+    return history
+
+
+def build_snapshot(
+    records: list[dict[str, Any]],
+    now_iso: str,
+    notified_event_ids: list[str] | None = None,
+    previous_snapshot: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     snapshot_records: dict[str, dict[str, Any]] = {}
     for record in records:
         snapshot_records[record["record_id"]] = {
@@ -296,6 +370,7 @@ def build_snapshot(records: list[dict[str, Any]], now_iso: str, notified_event_i
     return {
         "last_success_at": now_iso,
         "records": snapshot_records,
+        "record_history": merge_record_history(records, snapshot_records, now_iso, previous_snapshot),
         "last_notified_event_ids": notified_event_ids or [],
     }
 
@@ -356,6 +431,94 @@ def split_step_id(step_id: str) -> tuple[str, str, str]:
     while len(parts) < 3:
         parts.append("-")
     return parts[0], parts[1], parts[2]
+
+
+def parse_local_date(value: str) -> datetime | None:
+    if not value:
+        return None
+    try:
+        return datetime.strptime(value[:10], "%Y-%m-%d").replace(tzinfo=SHANGHAI_TZ)
+    except ValueError:
+        return None
+
+
+def snapshot_value_as_local_date(value: str) -> datetime | None:
+    if not value:
+        return None
+    try:
+        return parse_now_iso(value).astimezone(SHANGHAI_TZ)
+    except ValueError:
+        return parse_local_date(value)
+
+
+def display_snapshot_date(value: str) -> str:
+    parsed = snapshot_value_as_local_date(value)
+    if parsed:
+        return f"{parsed:%Y-%m-%d}"
+    return value[:10] if value else ""
+
+
+def record_has_acceptance_step(step_ids: list[str]) -> bool:
+    for step_id in step_ids:
+        task_name, _, _ = split_step_id(step_id)
+        if any(keyword in task_name for keyword in ACCEPTANCE_STEP_KEYWORDS):
+            return True
+    return False
+
+
+def is_bond_product_title(title: str) -> bool:
+    display = extract_display_fields(title)
+    product_name = display.get("product_name", "")
+    return any(keyword in product_name or keyword in title for keyword in BOND_PRODUCT_KEYWORDS)
+
+
+def days_without_acceptance(record: dict[str, Any], local_now: datetime) -> int | None:
+    reference_time = parse_local_date(str(record.get("app_date") or ""))
+    if reference_time is None:
+        reference_time = snapshot_value_as_local_date(str(record.get("first_seen_at") or ""))
+    if reference_time is None:
+        return None
+    return (local_now.date() - reference_time.astimezone(SHANGHAI_TZ).date()).days
+
+
+def find_suspected_withdrawal_events(
+    snapshot: dict[str, Any],
+    local_now: datetime,
+    *,
+    min_days_without_acceptance: int = SUSPECTED_WITHDRAWAL_MIN_DAYS_WITHOUT_ACCEPTANCE,
+) -> list[dict[str, Any]]:
+    current_records = snapshot.get("records") or {}
+    record_history = seed_record_history_from_snapshot(snapshot)
+    events: list[dict[str, Any]] = []
+
+    for record_id, record in sorted(record_history.items(), key=lambda item: (item[1].get("app_date", ""), item[0])):
+        if record_id in current_records:
+            continue
+        title = str(record.get("title", ""))
+        if not title or is_bond_product_title(title):
+            continue
+        step_ids = list(record.get("step_ids") or [])
+        if record_has_acceptance_step(step_ids):
+            continue
+        elapsed_days = days_without_acceptance(record, local_now)
+        if elapsed_days is None or elapsed_days < min_days_without_acceptance:
+            continue
+        events.append(
+            {
+                "event_type": "suspected_withdrawal",
+                "event_id": event_id_for("suspected_withdrawal", record_id),
+                "record_id": record_id,
+                "title": title,
+                "app_date": str(record.get("app_date", "")),
+                "first_seen_at": str(record.get("first_seen_at", "")),
+                "last_seen_at": str(record.get("last_seen_at", "")),
+                "missing_since": str(record.get("missing_since", "")),
+                "days_without_acceptance": elapsed_days,
+                "reason": f"疑似撤回：未显示受理满 {min_days_without_acceptance} 天，且已从公示列表中消失。",
+            }
+        )
+
+    return events
 
 
 def abbreviate_manager_name(name: str) -> str:
@@ -451,7 +614,32 @@ def build_step_rows(events: list[dict[str, Any]]) -> list[list[str]]:
     return rows
 
 
+def build_suspected_withdrawal_rows(events: list[dict[str, Any]]) -> list[list[str]]:
+    rows: list[list[str]] = []
+    for index, event in enumerate(events, start=1):
+        display = extract_display_fields(event["title"])
+        rows.append(
+            [
+                str(index),
+                display["manager"],
+                display["product_name"],
+                display["product_type"],
+                event.get("app_date", ""),
+                display_snapshot_date(str(event.get("first_seen_at", ""))),
+                display_snapshot_date(str(event.get("last_seen_at", ""))),
+                display_snapshot_date(str(event.get("missing_since", ""))),
+                event.get("reason", ""),
+            ]
+        )
+    return rows
+
+
 def report_copy(report_mode: str) -> dict[str, str]:
+    if report_mode == REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY:
+        return {
+            "intro": "以下为按规则筛出的疑似撤回产品（不含债券），仅供人工核验，不代表已确认撤回。",
+            "withdrawals_title": "疑似撤回产品",
+        }
     if report_mode == REPORT_MODE_DAILY_SUMMARY:
         return {
             "intro": "今日累计汇总如下：",
@@ -484,6 +672,23 @@ def render_html_table(headers: list[str], rows: list[list[str]]) -> str:
 
 def format_html_summary(events: list[dict[str, Any]], report_mode: str) -> str:
     copy = report_copy(report_mode)
+    if report_mode == REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY:
+        suspected_withdrawals = [event for event in events if event["event_type"] == "suspected_withdrawal"]
+        return "".join(
+            [
+                "<div style=\"font-family:FangSong,STFangsong,serif;font-size:16px;color:#1f2937;\">",
+                f"<p>{escape(copy['intro'])}</p>",
+                f"<p><strong>{escape(copy['withdrawals_title'])}（{len(suspected_withdrawals)} 条）</strong></p>",
+                render_html_table(
+                    ["序号", "管理人", "产品名称", "产品类型", "上报日期", "首次看到", "最后看到", "消失日期", "疑似原因"],
+                    build_suspected_withdrawal_rows(suspected_withdrawals),
+                )
+                if suspected_withdrawals
+                else "<p>无</p>",
+                "</div>",
+            ]
+        )
+
     new_records = [event for event in events if event["event_type"] == "new_record"]
     new_steps = [event for event in events if event["event_type"] == "new_step"]
     return "".join(
@@ -501,6 +706,19 @@ def format_html_summary(events: list[dict[str, Any]], report_mode: str) -> str:
 
 def format_email_summary(events: list[dict[str, Any]], report_mode: str, local_now: datetime) -> tuple[str, str]:
     new_record_count, new_step_count = count_events_by_type(events)
+    if report_mode == REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY:
+        suspected_withdrawal_count = count_suspected_withdrawal_events(events)
+        subject = f"指数产品疑似撤回日报{local_now:%Y-%m-%d}"
+        body = "\n".join(
+            [
+                f"指数产品疑似撤回日报 {local_now:%Y-%m-%d}",
+                f"疑似撤回产品：{suspected_withdrawal_count} 条",
+                "口径：非债券指数产品，满 7 天未显示受理，且已从公示列表中消失。",
+                "请查看 HTML 正文和 PDF 附件获取完整汇总。",
+            ]
+        )
+        return subject, body
+
     if report_mode == REPORT_MODE_DAILY_SUMMARY:
         subject = f"指数基金审批日报{local_now:%Y-%m-%d}"
         body = "\n".join(
@@ -524,7 +742,27 @@ def format_email_summary(events: list[dict[str, Any]], report_mode: str, local_n
     return subject, body
 
 
-def build_pdf_lines(events: list[dict[str, Any]], local_now: datetime) -> list[str]:
+def build_pdf_lines(events: list[dict[str, Any]], local_now: datetime, report_mode: str = REPORT_MODE_DAILY_SUMMARY) -> list[str]:
+    if report_mode == REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY:
+        copy = report_copy(REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY)
+        suspected_withdrawals = [event for event in events if event["event_type"] == "suspected_withdrawal"]
+        lines = [
+            f"指数产品疑似撤回日报{local_now:%Y-%m-%d}",
+            f"生成时间：{local_now:%Y-%m-%d %H:%M}",
+            f"疑似撤回产品：{len(suspected_withdrawals)} 条",
+            "",
+            copy["intro"],
+            "",
+            f"{copy['withdrawals_title']}（{len(suspected_withdrawals)} 条）",
+        ]
+        if suspected_withdrawals:
+            for index, event in enumerate(suspected_withdrawals, start=1):
+                display = extract_display_fields(event["title"])
+                lines.append(f"{index}. {display['manager']} | {display['product_name']} | {event['app_date']} | {event['reason']}")
+        else:
+            lines.append("无")
+        return lines
+
     copy = report_copy(REPORT_MODE_DAILY_SUMMARY)
     new_records = [event for event in events if event["event_type"] == "new_record"]
     new_steps = [event for event in events if event["event_type"] == "new_step"]
@@ -552,7 +790,19 @@ def build_pdf_lines(events: list[dict[str, Any]], local_now: datetime) -> list[s
     return lines
 
 
-def build_pdf_table_sections(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def build_pdf_table_sections(events: list[dict[str, Any]], report_mode: str = REPORT_MODE_DAILY_SUMMARY) -> list[dict[str, Any]]:
+    if report_mode == REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY:
+        copy = report_copy(REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY)
+        suspected_withdrawals = [event for event in events if event["event_type"] == "suspected_withdrawal"]
+        return [
+            {
+                "title": f"{copy['withdrawals_title']}（{len(suspected_withdrawals)} 条）",
+                "headers": ["序号", "管理人", "产品名称", "产品类型", "上报日期", "首次看到", "最后看到", "消失日期", "疑似原因"],
+                "rows": build_suspected_withdrawal_rows(suspected_withdrawals),
+                "column_widths": [55, 95, 220, 90, 90, 90, 90, 90, 300],
+            },
+        ]
+
     copy = report_copy(REPORT_MODE_DAILY_SUMMARY)
     new_records = [event for event in events if event["event_type"] == "new_record"]
     new_steps = [event for event in events if event["event_type"] == "new_step"]
@@ -736,7 +986,11 @@ def normalized_column_widths(widths: list[int], total_width: int) -> list[int]:
     return scaled
 
 
-def generate_daily_summary_pdf(events: list[dict[str, Any]], local_now: datetime) -> dict[str, Any]:
+def generate_daily_summary_pdf(
+    events: list[dict[str, Any]],
+    local_now: datetime,
+    report_mode: str = REPORT_MODE_DAILY_SUMMARY,
+) -> dict[str, Any]:
     reportlab = load_reportlab_modules()
     font_candidates = find_pdf_font_candidates()
     font_names = register_pdf_fonts(
@@ -772,6 +1026,28 @@ def generate_daily_summary_pdf(events: list[dict[str, Any]], local_now: datetime
     TableStyle = reportlab["platypus"].TableStyle
 
     buffer = io.BytesIO()
+    new_record_count, new_step_count = count_events_by_type(events)
+    suspected_withdrawal_count = count_suspected_withdrawal_events(events)
+    if report_mode == REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY:
+        report_title = f"指数产品疑似撤回日报 {local_now:%Y-%m-%d}"
+        report_subject = "指数产品疑似撤回日报"
+        intro_text = report_copy(REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY)["intro"]
+        summary_texts = [
+            f"生成时间：{local_now:%Y-%m-%d %H:%M}",
+            f"疑似撤回产品：{suspected_withdrawal_count} 条",
+        ]
+        filename = f"指数产品疑似撤回日报{local_now:%Y-%m-%d}.pdf"
+    else:
+        report_title = f"指数基金审批日报 {local_now:%Y-%m-%d}"
+        report_subject = "指数基金审批进度日报"
+        intro_text = "今日累计汇总如下："
+        summary_texts = [
+            f"生成时间：{local_now:%Y-%m-%d %H:%M}",
+            f"今日新产品：{new_record_count} 条",
+            f"今日新增节点产品：{new_step_count} 条",
+        ]
+        filename = f"指数基金审批日报{local_now:%Y-%m-%d}.pdf"
+
     document = SimpleDocTemplate(
         buffer,
         pagesize=A4,
@@ -779,12 +1055,11 @@ def generate_daily_summary_pdf(events: list[dict[str, Any]], local_now: datetime
         rightMargin=18 * mm,
         topMargin=18 * mm,
         bottomMargin=16 * mm,
-        title=f"指数基金审批日报 {local_now:%Y-%m-%d}",
+        title=report_title,
         author="csrc_index_monitor",
-        subject="指数基金审批进度日报",
+        subject=report_subject,
     )
     content_width = document.width
-    new_record_count, new_step_count = count_events_by_type(events)
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle(
         "IndexMonitorTitle",
@@ -846,16 +1121,16 @@ def generate_daily_summary_pdf(events: list[dict[str, Any]], local_now: datetime
         textColor=colors.white,
     )
 
-    story: list[Any] = [
-        Paragraph(rich_text(f"指数基金审批日报 {local_now:%Y-%m-%d}", latin_bold=True), title_style),
-        Paragraph(rich_text(f"生成时间：{local_now:%Y-%m-%d %H:%M}"), summary_style),
-        Paragraph(rich_text(f"今日新产品：{new_record_count} 条"), summary_style),
-        Paragraph(rich_text(f"今日新增节点产品：{new_step_count} 条"), summary_style),
-        Spacer(1, 8),
-        Paragraph(rich_text("今日累计汇总如下："), intro_style),
-    ]
+    story: list[Any] = [Paragraph(rich_text(report_title, latin_bold=True), title_style)]
+    story.extend(Paragraph(rich_text(text), summary_style) for text in summary_texts)
+    story.extend(
+        [
+            Spacer(1, 8),
+            Paragraph(rich_text(intro_text), intro_style),
+        ]
+    )
 
-    for section in build_pdf_table_sections(events):
+    for section in build_pdf_table_sections(events, report_mode):
         story.append(Paragraph(rich_text(section["title"], latin_bold=True), section_style))
         column_widths = normalized_column_widths(section["column_widths"], int(content_width))
         table_rows = [
@@ -892,11 +1167,15 @@ def generate_daily_summary_pdf(events: list[dict[str, Any]], local_now: datetime
     document.build(story)
     content = buffer.getvalue()
     return {
-        "filename": f"指数基金审批日报{local_now:%Y-%m-%d}.pdf",
+        "filename": filename,
         "content": content,
         "maintype": "application",
         "subtype": "pdf",
     }
+
+
+def generate_suspected_withdrawal_pdf(events: list[dict[str, Any]], local_now: datetime) -> dict[str, Any]:
+    return generate_daily_summary_pdf(events, local_now, REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY)
 
 
 def send_email(
@@ -1127,6 +1406,7 @@ def write_github_step_summary(result: dict[str, Any], path: Path | None = None) 
                 f"- Events detected: {result.get('event_count', 0)}",
                 f"- New records: {result.get('new_record_count', 0)}",
                 f"- New steps: {result.get('new_step_count', 0)}",
+                f"- Suspected withdrawals: {result.get('suspected_withdrawal_count', 0)}",
             ]
         )
         if result.get("email_subject"):
@@ -1178,6 +1458,66 @@ def run_monitor(
     now_iso = now_utc.replace(microsecond=0).isoformat().replace("+00:00", "Z")
     local_now = now_utc.astimezone(SHANGHAI_TZ)
     daily_baseline_path = daily_baseline_path_for(config.state_file_path, local_now)
+
+    if report_mode == REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY:
+        latest_snapshot = load_state(config.state_file_path)
+        if latest_snapshot is None:
+            return attach_monitor_diagnostics(
+                {
+                    "baseline_created": False,
+                    "event_count": 0,
+                    "events": [],
+                    "state_changed": False,
+                    "state_file_path": str(config.state_file_path),
+                },
+                config=config,
+                events=[],
+                email_attempted=False,
+                email_status="skipped_missing_latest_state",
+                report_mode=report_mode,
+                daily_baseline_path=daily_baseline_path,
+                skipped_reason="missing_latest_state",
+            )
+
+        events = find_suspected_withdrawal_events(latest_snapshot, local_now)
+        if not events:
+            return attach_monitor_diagnostics(
+                {
+                    "baseline_created": False,
+                    "event_count": 0,
+                    "events": [],
+                    "state_changed": False,
+                    "state_file_path": str(config.state_file_path),
+                },
+                config=config,
+                events=[],
+                email_attempted=False,
+                email_status="skipped_no_suspected_withdrawals",
+                report_mode=report_mode,
+                daily_baseline_path=daily_baseline_path,
+                skipped_reason="no_suspected_withdrawals",
+            )
+
+        subject, body = format_email_summary(events, report_mode, local_now)
+        html_body = format_html_summary(events, report_mode)
+        attachments = [generate_suspected_withdrawal_pdf(events, local_now)]
+        send_email_func(config=config, subject=subject, body=body, html_body=html_body, events=events, attachments=attachments)
+        return attach_monitor_diagnostics(
+            {
+                "baseline_created": False,
+                "event_count": len(events),
+                "events": events,
+                "state_changed": False,
+                "state_file_path": str(config.state_file_path),
+                "email_subject": subject,
+            },
+            config=config,
+            events=events,
+            email_attempted=True,
+            email_status="sent",
+            report_mode=report_mode,
+            daily_baseline_path=daily_baseline_path,
+        )
 
     if report_mode == REPORT_MODE_DAILY_SUMMARY:
         daily_baseline_snapshot, daily_baseline_source = load_daily_baseline_snapshot(
@@ -1267,8 +1607,9 @@ def run_monitor(
         )
 
     records = fetch_records(config.keyword)
-    current_snapshot = build_snapshot(records, now_iso)
-    baseline_snapshot = build_snapshot(records, now_iso)
+    previous_snapshot = load_state(config.state_file_path)
+    current_snapshot = build_snapshot(records, now_iso, previous_snapshot=previous_snapshot)
+    baseline_snapshot = build_snapshot(records, now_iso, previous_snapshot=previous_snapshot)
     existing_daily_baseline, existing_daily_baseline_source = load_daily_baseline_snapshot(
         daily_baseline_path,
         config.state_file_path,
@@ -1281,7 +1622,6 @@ def run_monitor(
     elif existing_daily_baseline_source == "git_history" and not daily_baseline_path.exists():
         save_state(daily_baseline_path, existing_daily_baseline)
         daily_baseline_created = True
-    previous_snapshot = load_state(config.state_file_path)
     if previous_snapshot is None:
         save_state(config.state_file_path, current_snapshot)
         return attach_monitor_diagnostics(
@@ -1324,7 +1664,12 @@ def run_monitor(
     subject, body = format_email_summary(events, report_mode, local_now)
     html_body = format_html_summary(events, report_mode)
     send_email_func(config=config, subject=subject, body=body, html_body=html_body, events=events, attachments=None)
-    notified_snapshot = build_snapshot(records, now_iso, notified_event_ids=[event["event_id"] for event in events])
+    notified_snapshot = build_snapshot(
+        records,
+        now_iso,
+        notified_event_ids=[event["event_id"] for event in events],
+        previous_snapshot=previous_snapshot,
+    )
     save_state(config.state_file_path, notified_snapshot)
     return attach_monitor_diagnostics(
         {

@@ -4,6 +4,8 @@
 !.github/workflows/
 !.github/workflows/csrc-index-monitor.yml
 !.github/workflows/csrc-index-daily-summary.yml
+!.github/workflows/csrc-index-suspected-withdrawal-daily.yml
+!.github/workflows/csrc-index-suspected-withdrawal-manual.yml
 !csrc_index_monitor.py
 !tests/
 tests/*

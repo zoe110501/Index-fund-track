@@ -1,0 +1,61 @@
+name: CSRC Index Suspected Withdrawal Manual
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: csrc-index-suspected-withdrawal-manual
+  cancel-in-progress: false
+
+jobs:
+  suspected-withdrawal-manual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Prepare state branch worktree
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if git ls-remote --exit-code --heads origin state >/dev/null 2>&1; then
+            git fetch origin state:refs/remotes/origin/state
+            git worktree add --force state-branch --detach origin/state
+            git -C state-branch switch -C state --track origin/state
+          else
+            git worktree add --force --orphan -b state state-branch
+            find state-branch -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+          fi
+
+          mkdir -p state-branch/state
+
+      - name: Install PDF dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fonts-noto-cjk
+          python -m pip install --disable-pip-version-check Pillow reportlab
+
+      - name: Run suspected withdrawal report
+        env:
+          REPORT_MODE: suspected_withdrawal_daily
+          CSRC_QUERY_KEYWORD: 指数
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          ALERT_EMAIL_FROM: ${{ secrets.ALERT_EMAIL_FROM }}
+          ALERT_EMAIL_TO: ${{ secrets.ALERT_EMAIL_TO }}
+          STATE_FILE_PATH: state-branch/state/csrc_index_monitor_state.json
+        run: python csrc_index_monitor.py
