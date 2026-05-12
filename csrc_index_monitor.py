@@ -979,10 +979,26 @@ def wrap_pdf_text(draw: Any, text: str, font: Any, max_width: int) -> list[str]:
 
 
 def normalized_column_widths(widths: list[int], total_width: int) -> list[int]:
+    if not widths:
+        return []
+
     width_sum = sum(widths)
-    scaled = [max(60, round(width * total_width / width_sum)) for width in widths]
+    min_width = max(1, min(60, total_width // len(widths)))
+    scaled = [max(min_width, round(width * total_width / width_sum)) for width in widths]
     diff = total_width - sum(scaled)
-    scaled[-1] += diff
+    if diff > 0:
+        scaled[widths.index(max(widths))] += diff
+    elif diff < 0:
+        remaining = -diff
+        for index in sorted(range(len(scaled)), key=lambda item: scaled[item] - min_width, reverse=True):
+            shrinkable = scaled[index] - min_width
+            if shrinkable <= 0:
+                continue
+            adjustment = min(shrinkable, remaining)
+            scaled[index] -= adjustment
+            remaining -= adjustment
+            if remaining == 0:
+                break
     return scaled
 
 

@@ -1005,6 +1005,30 @@ class SuspectedWithdrawalTests(unittest.TestCase):
             self.assertIn("疑似撤回产品", email_calls[0]["html_body"])
             self.assertEqual(email_calls[0]["attachments"][0]["subtype"], "pdf")
 
+    def test_suspected_withdrawal_pdf_column_widths_stay_positive_on_a4_content_width(self):
+        section = monitor.build_pdf_table_sections(
+            [
+                {
+                    "event_type": "suspected_withdrawal",
+                    "title": build_title("华夏基金管理有限公司", "华夏人工智能" + ETF_PHRASE),
+                    "app_date": "2026-03-10",
+                    "record_id": "suspect",
+                    "event_id": "suspected-withdrawal|suspect",
+                    "first_seen_at": "2026-03-10T02:00:00Z",
+                    "last_seen_at": "2026-05-05T02:00:00Z",
+                    "missing_since": "2026-05-06T02:00:00Z",
+                    "days_without_acceptance": 63,
+                    "reason": "疑似撤回：未显示受理满 7 天，且已从公示列表中消失。",
+                }
+            ],
+            monitor.REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY,
+        )[0]
+
+        widths = monitor.normalized_column_widths(section["column_widths"], 493)
+
+        self.assertEqual(sum(widths), 493)
+        self.assertTrue(all(width > 0 for width in widths))
+
     def test_suspected_withdrawal_daily_skips_when_no_candidates(self):
         visible_record = build_record(
             "visible",
