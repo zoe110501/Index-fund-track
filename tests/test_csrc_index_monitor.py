@@ -1060,6 +1060,105 @@ class SuspectedWithdrawalTests(unittest.TestCase):
             self.assertIn("疑似撤回产品", email_calls[0]["html_body"])
             self.assertEqual(email_calls[0]["attachments"][0]["subtype"], "pdf")
 
+    def test_suspected_withdrawal_daily_sends_only_new_candidates_and_records_notified_ids(self):
+        old_candidate = build_record(
+            "old-candidate",
+            build_title("华夏基金管理有限公司", "华夏旧候选" + ETF_PHRASE),
+            "2026-03-10",
+            [build_step(TASK_RECEIVE, "2026-03-10")],
+        )
+        new_candidate = build_record(
+            "new-candidate",
+            build_title("南方基金管理有限公司", "南方新候选" + ETF_PHRASE),
+            "2026-03-11",
+            [build_step(TASK_RECEIVE, "2026-03-11")],
+        )
+        snapshot = monitor.build_snapshot([old_candidate, new_candidate], "2026-03-18T02:00:00Z")
+        snapshot["last_notified_suspected_withdrawal_event_ids"] = [
+            monitor.event_id_for("suspected_withdrawal", "old-candidate")
+        ]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state_file = Path(tmpdir) / "state.json"
+            state_file.write_text(json.dumps(snapshot, ensure_ascii=False, indent=2), encoding="utf-8")
+            config = monitor.MonitorConfig(
+                keyword=KEYWORD,
+                state_file_path=state_file,
+                smtp_host="smtp.example.com",
+                smtp_port=465,
+                smtp_username="bot@example.com",
+                smtp_password="secret",
+                alert_email_from="bot@example.com",
+                alert_email_to=["me@example.com"],
+            )
+            email_calls = []
+
+            with mock.patch(
+                "csrc_index_monitor.generate_suspected_withdrawal_pdf",
+                return_value={
+                    "filename": "疑似撤回产品日报2026-03-18.pdf",
+                    "content": b"pdf",
+                    "maintype": "application",
+                    "subtype": "pdf",
+                },
+            ):
+                result = monitor.run_monitor(
+                    config=config,
+                    send_email_func=lambda **kwargs: email_calls.append(kwargs),
+                    now_iso="2026-03-18T11:30:00Z",
+                    report_mode="suspected_withdrawal_daily",
+                )
+
+            self.assertEqual(result["event_count"], 1)
+            self.assertTrue(result["state_changed"])
+            self.assertEqual([event["record_id"] for event in email_calls[0]["events"]], ["new-candidate"])
+            saved_state = json.loads(state_file.read_text(encoding="utf-8"))
+            self.assertEqual(
+                saved_state["last_notified_suspected_withdrawal_event_ids"],
+                [
+                    monitor.event_id_for("suspected_withdrawal", "new-candidate"),
+                    monitor.event_id_for("suspected_withdrawal", "old-candidate"),
+                ],
+            )
+
+    def test_suspected_withdrawal_daily_skips_when_all_candidates_already_notified(self):
+        candidate = build_record(
+            "candidate",
+            build_title("华夏基金管理有限公司", "华夏已通知" + ETF_PHRASE),
+            "2026-03-10",
+            [build_step(TASK_RECEIVE, "2026-03-10")],
+        )
+        snapshot = monitor.build_snapshot([candidate], "2026-03-18T02:00:00Z")
+        snapshot["last_notified_suspected_withdrawal_event_ids"] = [
+            monitor.event_id_for("suspected_withdrawal", "candidate")
+        ]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state_file = Path(tmpdir) / "state.json"
+            state_file.write_text(json.dumps(snapshot, ensure_ascii=False, indent=2), encoding="utf-8")
+            config = monitor.MonitorConfig(
+                keyword=KEYWORD,
+                state_file_path=state_file,
+                smtp_host="smtp.example.com",
+                smtp_port=465,
+                smtp_username="bot@example.com",
+                smtp_password="secret",
+                alert_email_from="bot@example.com",
+                alert_email_to=["me@example.com"],
+            )
+            email_calls = []
+
+            result = monitor.run_monitor(
+                config=config,
+                send_email_func=lambda **kwargs: email_calls.append(kwargs),
+                now_iso="2026-03-18T11:30:00Z",
+                report_mode="suspected_withdrawal_daily",
+            )
+
+            self.assertEqual(result["email_delivery"]["status"], "skipped_no_new_suspected_withdrawals")
+            self.assertEqual(result["skipped_reason"], "no_new_suspected_withdrawals")
+            self.assertEqual(email_calls, [])
+
     def test_suspected_withdrawal_pdf_column_widths_stay_positive_on_a4_content_width(self):
         section = monitor.build_pdf_table_sections(
             [

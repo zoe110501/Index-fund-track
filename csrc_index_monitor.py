@@ -31,6 +31,7 @@ REPORT_MODE_INCREMENTAL = "incremental"
 REPORT_MODE_DAILY_SUMMARY = "daily_summary"
 REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY = "suspected_withdrawal_daily"
 EVENT_ID_SEPARATOR = "|"
+SUSPECTED_WITHDRAWAL_NOTIFIED_EVENT_IDS_KEY = "last_notified_suspected_withdrawal_event_ids"
 SHANGHAI_TZ = timezone(timedelta(hours=8))
 SUSPECTED_WITHDRAWAL_MIN_DAYS_WITHOUT_ACCEPTANCE = 7
 SUSPECTED_WITHDRAWAL_MIN_APP_DATE = "2025-01-01"
@@ -373,6 +374,9 @@ def build_snapshot(
         "records": snapshot_records,
         "record_history": merge_record_history(records, snapshot_records, now_iso, previous_snapshot),
         "last_notified_event_ids": notified_event_ids or [],
+        SUSPECTED_WITHDRAWAL_NOTIFIED_EVENT_IDS_KEY: list(
+            (previous_snapshot or {}).get(SUSPECTED_WITHDRAWAL_NOTIFIED_EVENT_IDS_KEY) or []
+        ),
     }
 
 
@@ -537,6 +541,25 @@ def find_suspected_withdrawal_events(
         )
 
     return events
+
+
+def filter_new_suspected_withdrawal_events(
+    events: list[dict[str, Any]],
+    snapshot: dict[str, Any],
+) -> list[dict[str, Any]]:
+    already_notified = set(snapshot.get(SUSPECTED_WITHDRAWAL_NOTIFIED_EVENT_IDS_KEY) or [])
+    return [event for event in events if event["event_id"] not in already_notified]
+
+
+def save_suspected_withdrawal_notifications(
+    snapshot: dict[str, Any],
+    state_file_path: Path,
+    events: list[dict[str, Any]],
+) -> None:
+    already_notified = set(snapshot.get(SUSPECTED_WITHDRAWAL_NOTIFIED_EVENT_IDS_KEY) or [])
+    already_notified.update(event["event_id"] for event in events)
+    snapshot[SUSPECTED_WITHDRAWAL_NOTIFIED_EVENT_IDS_KEY] = sorted(already_notified)
+    save_state(state_file_path, snapshot)
 
 
 def abbreviate_manager_name(name: str) -> str:
@@ -1513,8 +1536,8 @@ def run_monitor(
                 skipped_reason="missing_latest_state",
             )
 
-        events = find_suspected_withdrawal_events(latest_snapshot, local_now)
-        if not events:
+        all_events = find_suspected_withdrawal_events(latest_snapshot, local_now)
+        if not all_events:
             return attach_monitor_diagnostics(
                 {
                     "baseline_created": False,
@@ -1532,16 +1555,36 @@ def run_monitor(
                 skipped_reason="no_suspected_withdrawals",
             )
 
+        events = filter_new_suspected_withdrawal_events(all_events, latest_snapshot)
+        if not events:
+            return attach_monitor_diagnostics(
+                {
+                    "baseline_created": False,
+                    "event_count": 0,
+                    "events": [],
+                    "state_changed": False,
+                    "state_file_path": str(config.state_file_path),
+                },
+                config=config,
+                events=[],
+                email_attempted=False,
+                email_status="skipped_no_new_suspected_withdrawals",
+                report_mode=report_mode,
+                daily_baseline_path=daily_baseline_path,
+                skipped_reason="no_new_suspected_withdrawals",
+            )
+
         subject, body = format_email_summary(events, report_mode, local_now)
         html_body = format_html_summary(events, report_mode)
         attachments = [generate_suspected_withdrawal_pdf(events, local_now)]
         send_email_func(config=config, subject=subject, body=body, html_body=html_body, events=events, attachments=attachments)
+        save_suspected_withdrawal_notifications(latest_snapshot, config.state_file_path, events)
         return attach_monitor_diagnostics(
             {
                 "baseline_created": False,
                 "event_count": len(events),
                 "events": events,
-                "state_changed": False,
+                "state_changed": True,
                 "state_file_path": str(config.state_file_path),
                 "email_subject": subject,
             },

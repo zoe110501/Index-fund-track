@@ -6,7 +6,7 @@ on:
     - cron: "45 11 * * *"
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: csrc-index-suspected-withdrawal-daily
@@ -61,3 +61,19 @@ jobs:
           ALERT_EMAIL_TO: ${{ secrets.ALERT_EMAIL_TO }}
           STATE_FILE_PATH: state-branch/state/csrc_index_monitor_state.json
         run: python csrc_index_monitor.py
+
+      - name: Commit state updates
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if git -C state-branch status --short -- state/csrc_index_monitor_state.json | grep -q .; then
+            git -C state-branch config user.name "github-actions[bot]"
+            git -C state-branch config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git -C state-branch add state/csrc_index_monitor_state.json
+            git -C state-branch commit -m "chore: update CSRC suspected withdrawal state"
+            git -C state-branch pull --rebase origin state
+            git -C state-branch push origin HEAD:state
+          else
+            echo "No suspected withdrawal state changes to commit."
+          fi
