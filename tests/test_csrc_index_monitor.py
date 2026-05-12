@@ -942,16 +942,16 @@ class SuspectedWithdrawalTests(unittest.TestCase):
 
         events = monitor.find_suspected_withdrawal_events(
             latest_snapshot,
-            datetime(2026, 3, 18, 19, 30, tzinfo=monitor.SHANGHAI_TZ),
+            datetime(2026, 3, 19, 19, 30, tzinfo=monitor.SHANGHAI_TZ),
         )
 
         events_by_id = {event["record_id"]: event for event in events}
         self.assertEqual([event["record_id"] for event in events], ["recent", "visible", "suspect", "accepted"])
         self.assertEqual(events_by_id["suspect"]["event_type"], "suspected_withdrawal")
-        self.assertIn("未显示受理满 7 天", events_by_id["suspect"]["reason"])
+        self.assertIn("未显示受理满 7 个交易日", events_by_id["suspect"]["reason"])
         self.assertIn("公示列表中消失", events_by_id["suspect"]["reason"])
         self.assertEqual(events_by_id["recent"]["reason"], "疑似撤回：已从公示列表中消失。")
-        self.assertEqual(events_by_id["visible"]["reason"], "疑似撤回：未显示受理满 7 天。")
+        self.assertEqual(events_by_id["visible"]["reason"], "疑似撤回：未显示受理满 7 个交易日。")
         self.assertEqual(events_by_id["accepted"]["reason"], "疑似撤回：已从公示列表中消失。")
 
     def test_find_suspected_withdrawals_excludes_pre_2025_applications_and_sorts_by_app_date_desc(self):
@@ -985,6 +985,31 @@ class SuspectedWithdrawalTests(unittest.TestCase):
 
         self.assertEqual([event["record_id"] for event in events], ["newer-application", "older-application"])
         self.assertEqual([event["app_date"] for event in events], ["2026-02-10", "2025-01-02"])
+
+    def test_week_without_acceptance_uses_a_share_trading_days_not_calendar_days(self):
+        records = [
+            build_record(
+                "labor-holiday",
+                build_title("华夏基金管理有限公司", "华夏劳动节前人工智能" + ETF_PHRASE),
+                "2026-04-30",
+                [build_step(TASK_RECEIVE, "2026-04-30")],
+            )
+        ]
+        snapshot = monitor.build_snapshot(records, "2026-05-12T02:00:00Z")
+
+        before_seven_trading_days = monitor.find_suspected_withdrawal_events(
+            snapshot,
+            datetime(2026, 5, 12, 19, 30, tzinfo=monitor.SHANGHAI_TZ),
+        )
+        after_seven_trading_days = monitor.find_suspected_withdrawal_events(
+            snapshot,
+            datetime(2026, 5, 14, 19, 30, tzinfo=monitor.SHANGHAI_TZ),
+        )
+
+        self.assertEqual(before_seven_trading_days, [])
+        self.assertEqual([event["record_id"] for event in after_seven_trading_days], ["labor-holiday"])
+        self.assertEqual(after_seven_trading_days[0]["trading_days_without_acceptance"], 7)
+        self.assertIn("未显示受理满 7 个交易日", after_seven_trading_days[0]["reason"])
 
     def test_suspected_withdrawal_daily_sends_pdf_attachment_from_latest_state(self):
         records_seen_before = [
@@ -1052,8 +1077,8 @@ class SuspectedWithdrawalTests(unittest.TestCase):
                     "first_seen_at": "2026-03-10T02:00:00Z",
                     "last_seen_at": "2026-05-05T02:00:00Z",
                     "missing_since": "2026-05-06T02:00:00Z",
-                    "days_without_acceptance": 63,
-                    "reason": "疑似撤回：未显示受理满 7 天，且已从公示列表中消失。",
+                    "trading_days_without_acceptance": 37,
+                    "reason": "疑似撤回：未显示受理满 7 个交易日，且已从公示列表中消失。",
                 }
             ],
             monitor.REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY,

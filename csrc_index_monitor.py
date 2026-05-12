@@ -32,8 +32,47 @@ REPORT_MODE_DAILY_SUMMARY = "daily_summary"
 REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY = "suspected_withdrawal_daily"
 EVENT_ID_SEPARATOR = "|"
 SHANGHAI_TZ = timezone(timedelta(hours=8))
-SUSPECTED_WITHDRAWAL_MIN_DAYS_WITHOUT_ACCEPTANCE = 7
+SUSPECTED_WITHDRAWAL_MIN_TRADING_DAYS_WITHOUT_ACCEPTANCE = 7
 SUSPECTED_WITHDRAWAL_MIN_APP_DATE = "2025-01-01"
+A_SHARE_MARKET_HOLIDAYS = {
+    "2025-01-01",
+    "2025-01-28",
+    "2025-01-29",
+    "2025-01-30",
+    "2025-01-31",
+    "2025-02-03",
+    "2025-02-04",
+    "2025-04-04",
+    "2025-05-01",
+    "2025-05-02",
+    "2025-05-05",
+    "2025-06-02",
+    "2025-10-01",
+    "2025-10-02",
+    "2025-10-03",
+    "2025-10-06",
+    "2025-10-07",
+    "2025-10-08",
+    "2026-01-01",
+    "2026-01-02",
+    "2026-02-16",
+    "2026-02-17",
+    "2026-02-18",
+    "2026-02-19",
+    "2026-02-20",
+    "2026-02-23",
+    "2026-04-06",
+    "2026-05-01",
+    "2026-05-04",
+    "2026-05-05",
+    "2026-06-19",
+    "2026-09-25",
+    "2026-10-01",
+    "2026-10-02",
+    "2026-10-05",
+    "2026-10-06",
+    "2026-10-07",
+}
 DEFAULT_PDF_CJK_FONT_CANDIDATES = (
     Path("C:/Windows/Fonts/simfang.ttf"),
     Path("/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc"),
@@ -473,13 +512,34 @@ def is_bond_product_title(title: str) -> bool:
     return any(keyword in product_name or keyword in title for keyword in BOND_PRODUCT_KEYWORDS)
 
 
-def days_without_acceptance(record: dict[str, Any], local_now: datetime) -> int | None:
+def is_a_share_trading_day(value: datetime) -> bool:
+    local_value = value.astimezone(SHANGHAI_TZ)
+    return local_value.weekday() < 5 and f"{local_value:%Y-%m-%d}" not in A_SHARE_MARKET_HOLIDAYS
+
+
+def count_a_share_trading_days_after(start: datetime, end: datetime) -> int:
+    start_date = start.astimezone(SHANGHAI_TZ).date()
+    end_date = end.astimezone(SHANGHAI_TZ).date()
+    if end_date <= start_date:
+        return 0
+
+    count = 0
+    current = start_date + timedelta(days=1)
+    while current <= end_date:
+        current_dt = datetime(current.year, current.month, current.day, tzinfo=SHANGHAI_TZ)
+        if is_a_share_trading_day(current_dt):
+            count += 1
+        current += timedelta(days=1)
+    return count
+
+
+def trading_days_without_acceptance(record: dict[str, Any], local_now: datetime) -> int | None:
     reference_time = parse_local_date(str(record.get("app_date") or ""))
     if reference_time is None:
         reference_time = snapshot_value_as_local_date(str(record.get("first_seen_at") or ""))
     if reference_time is None:
         return None
-    return (local_now.date() - reference_time.astimezone(SHANGHAI_TZ).date()).days
+    return count_a_share_trading_days_after(reference_time, local_now)
 
 
 def app_date_is_on_or_after(record: dict[str, Any], min_app_date: datetime) -> bool:
@@ -491,7 +551,7 @@ def find_suspected_withdrawal_events(
     snapshot: dict[str, Any],
     local_now: datetime,
     *,
-    min_days_without_acceptance: int = SUSPECTED_WITHDRAWAL_MIN_DAYS_WITHOUT_ACCEPTANCE,
+    min_trading_days_without_acceptance: int = SUSPECTED_WITHDRAWAL_MIN_TRADING_DAYS_WITHOUT_ACCEPTANCE,
 ) -> list[dict[str, Any]]:
     current_records = snapshot.get("records") or {}
     record_history = seed_record_history_from_snapshot(snapshot)
@@ -507,18 +567,18 @@ def find_suspected_withdrawal_events(
         if not title or is_bond_product_title(title):
             continue
         step_ids = list(record.get("step_ids") or [])
-        elapsed_days = days_without_acceptance(record, local_now)
+        elapsed_trading_days = trading_days_without_acceptance(record, local_now)
         missing_from_current_list = record_id not in current_records
         week_without_acceptance = (
-            elapsed_days is not None
-            and elapsed_days >= min_days_without_acceptance
+            elapsed_trading_days is not None
+            and elapsed_trading_days >= min_trading_days_without_acceptance
             and not record_has_acceptance_step(step_ids)
         )
         if not (missing_from_current_list or week_without_acceptance):
             continue
         reasons = []
         if week_without_acceptance:
-            reasons.append(f"未显示受理满 {min_days_without_acceptance} 天")
+            reasons.append(f"未显示受理满 {min_trading_days_without_acceptance} 个交易日")
         if missing_from_current_list:
             reasons.append("已从公示列表中消失")
         events.append(
@@ -531,7 +591,7 @@ def find_suspected_withdrawal_events(
                 "first_seen_at": str(record.get("first_seen_at", "")),
                 "last_seen_at": str(record.get("last_seen_at", "")),
                 "missing_since": str(record.get("missing_since", "")),
-                "days_without_acceptance": elapsed_days,
+                "trading_days_without_acceptance": elapsed_trading_days,
                 "reason": f"疑似撤回：{'，且'.join(reasons)}。",
             }
         )
@@ -655,7 +715,7 @@ def build_suspected_withdrawal_rows(events: list[dict[str, Any]]) -> list[list[s
 def report_copy(report_mode: str) -> dict[str, str]:
     if report_mode == REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY:
         return {
-            "intro": "以下为按规则筛出的疑似撤回产品（2025年及以后上报，不含债券；未显示受理满7天或已从公示列表中消失），仅供人工核验，不代表已确认撤回。",
+            "intro": "以下为按规则筛出的疑似撤回产品（2025年及以后上报，不含债券；未显示受理满7个交易日或已从公示列表中消失），仅供人工核验，不代表已确认撤回。",
             "withdrawals_title": "疑似撤回产品",
         }
     if report_mode == REPORT_MODE_DAILY_SUMMARY:
@@ -731,7 +791,7 @@ def format_email_summary(events: list[dict[str, Any]], report_mode: str, local_n
             [
                 f"指数产品疑似撤回日报 {local_now:%Y-%m-%d}",
                 f"疑似撤回产品：{suspected_withdrawal_count} 条",
-                "口径：2025年及以后上报的非债券指数产品，满 7 天未显示受理，或已从公示列表中消失。",
+                "口径：2025年及以后上报的非债券指数产品，满 7 个交易日未显示受理，或已从公示列表中消失。",
                 "请查看 HTML 正文和 PDF 附件获取完整汇总。",
             ]
         )
