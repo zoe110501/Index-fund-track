@@ -2,6 +2,8 @@ name: CSRC Index Suspected Withdrawal Manual
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "5 0-13 * * *"
 
 permissions:
   contents: read
