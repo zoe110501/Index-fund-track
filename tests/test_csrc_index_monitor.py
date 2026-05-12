@@ -951,6 +951,38 @@ class SuspectedWithdrawalTests(unittest.TestCase):
         self.assertIn("未显示受理满 7 天", events[0]["reason"])
         self.assertIn("公示列表中消失", events[0]["reason"])
 
+    def test_find_suspected_withdrawals_excludes_pre_2025_applications_and_sorts_by_app_date_desc(self):
+        records_seen_before = [
+            build_record(
+                "old-application",
+                build_title("华夏基金管理有限公司", "华夏2024人工智能" + ETF_PHRASE),
+                "2024-12-31",
+                [build_step(TASK_RECEIVE, "2024-12-31")],
+            ),
+            build_record(
+                "newer-application",
+                build_title("华夏基金管理有限公司", "华夏2026人工智能" + ETF_PHRASE),
+                "2026-02-10",
+                [build_step(TASK_RECEIVE, "2026-02-10")],
+            ),
+            build_record(
+                "older-application",
+                build_title("南方基金管理有限公司", "南方2025红利" + ETF_PHRASE),
+                "2025-01-02",
+                [build_step(TASK_RECEIVE, "2025-01-02")],
+            ),
+        ]
+        first_snapshot = monitor.build_snapshot(records_seen_before, "2026-02-10T02:00:00Z")
+        latest_snapshot = monitor.build_snapshot([], "2026-03-18T02:00:00Z", previous_snapshot=first_snapshot)
+
+        events = monitor.find_suspected_withdrawal_events(
+            latest_snapshot,
+            datetime(2026, 3, 18, 19, 30, tzinfo=monitor.SHANGHAI_TZ),
+        )
+
+        self.assertEqual([event["record_id"] for event in events], ["newer-application", "older-application"])
+        self.assertEqual([event["app_date"] for event in events], ["2026-02-10", "2025-01-02"])
+
     def test_suspected_withdrawal_daily_sends_pdf_attachment_from_latest_state(self):
         records_seen_before = [
             build_record(

@@ -33,6 +33,7 @@ REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY = "suspected_withdrawal_daily"
 EVENT_ID_SEPARATOR = "|"
 SHANGHAI_TZ = timezone(timedelta(hours=8))
 SUSPECTED_WITHDRAWAL_MIN_DAYS_WITHOUT_ACCEPTANCE = 7
+SUSPECTED_WITHDRAWAL_MIN_APP_DATE = "2025-01-01"
 DEFAULT_PDF_CJK_FONT_CANDIDATES = (
     Path("C:/Windows/Fonts/simfang.ttf"),
     Path("/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc"),
@@ -481,6 +482,11 @@ def days_without_acceptance(record: dict[str, Any], local_now: datetime) -> int 
     return (local_now.date() - reference_time.astimezone(SHANGHAI_TZ).date()).days
 
 
+def app_date_is_on_or_after(record: dict[str, Any], min_app_date: datetime) -> bool:
+    app_date = parse_local_date(str(record.get("app_date") or ""))
+    return bool(app_date and app_date.date() >= min_app_date.date())
+
+
 def find_suspected_withdrawal_events(
     snapshot: dict[str, Any],
     local_now: datetime,
@@ -489,10 +495,15 @@ def find_suspected_withdrawal_events(
 ) -> list[dict[str, Any]]:
     current_records = snapshot.get("records") or {}
     record_history = seed_record_history_from_snapshot(snapshot)
+    min_app_date = parse_local_date(SUSPECTED_WITHDRAWAL_MIN_APP_DATE)
+    if min_app_date is None:
+        raise ValueError(f"Invalid suspected withdrawal minimum app date: {SUSPECTED_WITHDRAWAL_MIN_APP_DATE}")
     events: list[dict[str, Any]] = []
 
-    for record_id, record in sorted(record_history.items(), key=lambda item: (item[1].get("app_date", ""), item[0])):
+    for record_id, record in sorted(record_history.items(), key=lambda item: (item[1].get("app_date", ""), item[0]), reverse=True):
         if record_id in current_records:
+            continue
+        if not app_date_is_on_or_after(record, min_app_date):
             continue
         title = str(record.get("title", ""))
         if not title or is_bond_product_title(title):
@@ -637,7 +648,7 @@ def build_suspected_withdrawal_rows(events: list[dict[str, Any]]) -> list[list[s
 def report_copy(report_mode: str) -> dict[str, str]:
     if report_mode == REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY:
         return {
-            "intro": "以下为按规则筛出的疑似撤回产品（不含债券），仅供人工核验，不代表已确认撤回。",
+            "intro": "以下为按规则筛出的疑似撤回产品（2025年及以后上报，不含债券），仅供人工核验，不代表已确认撤回。",
             "withdrawals_title": "疑似撤回产品",
         }
     if report_mode == REPORT_MODE_DAILY_SUMMARY:
@@ -713,7 +724,7 @@ def format_email_summary(events: list[dict[str, Any]], report_mode: str, local_n
             [
                 f"指数产品疑似撤回日报 {local_now:%Y-%m-%d}",
                 f"疑似撤回产品：{suspected_withdrawal_count} 条",
-                "口径：非债券指数产品，满 7 天未显示受理，且已从公示列表中消失。",
+                "口径：2025年及以后上报的非债券指数产品，满 7 天未显示受理，且已从公示列表中消失。",
                 "请查看 HTML 正文和 PDF 附件获取完整汇总。",
             ]
         )
