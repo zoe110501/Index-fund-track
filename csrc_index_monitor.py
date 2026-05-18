@@ -33,7 +33,11 @@ REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY = "suspected_withdrawal_daily"
 EVENT_ID_SEPARATOR = "|"
 SUSPECTED_WITHDRAWAL_NOTIFIED_EVENT_IDS_KEY = "last_notified_suspected_withdrawal_event_ids"
 SHANGHAI_TZ = timezone(timedelta(hours=8))
+SUSPECTED_WITHDRAWAL_EVENT_TYPE = "suspected_withdrawal"
+CONFIRMED_WITHDRAWAL_EVENT_TYPE = "confirmed_withdrawal"
+WITHDRAWAL_REPORT_EVENT_TYPES = {SUSPECTED_WITHDRAWAL_EVENT_TYPE, CONFIRMED_WITHDRAWAL_EVENT_TYPE}
 SUSPECTED_WITHDRAWAL_MIN_DAYS_WITHOUT_ACCEPTANCE = 7
+CONFIRMED_WITHDRAWAL_ACCEPTANCE_DAYS = {8, 9}
 SUSPECTED_WITHDRAWAL_MIN_APP_DATE = "2025-01-01"
 DEFAULT_PDF_CJK_FONT_CANDIDATES = (
     Path("C:/Windows/Fonts/simfang.ttf"),
@@ -159,7 +163,11 @@ def count_events_by_type(events: list[dict[str, Any]]) -> tuple[int, int]:
 
 
 def count_suspected_withdrawal_events(events: list[dict[str, Any]]) -> int:
-    return sum(1 for event in events if event.get("event_type") == "suspected_withdrawal")
+    return sum(1 for event in events if event.get("event_type") == SUSPECTED_WITHDRAWAL_EVENT_TYPE)
+
+
+def count_confirmed_withdrawal_events(events: list[dict[str, Any]]) -> int:
+    return sum(1 for event in events if event.get("event_type") == CONFIRMED_WITHDRAWAL_EVENT_TYPE)
 
 
 def attach_monitor_diagnostics(
@@ -179,6 +187,7 @@ def attach_monitor_diagnostics(
     result["new_record_count"] = new_record_count
     result["new_step_count"] = new_step_count
     result["suspected_withdrawal_count"] = count_suspected_withdrawal_events(events)
+    result["confirmed_withdrawal_count"] = count_confirmed_withdrawal_events(events)
     result["daily_baseline_path"] = str(daily_baseline_path)
     result["daily_baseline_created"] = daily_baseline_created
     if skipped_reason:
@@ -303,10 +312,22 @@ def seed_record_history_from_snapshot(snapshot: dict[str, Any] | None) -> dict[s
     previous_success_at = str(snapshot.get("last_success_at") or "")
     history: dict[str, dict[str, Any]] = {}
     for record_id, record in (snapshot.get("record_history") or {}).items():
+        step_ids = list(record.get("step_ids") or [])
+        raw_step_first_seen_at = record.get("step_first_seen_at") or {}
+        if not isinstance(raw_step_first_seen_at, dict):
+            raw_step_first_seen_at = {}
+        step_first_seen_at = {
+            str(step_id): str(first_seen_at)
+            for step_id, first_seen_at in raw_step_first_seen_at.items()
+        }
+        fallback_seen_at = str(record.get("first_seen_at") or previous_success_at)
+        for step_id in step_ids:
+            step_first_seen_at.setdefault(str(step_id), fallback_seen_at)
         history[record_id] = {
             "title": str(record.get("title", "")),
             "app_date": str(record.get("app_date", "")),
-            "step_ids": list(record.get("step_ids") or []),
+            "step_ids": step_ids,
+            "step_first_seen_at": step_first_seen_at,
             "first_seen_at": str(record.get("first_seen_at") or previous_success_at),
             "last_seen_at": str(record.get("last_seen_at") or previous_success_at),
         }
@@ -320,6 +341,9 @@ def seed_record_history_from_snapshot(snapshot: dict[str, Any] | None) -> dict[s
             "title": str(record.get("title", "")),
             "app_date": str(record.get("app_date", "")),
             "step_ids": list(record.get("step_ids") or []),
+            "step_first_seen_at": {
+                str(step_id): previous_success_at for step_id in list(record.get("step_ids") or [])
+            },
             "first_seen_at": previous_success_at,
             "last_seen_at": previous_success_at,
         }
@@ -339,10 +363,21 @@ def merge_record_history(
         record_id = record["record_id"]
         snapshot_record = snapshot_records[record_id]
         previous_record = history.get(record_id) or {}
+        step_ids = list(snapshot_record.get("step_ids") or [])
+        raw_previous_step_first_seen_at = previous_record.get("step_first_seen_at") or {}
+        if not isinstance(raw_previous_step_first_seen_at, dict):
+            raw_previous_step_first_seen_at = {}
+        previous_step_first_seen_at = {
+            str(step_id): str(first_seen_at)
+            for step_id, first_seen_at in raw_previous_step_first_seen_at.items()
+        }
         history[record_id] = {
             "title": snapshot_record["title"],
             "app_date": snapshot_record["app_date"],
-            "step_ids": list(snapshot_record.get("step_ids") or []),
+            "step_ids": step_ids,
+            "step_first_seen_at": {
+                str(step_id): previous_step_first_seen_at.get(str(step_id), now_iso) for step_id in step_ids
+            },
             "first_seen_at": str(previous_record.get("first_seen_at") or now_iso),
             "last_seen_at": now_iso,
         }
@@ -471,6 +506,15 @@ def record_has_acceptance_step(step_ids: list[str]) -> bool:
     return False
 
 
+def acceptance_step_ids(step_ids: list[str]) -> list[str]:
+    accepted_step_ids = []
+    for step_id in step_ids:
+        task_name, _, _ = split_step_id(step_id)
+        if any(keyword in task_name for keyword in ACCEPTANCE_STEP_KEYWORDS):
+            accepted_step_ids.append(step_id)
+    return accepted_step_ids
+
+
 def is_bond_product_title(title: str) -> bool:
     display = extract_display_fields(title)
     product_name = display.get("product_name", "")
@@ -491,6 +535,52 @@ def app_date_is_on_or_after(record: dict[str, Any], min_app_date: datetime) -> b
     return bool(app_date and app_date.date() >= min_app_date.date())
 
 
+def acceptance_step_is_newly_seen(record: dict[str, Any], step_id: str, local_now: datetime) -> bool:
+    first_seen_by_step = record.get("step_first_seen_at") or {}
+    first_seen_at = first_seen_by_step.get(step_id) if isinstance(first_seen_by_step, dict) else None
+    if first_seen_at:
+        parsed_first_seen_at = snapshot_value_as_local_date(str(first_seen_at))
+        return bool(parsed_first_seen_at and parsed_first_seen_at.date() == local_now.date())
+
+    _, fnsh_date, _ = split_step_id(step_id)
+    parsed_fnsh_date = parse_local_date(fnsh_date)
+    return bool(parsed_fnsh_date and parsed_fnsh_date.date() == local_now.date())
+
+
+def find_true_withdrawal_cutoff(
+    record_history: dict[str, dict[str, Any]],
+    local_now: datetime,
+    min_app_date: datetime,
+) -> dict[str, Any] | None:
+    latest_cutoff: dict[str, Any] | None = None
+    for record_id, record in record_history.items():
+        if not app_date_is_on_or_after(record, min_app_date):
+            continue
+        title = str(record.get("title", ""))
+        if not title or is_bond_product_title(title):
+            continue
+        app_date = parse_local_date(str(record.get("app_date") or ""))
+        if app_date is None:
+            continue
+        for step_id in acceptance_step_ids(list(record.get("step_ids") or [])):
+            _, fnsh_date, _ = split_step_id(step_id)
+            acceptance_date = parse_local_date(fnsh_date)
+            if acceptance_date is None:
+                continue
+            days_to_acceptance = (acceptance_date.date() - app_date.date()).days
+            if days_to_acceptance not in CONFIRMED_WITHDRAWAL_ACCEPTANCE_DAYS:
+                continue
+            if not acceptance_step_is_newly_seen(record, step_id, local_now):
+                continue
+            if latest_cutoff is None or app_date.date() > latest_cutoff["app_date"].date():
+                latest_cutoff = {
+                    "app_date": app_date,
+                    "trigger_record_id": record_id,
+                    "trigger_days": days_to_acceptance,
+                }
+    return latest_cutoff
+
+
 def find_suspected_withdrawal_events(
     snapshot: dict[str, Any],
     local_now: datetime,
@@ -502,6 +592,7 @@ def find_suspected_withdrawal_events(
     min_app_date = parse_local_date(SUSPECTED_WITHDRAWAL_MIN_APP_DATE)
     if min_app_date is None:
         raise ValueError(f"Invalid suspected withdrawal minimum app date: {SUSPECTED_WITHDRAWAL_MIN_APP_DATE}")
+    true_withdrawal_cutoff = find_true_withdrawal_cutoff(record_history, local_now, min_app_date)
     events: list[dict[str, Any]] = []
 
     for record_id, record in sorted(record_history.items(), key=lambda item: (item[1].get("app_date", ""), item[0]), reverse=True):
@@ -511,31 +602,61 @@ def find_suspected_withdrawal_events(
         if not title or is_bond_product_title(title):
             continue
         step_ids = list(record.get("step_ids") or [])
+        has_acceptance_step = record_has_acceptance_step(step_ids)
         elapsed_days = days_without_acceptance(record, local_now)
         missing_from_current_list = record_id not in current_records
         week_without_acceptance = (
             elapsed_days is not None
             and elapsed_days >= min_days_without_acceptance
-            and not record_has_acceptance_step(step_ids)
+            and not has_acceptance_step
         )
-        if not missing_from_current_list or record_has_acceptance_step(step_ids):
-            continue
-        reasons = [f"未显示受理满 {min_days_without_acceptance} 天" if week_without_acceptance else "未显示受理"]
-        reasons.append("已从公示列表中消失")
-        events.append(
-            {
-                "event_type": "suspected_withdrawal",
-                "event_id": event_id_for("suspected_withdrawal", record_id),
-                "record_id": record_id,
-                "title": title,
-                "app_date": str(record.get("app_date", "")),
-                "first_seen_at": str(record.get("first_seen_at", "")),
-                "last_seen_at": str(record.get("last_seen_at", "")),
-                "missing_since": str(record.get("missing_since", "")),
-                "days_without_acceptance": elapsed_days,
-                "reason": f"疑似撤回：{'，且'.join(reasons)}。",
-            }
-        )
+        app_date = parse_local_date(str(record.get("app_date") or ""))
+        if (
+            true_withdrawal_cutoff
+            and app_date
+            and app_date.date() <= true_withdrawal_cutoff["app_date"].date()
+            and not has_acceptance_step
+        ):
+            events.append(
+                {
+                    "event_type": CONFIRMED_WITHDRAWAL_EVENT_TYPE,
+                    "event_id": event_id_for(CONFIRMED_WITHDRAWAL_EVENT_TYPE, record_id),
+                    "record_id": record_id,
+                    "title": title,
+                    "app_date": str(record.get("app_date", "")),
+                    "first_seen_at": str(record.get("first_seen_at", "")),
+                    "last_seen_at": str(record.get("last_seen_at", "")),
+                    "missing_since": str(record.get("missing_since", "")),
+                    "days_without_acceptance": elapsed_days,
+                    "reason": (
+                        f"真正撤回提醒：已有 {true_withdrawal_cutoff['app_date']:%Y-%m-%d} 上报产品"
+                        f"在第 {true_withdrawal_cutoff['trigger_days']} 天新增受理；本产品同日或更早上报且仍未显示受理，视为真正撤回。"
+                    ),
+                }
+            )
+
+        if not has_acceptance_step and (week_without_acceptance or missing_from_current_list):
+            reasons = []
+            if week_without_acceptance:
+                reasons.append(f"未显示受理满 {min_days_without_acceptance} 天")
+            elif missing_from_current_list:
+                reasons.append("未显示受理")
+            if missing_from_current_list:
+                reasons.append("已从公示列表中消失")
+            events.append(
+                {
+                    "event_type": SUSPECTED_WITHDRAWAL_EVENT_TYPE,
+                    "event_id": event_id_for(SUSPECTED_WITHDRAWAL_EVENT_TYPE, record_id),
+                    "record_id": record_id,
+                    "title": title,
+                    "app_date": str(record.get("app_date", "")),
+                    "first_seen_at": str(record.get("first_seen_at", "")),
+                    "last_seen_at": str(record.get("last_seen_at", "")),
+                    "missing_since": str(record.get("missing_since", "")),
+                    "days_without_acceptance": elapsed_days,
+                    "reason": f"疑似撤回：{'，且'.join(reasons)}。",
+                }
+            )
 
     return events
 
@@ -545,7 +666,18 @@ def filter_new_suspected_withdrawal_events(
     snapshot: dict[str, Any],
 ) -> list[dict[str, Any]]:
     already_notified = set(snapshot.get(SUSPECTED_WITHDRAWAL_NOTIFIED_EVENT_IDS_KEY) or [])
-    return [event for event in events if event["event_id"] not in already_notified]
+    new_events = [event for event in events if event["event_id"] not in already_notified]
+    confirmed_record_ids = {
+        event["record_id"] for event in new_events if event.get("event_type") == CONFIRMED_WITHDRAWAL_EVENT_TYPE
+    }
+    return [
+        event
+        for event in new_events
+        if not (
+            event.get("event_type") == SUSPECTED_WITHDRAWAL_EVENT_TYPE
+            and event.get("record_id") in confirmed_record_ids
+        )
+    ]
 
 
 def save_suspected_withdrawal_notifications(
@@ -554,7 +686,10 @@ def save_suspected_withdrawal_notifications(
     events: list[dict[str, Any]],
 ) -> None:
     already_notified = set(snapshot.get(SUSPECTED_WITHDRAWAL_NOTIFIED_EVENT_IDS_KEY) or [])
-    already_notified.update(event["event_id"] for event in events)
+    for event in events:
+        already_notified.add(event["event_id"])
+        if event.get("event_type") == CONFIRMED_WITHDRAWAL_EVENT_TYPE:
+            already_notified.add(event_id_for(SUSPECTED_WITHDRAWAL_EVENT_TYPE, event["record_id"]))
     snapshot[SUSPECTED_WITHDRAWAL_NOTIFIED_EVENT_IDS_KEY] = sorted(already_notified)
     save_state(state_file_path, snapshot)
 
@@ -675,8 +810,8 @@ def build_suspected_withdrawal_rows(events: list[dict[str, Any]]) -> list[list[s
 def report_copy(report_mode: str) -> dict[str, str]:
     if report_mode == REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY:
         return {
-            "intro": "以下为按规则筛出的高置信疑似撤回产品（2025年及以后上报，不含债券；未显示受理且已从公示列表中消失），仅供人工核验，不代表已确认撤回。",
-            "withdrawals_title": "疑似撤回产品",
+            "intro": "以下为按规则筛出的撤回监控产品（2025年及以后上报，不含债券；疑似口径为未显示受理满 7 天或已从公示列表中消失；真正撤回提醒口径为第 8/9 天出现新增受理后，同日及更早上报产品仍未显示受理），请人工核验。",
+            "withdrawals_title": "疑似撤回产品及真正撤回提醒",
         }
     if report_mode == REPORT_MODE_DAILY_SUMMARY:
         return {
@@ -711,17 +846,17 @@ def render_html_table(headers: list[str], rows: list[list[str]]) -> str:
 def format_html_summary(events: list[dict[str, Any]], report_mode: str) -> str:
     copy = report_copy(report_mode)
     if report_mode == REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY:
-        suspected_withdrawals = [event for event in events if event["event_type"] == "suspected_withdrawal"]
+        withdrawal_events = [event for event in events if event["event_type"] in WITHDRAWAL_REPORT_EVENT_TYPES]
         return "".join(
             [
                 "<div style=\"font-family:FangSong,STFangsong,serif;font-size:16px;color:#1f2937;\">",
                 f"<p>{escape(copy['intro'])}</p>",
-                f"<p><strong>{escape(copy['withdrawals_title'])}（{len(suspected_withdrawals)} 条）</strong></p>",
+                f"<p><strong>{escape(copy['withdrawals_title'])}（{len(withdrawal_events)} 条）</strong></p>",
                 render_html_table(
-                    ["序号", "管理人", "产品名称", "产品类型", "上报日期", "首次看到", "最后看到", "消失日期", "疑似原因"],
-                    build_suspected_withdrawal_rows(suspected_withdrawals),
+                    ["序号", "管理人", "产品名称", "产品类型", "上报日期", "首次看到", "最后看到", "消失日期", "提醒原因"],
+                    build_suspected_withdrawal_rows(withdrawal_events),
                 )
-                if suspected_withdrawals
+                if withdrawal_events
                 else "<p>无</p>",
                 "</div>",
             ]
@@ -746,12 +881,14 @@ def format_email_summary(events: list[dict[str, Any]], report_mode: str, local_n
     new_record_count, new_step_count = count_events_by_type(events)
     if report_mode == REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY:
         suspected_withdrawal_count = count_suspected_withdrawal_events(events)
+        confirmed_withdrawal_count = count_confirmed_withdrawal_events(events)
         subject = f"指数产品疑似撤回日报{local_now:%Y-%m-%d}"
         body = "\n".join(
             [
                 f"指数产品疑似撤回日报 {local_now:%Y-%m-%d}",
                 f"疑似撤回产品：{suspected_withdrawal_count} 条",
-                "口径：2025年及以后上报的非债券指数产品，未显示受理且已从公示列表中消失。",
+                f"真正撤回提醒：{confirmed_withdrawal_count} 条",
+                "口径：2025年及以后上报的非债券指数产品；疑似为未显示受理满 7 天或已从公示列表中消失；真正撤回提醒为第 8/9 天出现新增受理后，同日及更早上报产品仍未显示受理。",
                 "请查看 HTML 正文和 PDF 附件获取完整汇总。",
             ]
         )
@@ -783,18 +920,18 @@ def format_email_summary(events: list[dict[str, Any]], report_mode: str, local_n
 def build_pdf_lines(events: list[dict[str, Any]], local_now: datetime, report_mode: str = REPORT_MODE_DAILY_SUMMARY) -> list[str]:
     if report_mode == REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY:
         copy = report_copy(REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY)
-        suspected_withdrawals = [event for event in events if event["event_type"] == "suspected_withdrawal"]
+        withdrawal_events = [event for event in events if event["event_type"] in WITHDRAWAL_REPORT_EVENT_TYPES]
         lines = [
             f"指数产品疑似撤回日报{local_now:%Y-%m-%d}",
             f"生成时间：{local_now:%Y-%m-%d %H:%M}",
-            f"疑似撤回产品：{len(suspected_withdrawals)} 条",
+            f"撤回监控产品：{len(withdrawal_events)} 条",
             "",
             copy["intro"],
             "",
-            f"{copy['withdrawals_title']}（{len(suspected_withdrawals)} 条）",
+            f"{copy['withdrawals_title']}（{len(withdrawal_events)} 条）",
         ]
-        if suspected_withdrawals:
-            for index, event in enumerate(suspected_withdrawals, start=1):
+        if withdrawal_events:
+            for index, event in enumerate(withdrawal_events, start=1):
                 display = extract_display_fields(event["title"])
                 lines.append(f"{index}. {display['manager']} | {display['product_name']} | {event['app_date']} | {event['reason']}")
         else:
@@ -831,12 +968,12 @@ def build_pdf_lines(events: list[dict[str, Any]], local_now: datetime, report_mo
 def build_pdf_table_sections(events: list[dict[str, Any]], report_mode: str = REPORT_MODE_DAILY_SUMMARY) -> list[dict[str, Any]]:
     if report_mode == REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY:
         copy = report_copy(REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY)
-        suspected_withdrawals = [event for event in events if event["event_type"] == "suspected_withdrawal"]
+        withdrawal_events = [event for event in events if event["event_type"] in WITHDRAWAL_REPORT_EVENT_TYPES]
         return [
             {
-                "title": f"{copy['withdrawals_title']}（{len(suspected_withdrawals)} 条）",
-                "headers": ["序号", "管理人", "产品名称", "产品类型", "上报日期", "首次看到", "最后看到", "消失日期", "疑似原因"],
-                "rows": build_suspected_withdrawal_rows(suspected_withdrawals),
+                "title": f"{copy['withdrawals_title']}（{len(withdrawal_events)} 条）",
+                "headers": ["序号", "管理人", "产品名称", "产品类型", "上报日期", "首次看到", "最后看到", "消失日期", "提醒原因"],
+                "rows": build_suspected_withdrawal_rows(withdrawal_events),
                 "column_widths": [55, 95, 220, 90, 90, 90, 90, 90, 300],
             },
         ]
@@ -1082,6 +1219,7 @@ def generate_daily_summary_pdf(
     buffer = io.BytesIO()
     new_record_count, new_step_count = count_events_by_type(events)
     suspected_withdrawal_count = count_suspected_withdrawal_events(events)
+    confirmed_withdrawal_count = count_confirmed_withdrawal_events(events)
     if report_mode == REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY:
         report_title = f"指数产品疑似撤回日报 {local_now:%Y-%m-%d}"
         report_subject = "指数产品疑似撤回日报"
@@ -1089,6 +1227,7 @@ def generate_daily_summary_pdf(
         summary_texts = [
             f"生成时间：{local_now:%Y-%m-%d %H:%M}",
             f"疑似撤回产品：{suspected_withdrawal_count} 条",
+            f"真正撤回提醒：{confirmed_withdrawal_count} 条",
         ]
         filename = f"指数产品疑似撤回日报{local_now:%Y-%m-%d}.pdf"
     else:
@@ -1461,6 +1600,7 @@ def write_github_step_summary(result: dict[str, Any], path: Path | None = None) 
                 f"- New records: {result.get('new_record_count', 0)}",
                 f"- New steps: {result.get('new_step_count', 0)}",
                 f"- Suspected withdrawals: {result.get('suspected_withdrawal_count', 0)}",
+                f"- Confirmed withdrawal reminders: {result.get('confirmed_withdrawal_count', 0)}",
             ]
         )
         if result.get("email_subject"):

@@ -900,7 +900,7 @@ class DailySummaryTests(unittest.TestCase):
 
 
 class SuspectedWithdrawalTests(unittest.TestCase):
-    def test_find_suspected_withdrawals_requires_missing_from_list_without_acceptance(self):
+    def test_find_suspected_withdrawals_uses_week_without_acceptance_or_missing_without_acceptance(self):
         records_seen_before = [
             build_record(
                 "suspect",
@@ -946,11 +946,12 @@ class SuspectedWithdrawalTests(unittest.TestCase):
         )
 
         events_by_id = {event["record_id"]: event for event in events}
-        self.assertEqual([event["record_id"] for event in events], ["recent", "suspect"])
+        self.assertEqual([event["record_id"] for event in events], ["recent", "visible", "suspect"])
         self.assertEqual(events_by_id["suspect"]["event_type"], "suspected_withdrawal")
         self.assertIn("未显示受理满 7 天", events_by_id["suspect"]["reason"])
         self.assertIn("公示列表中消失", events_by_id["suspect"]["reason"])
         self.assertEqual(events_by_id["recent"]["reason"], "疑似撤回：未显示受理，且已从公示列表中消失。")
+        self.assertEqual(events_by_id["visible"]["reason"], "疑似撤回：未显示受理满 7 天。")
 
     def test_find_suspected_withdrawals_excludes_pre_2025_applications_and_sorts_by_app_date_desc(self):
         records_seen_before = [
@@ -984,7 +985,7 @@ class SuspectedWithdrawalTests(unittest.TestCase):
         self.assertEqual([event["record_id"] for event in events], ["newer-application", "older-application"])
         self.assertEqual([event["app_date"] for event in events], ["2026-02-10", "2025-01-02"])
 
-    def test_week_without_acceptance_alone_does_not_trigger_suspected_withdrawal(self):
+    def test_week_without_acceptance_alone_triggers_suspected_withdrawal(self):
         records = [
             build_record(
                 "labor-holiday",
@@ -1000,7 +1001,140 @@ class SuspectedWithdrawalTests(unittest.TestCase):
             datetime(2026, 5, 12, 19, 30, tzinfo=monitor.SHANGHAI_TZ),
         )
 
-        self.assertEqual(events, [])
+        self.assertEqual([event["record_id"] for event in events], ["labor-holiday"])
+        self.assertEqual(events[0]["days_without_acceptance"], 12)
+        self.assertEqual(events[0]["reason"], "疑似撤回：未显示受理满 7 天。")
+
+    def test_true_withdrawal_reminder_uses_new_8_or_9_day_acceptance_as_cutoff(self):
+        accepted_on_day_8_before = build_record(
+            "accepted-on-day-8",
+            build_title("易方达基金管理有限公司", "易方达机器人" + ETF_PHRASE),
+            "2026-03-10",
+            [build_step(TASK_RECEIVE, "2026-03-10")],
+        )
+        accepted_on_day_8_now = build_record(
+            "accepted-on-day-8",
+            build_title("易方达基金管理有限公司", "易方达机器人" + ETF_PHRASE),
+            "2026-03-10",
+            [build_step(TASK_RECEIVE, "2026-03-10"), build_step(TASK_ACCEPT, "2026-03-18", "file-a")],
+        )
+        same_day_unaccepted = build_record(
+            "same-day-unaccepted",
+            build_title("华夏基金管理有限公司", "华夏同日未受理" + ETF_PHRASE),
+            "2026-03-10",
+            [build_step(TASK_RECEIVE, "2026-03-10")],
+        )
+        earlier_unaccepted = build_record(
+            "earlier-unaccepted",
+            build_title("南方基金管理有限公司", "南方更早未受理" + ETF_PHRASE),
+            "2026-03-09",
+            [build_step(TASK_RECEIVE, "2026-03-09")],
+        )
+        later_unaccepted = build_record(
+            "later-unaccepted",
+            build_title("富国基金管理有限公司", "富国更晚未受理" + ETF_PHRASE),
+            "2026-03-11",
+            [build_step(TASK_RECEIVE, "2026-03-11")],
+        )
+        already_accepted = build_record(
+            "already-accepted",
+            build_title("广发基金管理有限公司", "广发已受理" + ETF_PHRASE),
+            "2026-03-09",
+            [build_step(TASK_RECEIVE, "2026-03-09"), build_step(TASK_ACCEPT, "2026-03-18", "file-b")],
+        )
+        first_snapshot = monitor.build_snapshot(
+            [accepted_on_day_8_before, same_day_unaccepted, earlier_unaccepted, later_unaccepted, already_accepted],
+            "2026-03-17T02:00:00Z",
+        )
+        latest_snapshot = monitor.build_snapshot(
+            [accepted_on_day_8_now, same_day_unaccepted, earlier_unaccepted, later_unaccepted, already_accepted],
+            "2026-03-18T02:00:00Z",
+            previous_snapshot=first_snapshot,
+        )
+
+        events = monitor.find_suspected_withdrawal_events(
+            latest_snapshot,
+            datetime(2026, 3, 18, 19, 30, tzinfo=monitor.SHANGHAI_TZ),
+        )
+
+        true_withdrawals = [event for event in events if event["event_type"] == "confirmed_withdrawal"]
+        self.assertEqual([event["record_id"] for event in true_withdrawals], ["same-day-unaccepted", "earlier-unaccepted"])
+        self.assertTrue(all(event["event_id"].startswith("confirmed-withdrawal|") for event in true_withdrawals))
+        self.assertIn("第 8 天新增受理", true_withdrawals[0]["reason"])
+        self.assertIn("视为真正撤回", true_withdrawals[0]["reason"])
+
+    def test_suspected_withdrawal_daily_resends_true_withdrawal_after_suspected_notice(self):
+        accepted_before = build_record(
+            "accepted-on-day-8",
+            build_title("易方达基金管理有限公司", "易方达机器人" + ETF_PHRASE),
+            "2026-03-10",
+            [build_step(TASK_RECEIVE, "2026-03-10")],
+        )
+        accepted_now = build_record(
+            "accepted-on-day-8",
+            build_title("易方达基金管理有限公司", "易方达机器人" + ETF_PHRASE),
+            "2026-03-10",
+            [build_step(TASK_RECEIVE, "2026-03-10"), build_step(TASK_ACCEPT, "2026-03-18", "file-a")],
+        )
+        candidate = build_record(
+            "candidate",
+            build_title("华夏基金管理有限公司", "华夏已疑似通知" + ETF_PHRASE),
+            "2026-03-10",
+            [build_step(TASK_RECEIVE, "2026-03-10")],
+        )
+        first_snapshot = monitor.build_snapshot([accepted_before, candidate], "2026-03-17T02:00:00Z")
+        latest_snapshot = monitor.build_snapshot(
+            [accepted_now, candidate],
+            "2026-03-18T02:00:00Z",
+            previous_snapshot=first_snapshot,
+        )
+        latest_snapshot["last_notified_suspected_withdrawal_event_ids"] = [
+            monitor.event_id_for("suspected_withdrawal", "candidate")
+        ]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state_file = Path(tmpdir) / "state.json"
+            state_file.write_text(json.dumps(latest_snapshot, ensure_ascii=False, indent=2), encoding="utf-8")
+            config = monitor.MonitorConfig(
+                keyword=KEYWORD,
+                state_file_path=state_file,
+                smtp_host="smtp.example.com",
+                smtp_port=465,
+                smtp_username="bot@example.com",
+                smtp_password="secret",
+                alert_email_from="bot@example.com",
+                alert_email_to=["me@example.com"],
+            )
+            email_calls = []
+
+            with mock.patch(
+                "csrc_index_monitor.generate_suspected_withdrawal_pdf",
+                return_value={
+                    "filename": "疑似撤回产品日报2026-03-18.pdf",
+                    "content": b"pdf",
+                    "maintype": "application",
+                    "subtype": "pdf",
+                },
+            ):
+                result = monitor.run_monitor(
+                    config=config,
+                    send_email_func=lambda **kwargs: email_calls.append(kwargs),
+                    now_iso="2026-03-18T11:30:00Z",
+                    report_mode="suspected_withdrawal_daily",
+                )
+
+            self.assertEqual(result["event_count"], 1)
+            self.assertEqual(result["confirmed_withdrawal_count"], 1)
+            self.assertEqual([event["event_type"] for event in email_calls[0]["events"]], ["confirmed_withdrawal"])
+            saved_state = json.loads(state_file.read_text(encoding="utf-8"))
+            self.assertIn(
+                monitor.event_id_for("confirmed_withdrawal", "candidate"),
+                saved_state["last_notified_suspected_withdrawal_event_ids"],
+            )
+            self.assertIn(
+                monitor.event_id_for("suspected_withdrawal", "candidate"),
+                saved_state["last_notified_suspected_withdrawal_event_ids"],
+            )
 
     def test_suspected_withdrawal_daily_sends_pdf_attachment_from_latest_state(self):
         records_seen_before = [
