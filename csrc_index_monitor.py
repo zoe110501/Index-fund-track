@@ -37,7 +37,7 @@ SUSPECTED_WITHDRAWAL_EVENT_TYPE = "suspected_withdrawal"
 CONFIRMED_WITHDRAWAL_EVENT_TYPE = "confirmed_withdrawal"
 WITHDRAWAL_REPORT_EVENT_TYPES = {SUSPECTED_WITHDRAWAL_EVENT_TYPE, CONFIRMED_WITHDRAWAL_EVENT_TYPE}
 SUSPECTED_WITHDRAWAL_MIN_DAYS_WITHOUT_ACCEPTANCE = 7
-CONFIRMED_WITHDRAWAL_ACCEPTANCE_DAYS = {8, 9}
+CONFIRMED_WITHDRAWAL_ACCEPTANCE_LOOKBACK_DAYS = 2
 SUSPECTED_WITHDRAWAL_MIN_APP_DATE = "2025-01-01"
 DEFAULT_PDF_CJK_FONT_CANDIDATES = (
     Path("C:/Windows/Fonts/simfang.ttf"),
@@ -535,24 +535,23 @@ def app_date_is_on_or_after(record: dict[str, Any], min_app_date: datetime) -> b
     return bool(app_date and app_date.date() >= min_app_date.date())
 
 
-def acceptance_step_is_newly_seen(record: dict[str, Any], step_id: str, local_now: datetime) -> bool:
+def acceptance_step_first_seen_at(record: dict[str, Any], step_id: str) -> datetime | None:
     first_seen_by_step = record.get("step_first_seen_at") or {}
     first_seen_at = first_seen_by_step.get(step_id) if isinstance(first_seen_by_step, dict) else None
     if first_seen_at:
-        parsed_first_seen_at = snapshot_value_as_local_date(str(first_seen_at))
-        return bool(parsed_first_seen_at and parsed_first_seen_at.date() == local_now.date())
+        return snapshot_value_as_local_date(str(first_seen_at))
 
     _, fnsh_date, _ = split_step_id(step_id)
-    parsed_fnsh_date = parse_local_date(fnsh_date)
-    return bool(parsed_fnsh_date and parsed_fnsh_date.date() == local_now.date())
+    return parse_local_date(fnsh_date)
 
 
-def find_true_withdrawal_cutoff(
+def find_true_withdrawal_batch_window(
     record_history: dict[str, dict[str, Any]],
     local_now: datetime,
     min_app_date: datetime,
 ) -> dict[str, Any] | None:
-    latest_cutoff: dict[str, Any] | None = None
+    trigger_records: list[dict[str, Any]] = []
+    earliest_seen_date = local_now.date() - timedelta(days=CONFIRMED_WITHDRAWAL_ACCEPTANCE_LOOKBACK_DAYS)
     for record_id, record in record_history.items():
         if not app_date_is_on_or_after(record, min_app_date):
             continue
@@ -563,22 +562,32 @@ def find_true_withdrawal_cutoff(
         if app_date is None:
             continue
         for step_id in acceptance_step_ids(list(record.get("step_ids") or [])):
-            _, fnsh_date, _ = split_step_id(step_id)
-            acceptance_date = parse_local_date(fnsh_date)
-            if acceptance_date is None:
+            first_seen_at = acceptance_step_first_seen_at(record, step_id)
+            if first_seen_at is None:
                 continue
-            days_to_acceptance = (acceptance_date.date() - app_date.date()).days
-            if days_to_acceptance not in CONFIRMED_WITHDRAWAL_ACCEPTANCE_DAYS:
+            first_seen_date = first_seen_at.astimezone(SHANGHAI_TZ).date()
+            if not (earliest_seen_date <= first_seen_date <= local_now.date()):
                 continue
-            if not acceptance_step_is_newly_seen(record, step_id, local_now):
-                continue
-            if latest_cutoff is None or app_date.date() > latest_cutoff["app_date"].date():
-                latest_cutoff = {
+            trigger_records.append(
+                {
                     "app_date": app_date,
+                    "first_seen_date": first_seen_date,
                     "trigger_record_id": record_id,
-                    "trigger_days": days_to_acceptance,
                 }
-    return latest_cutoff
+            )
+
+    if not trigger_records:
+        return None
+
+    latest_seen_date = max(record["first_seen_date"] for record in trigger_records)
+    latest_batch_records = [record for record in trigger_records if record["first_seen_date"] == latest_seen_date]
+    app_dates = [record["app_date"].date() for record in latest_batch_records]
+    return {
+        "start_app_date": min(app_dates),
+        "end_app_date": max(app_dates),
+        "trigger_seen_date": latest_seen_date,
+        "trigger_count": len(latest_batch_records),
+    }
 
 
 def find_suspected_withdrawal_events(
@@ -592,7 +601,7 @@ def find_suspected_withdrawal_events(
     min_app_date = parse_local_date(SUSPECTED_WITHDRAWAL_MIN_APP_DATE)
     if min_app_date is None:
         raise ValueError(f"Invalid suspected withdrawal minimum app date: {SUSPECTED_WITHDRAWAL_MIN_APP_DATE}")
-    true_withdrawal_cutoff = find_true_withdrawal_cutoff(record_history, local_now, min_app_date)
+    true_withdrawal_batch_window = find_true_withdrawal_batch_window(record_history, local_now, min_app_date)
     events: list[dict[str, Any]] = []
 
     for record_id, record in sorted(record_history.items(), key=lambda item: (item[1].get("app_date", ""), item[0]), reverse=True):
@@ -612,9 +621,9 @@ def find_suspected_withdrawal_events(
         )
         app_date = parse_local_date(str(record.get("app_date") or ""))
         if (
-            true_withdrawal_cutoff
+            true_withdrawal_batch_window
             and app_date
-            and app_date.date() <= true_withdrawal_cutoff["app_date"].date()
+            and true_withdrawal_batch_window["start_app_date"] <= app_date.date() <= true_withdrawal_batch_window["end_app_date"]
             and not has_acceptance_step
         ):
             events.append(
@@ -629,8 +638,12 @@ def find_suspected_withdrawal_events(
                     "missing_since": str(record.get("missing_since", "")),
                     "days_without_acceptance": elapsed_days,
                     "reason": (
-                        f"真正撤回提醒：已有 {true_withdrawal_cutoff['app_date']:%Y-%m-%d} 上报产品"
-                        f"在第 {true_withdrawal_cutoff['trigger_days']} 天新增受理；本产品同日或更早上报且仍未显示受理，视为真正撤回。"
+                        "真正撤回提醒：同批受理窗口 "
+                        f"{true_withdrawal_batch_window['start_app_date']:%Y-%m-%d} 至 "
+                        f"{true_withdrawal_batch_window['end_app_date']:%Y-%m-%d} "
+                        f"已有 {true_withdrawal_batch_window['trigger_count']} 个产品在 "
+                        f"{true_withdrawal_batch_window['trigger_seen_date']:%Y-%m-%d} 新显示受理；"
+                        "本产品处于该批次窗口且仍未显示受理，视为真正撤回。"
                     ),
                 }
             )
@@ -810,7 +823,7 @@ def build_suspected_withdrawal_rows(events: list[dict[str, Any]]) -> list[list[s
 def report_copy(report_mode: str) -> dict[str, str]:
     if report_mode == REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY:
         return {
-            "intro": "以下为按规则筛出的撤回监控产品（2025年及以后上报，不含债券；疑似口径为未显示受理满 7 天或已从公示列表中消失；真正撤回提醒口径为第 8/9 天出现新增受理后，同日及更早上报产品仍未显示受理），请人工核验。",
+            "intro": "以下为按规则筛出的撤回监控产品（2025年及以后上报，不含债券；疑似口径为未显示受理满 7 天或已从公示列表中消失；真正撤回提醒口径为近期新显示受理产品覆盖的同批上报窗口内，仍未显示受理的产品），请人工核验。",
             "withdrawals_title": "疑似撤回产品及真正撤回提醒",
         }
     if report_mode == REPORT_MODE_DAILY_SUMMARY:
@@ -888,7 +901,7 @@ def format_email_summary(events: list[dict[str, Any]], report_mode: str, local_n
                 f"指数产品疑似撤回日报 {local_now:%Y-%m-%d}",
                 f"疑似撤回产品：{suspected_withdrawal_count} 条",
                 f"真正撤回提醒：{confirmed_withdrawal_count} 条",
-                "口径：2025年及以后上报的非债券指数产品；疑似为未显示受理满 7 天或已从公示列表中消失；真正撤回提醒为第 8/9 天出现新增受理后，同日及更早上报产品仍未显示受理。",
+                "口径：2025年及以后上报的非债券指数产品；疑似为未显示受理满 7 天或已从公示列表中消失；真正撤回提醒为近期新显示受理产品覆盖的同批上报窗口内，仍未显示受理的产品。",
                 "请查看 HTML 正文和 PDF 附件获取完整汇总。",
             ]
         )

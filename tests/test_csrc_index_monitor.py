@@ -1005,7 +1005,7 @@ class SuspectedWithdrawalTests(unittest.TestCase):
         self.assertEqual(events[0]["days_without_acceptance"], 12)
         self.assertEqual(events[0]["reason"], "疑似撤回：未显示受理满 7 天。")
 
-    def test_true_withdrawal_reminder_uses_new_8_or_9_day_acceptance_as_cutoff(self):
+    def test_true_withdrawal_reminder_uses_new_acceptance_batch_window(self):
         accepted_on_day_8_before = build_record(
             "accepted-on-day-8",
             build_title("易方达基金管理有限公司", "易方达机器人" + ETF_PHRASE),
@@ -1058,10 +1058,82 @@ class SuspectedWithdrawalTests(unittest.TestCase):
         )
 
         true_withdrawals = [event for event in events if event["event_type"] == "confirmed_withdrawal"]
-        self.assertEqual([event["record_id"] for event in true_withdrawals], ["same-day-unaccepted", "earlier-unaccepted"])
+        self.assertEqual([event["record_id"] for event in true_withdrawals], ["same-day-unaccepted"])
         self.assertTrue(all(event["event_id"].startswith("confirmed-withdrawal|") for event in true_withdrawals))
-        self.assertIn("第 8 天新增受理", true_withdrawals[0]["reason"])
+        self.assertIn("同批受理窗口", true_withdrawals[0]["reason"])
         self.assertIn("视为真正撤回", true_withdrawals[0]["reason"])
+
+    def test_true_withdrawal_reminder_uses_first_seen_acceptance_date_not_step_finish_date(self):
+        accepted_may8_before = build_record(
+            "accepted-may8",
+            build_title("易方达基金管理有限公司", "易方达创业板新能源ETF联接基金"),
+            "2026-05-08",
+            [build_step(TASK_RECEIVE, "2026-05-08")],
+        )
+        accepted_may8_now = build_record(
+            "accepted-may8",
+            build_title("易方达基金管理有限公司", "易方达创业板新能源ETF联接基金"),
+            "2026-05-08",
+            [build_step(TASK_RECEIVE, "2026-05-08"), build_step(TASK_ACCEPT, "2026-05-14", "file-a")],
+        )
+        accepted_may13_before = build_record(
+            "accepted-may13",
+            build_title("银华基金管理有限公司", "银华中证农业主题ETF发起式联接基金"),
+            "2026-05-13",
+            [build_step(TASK_RECEIVE, "2026-05-13")],
+        )
+        accepted_may13_now = build_record(
+            "accepted-may13",
+            build_title("银华基金管理有限公司", "银华中证农业主题ETF发起式联接基金"),
+            "2026-05-13",
+            [build_step(TASK_RECEIVE, "2026-05-13"), build_step(TASK_ACCEPT, "2026-05-14", "file-b")],
+        )
+        may8_unaccepted = build_record(
+            "may8-unaccepted",
+            build_title("永赢基金管理有限公司", "永赢中证光伏产业指数型证券投资基金"),
+            "2026-05-08",
+            [build_step(TASK_RECEIVE, "2026-05-08")],
+        )
+        may12_unaccepted = build_record(
+            "may12-unaccepted",
+            build_title("鹏华基金管理有限公司", "鹏华中证稀土产业ETF"),
+            "2026-05-12",
+            [build_step(TASK_RECEIVE, "2026-05-12")],
+        )
+        may13_unaccepted = build_record(
+            "may13-unaccepted",
+            build_title("招商基金管理有限公司", "招商国证价值100ETF"),
+            "2026-05-13",
+            [build_step(TASK_RECEIVE, "2026-05-13")],
+        )
+        outside_batch_unaccepted = build_record(
+            "outside-batch-unaccepted",
+            build_title("华夏基金管理有限公司", "华夏中证红利ETF"),
+            "2026-05-14",
+            [build_step(TASK_RECEIVE, "2026-05-14")],
+        )
+        first_snapshot = monitor.build_snapshot(
+            [accepted_may8_before, accepted_may13_before, may8_unaccepted, may12_unaccepted, may13_unaccepted, outside_batch_unaccepted],
+            "2026-05-17T02:00:00Z",
+        )
+        latest_snapshot = monitor.build_snapshot(
+            [accepted_may8_now, accepted_may13_now, may8_unaccepted, may12_unaccepted, may13_unaccepted, outside_batch_unaccepted],
+            "2026-05-18T12:00:00Z",
+            previous_snapshot=first_snapshot,
+        )
+
+        events = monitor.find_suspected_withdrawal_events(
+            latest_snapshot,
+            datetime(2026, 5, 18, 20, 30, tzinfo=monitor.SHANGHAI_TZ),
+        )
+
+        true_withdrawals = [event for event in events if event["event_type"] == "confirmed_withdrawal"]
+        self.assertEqual(
+            [event["record_id"] for event in true_withdrawals],
+            ["may13-unaccepted", "may12-unaccepted", "may8-unaccepted"],
+        )
+        self.assertIn("2026-05-08 至 2026-05-13", true_withdrawals[0]["reason"])
+        self.assertNotIn("outside-batch-unaccepted", [event["record_id"] for event in true_withdrawals])
 
     def test_suspected_withdrawal_daily_resends_true_withdrawal_after_suspected_notice(self):
         accepted_before = build_record(
