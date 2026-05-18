@@ -518,13 +518,10 @@ def find_suspected_withdrawal_events(
             and elapsed_days >= min_days_without_acceptance
             and not record_has_acceptance_step(step_ids)
         )
-        if not (missing_from_current_list or week_without_acceptance):
+        if not missing_from_current_list or record_has_acceptance_step(step_ids):
             continue
-        reasons = []
-        if week_without_acceptance:
-            reasons.append(f"未显示受理满 {min_days_without_acceptance} 天")
-        if missing_from_current_list:
-            reasons.append("已从公示列表中消失")
+        reasons = [f"未显示受理满 {min_days_without_acceptance} 天" if week_without_acceptance else "未显示受理"]
+        reasons.append("已从公示列表中消失")
         events.append(
             {
                 "event_type": "suspected_withdrawal",
@@ -678,7 +675,7 @@ def build_suspected_withdrawal_rows(events: list[dict[str, Any]]) -> list[list[s
 def report_copy(report_mode: str) -> dict[str, str]:
     if report_mode == REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY:
         return {
-            "intro": "以下为按规则筛出的疑似撤回产品（2025年及以后上报，不含债券；未显示受理满7天或已从公示列表中消失），仅供人工核验，不代表已确认撤回。",
+            "intro": "以下为按规则筛出的高置信疑似撤回产品（2025年及以后上报，不含债券；未显示受理且已从公示列表中消失），仅供人工核验，不代表已确认撤回。",
             "withdrawals_title": "疑似撤回产品",
         }
     if report_mode == REPORT_MODE_DAILY_SUMMARY:
@@ -754,7 +751,7 @@ def format_email_summary(events: list[dict[str, Any]], report_mode: str, local_n
             [
                 f"指数产品疑似撤回日报 {local_now:%Y-%m-%d}",
                 f"疑似撤回产品：{suspected_withdrawal_count} 条",
-                "口径：2025年及以后上报的非债券指数产品，满 7 天未显示受理，或已从公示列表中消失。",
+                "口径：2025年及以后上报的非债券指数产品，未显示受理且已从公示列表中消失。",
                 "请查看 HTML 正文和 PDF 附件获取完整汇总。",
             ]
         )

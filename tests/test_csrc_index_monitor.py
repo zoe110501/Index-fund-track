@@ -900,7 +900,7 @@ class DailySummaryTests(unittest.TestCase):
 
 
 class SuspectedWithdrawalTests(unittest.TestCase):
-    def test_find_suspected_withdrawals_uses_week_without_acceptance_or_missing_from_list(self):
+    def test_find_suspected_withdrawals_requires_missing_from_list_without_acceptance(self):
         records_seen_before = [
             build_record(
                 "suspect",
@@ -946,13 +946,11 @@ class SuspectedWithdrawalTests(unittest.TestCase):
         )
 
         events_by_id = {event["record_id"]: event for event in events}
-        self.assertEqual([event["record_id"] for event in events], ["recent", "visible", "suspect", "accepted"])
+        self.assertEqual([event["record_id"] for event in events], ["recent", "suspect"])
         self.assertEqual(events_by_id["suspect"]["event_type"], "suspected_withdrawal")
         self.assertIn("未显示受理满 7 天", events_by_id["suspect"]["reason"])
         self.assertIn("公示列表中消失", events_by_id["suspect"]["reason"])
-        self.assertEqual(events_by_id["recent"]["reason"], "疑似撤回：已从公示列表中消失。")
-        self.assertEqual(events_by_id["visible"]["reason"], "疑似撤回：未显示受理满 7 天。")
-        self.assertEqual(events_by_id["accepted"]["reason"], "疑似撤回：已从公示列表中消失。")
+        self.assertEqual(events_by_id["recent"]["reason"], "疑似撤回：未显示受理，且已从公示列表中消失。")
 
     def test_find_suspected_withdrawals_excludes_pre_2025_applications_and_sorts_by_app_date_desc(self):
         records_seen_before = [
@@ -986,7 +984,7 @@ class SuspectedWithdrawalTests(unittest.TestCase):
         self.assertEqual([event["record_id"] for event in events], ["newer-application", "older-application"])
         self.assertEqual([event["app_date"] for event in events], ["2026-02-10", "2025-01-02"])
 
-    def test_week_without_acceptance_uses_calendar_days(self):
+    def test_week_without_acceptance_alone_does_not_trigger_suspected_withdrawal(self):
         records = [
             build_record(
                 "labor-holiday",
@@ -1002,9 +1000,7 @@ class SuspectedWithdrawalTests(unittest.TestCase):
             datetime(2026, 5, 12, 19, 30, tzinfo=monitor.SHANGHAI_TZ),
         )
 
-        self.assertEqual([event["record_id"] for event in events], ["labor-holiday"])
-        self.assertEqual(events[0]["days_without_acceptance"], 12)
-        self.assertIn("未显示受理满 7 天", events[0]["reason"])
+        self.assertEqual(events, [])
 
     def test_suspected_withdrawal_daily_sends_pdf_attachment_from_latest_state(self):
         records_seen_before = [
@@ -1073,7 +1069,8 @@ class SuspectedWithdrawalTests(unittest.TestCase):
             "2026-03-11",
             [build_step(TASK_RECEIVE, "2026-03-11")],
         )
-        snapshot = monitor.build_snapshot([old_candidate, new_candidate], "2026-03-18T02:00:00Z")
+        first_snapshot = monitor.build_snapshot([old_candidate, new_candidate], "2026-03-11T02:00:00Z")
+        snapshot = monitor.build_snapshot([], "2026-03-18T02:00:00Z", previous_snapshot=first_snapshot)
         snapshot["last_notified_suspected_withdrawal_event_ids"] = [
             monitor.event_id_for("suspected_withdrawal", "old-candidate")
         ]
@@ -1128,7 +1125,8 @@ class SuspectedWithdrawalTests(unittest.TestCase):
             "2026-03-10",
             [build_step(TASK_RECEIVE, "2026-03-10")],
         )
-        snapshot = monitor.build_snapshot([candidate], "2026-03-18T02:00:00Z")
+        first_snapshot = monitor.build_snapshot([candidate], "2026-03-10T02:00:00Z")
+        snapshot = monitor.build_snapshot([], "2026-03-18T02:00:00Z", previous_snapshot=first_snapshot)
         snapshot["last_notified_suspected_withdrawal_event_ids"] = [
             monitor.event_id_for("suspected_withdrawal", "candidate")
         ]
