@@ -65,9 +65,12 @@ PDF_FONT_FAMILY_CJK = "IndexMonitorSimFang"
 PDF_FONT_FAMILY_LATIN = "IndexMonitorTimesNewRoman"
 PDF_FONT_FAMILY_LATIN_BOLD = "IndexMonitorTimesNewRomanBold"
 PDF_FONT_FAMILY_CJK_CID_FALLBACK = "STSong-Light"
+DAILY_SUMMARY_RECORD_PDF_COLUMN_WIDTHS = [42, 90, 460, 82, 78]
+DAILY_SUMMARY_STEP_PDF_COLUMN_WIDTHS = [42, 78, 360, 76, 70, 168, 76]
+DAILY_SUMMARY_PDF_MIN_COLUMN_WIDTH = 48
 SUSPECTED_WITHDRAWAL_PDF_COLUMN_WIDTHS = [34, 70, 430, 70, 76, 76, 76, 76, 78]
 SUSPECTED_WITHDRAWAL_PDF_MIN_COLUMN_WIDTH = 40
-SUSPECTED_WITHDRAWAL_PRODUCT_COLUMN_INDEX = 2
+PRODUCT_NAME_COLUMN_INDEX = 2
 DISPLAY_ETF_SOURCE = "交易型开放式指数证券投资基金"
 DISPLAY_ETF_TARGET = "ETF"
 LINKED_FUND_KEYWORD = "联接基金"
@@ -1022,6 +1025,7 @@ def build_pdf_table_sections(events: list[dict[str, Any]], report_mode: str = RE
                 "rows": build_suspected_withdrawal_rows(withdrawal_events),
                 "column_widths": SUSPECTED_WITHDRAWAL_PDF_COLUMN_WIDTHS,
                 "minimum_column_width": SUSPECTED_WITHDRAWAL_PDF_MIN_COLUMN_WIDTH,
+                "single_line_column_indexes": [PRODUCT_NAME_COLUMN_INDEX],
             },
         ]
 
@@ -1033,13 +1037,17 @@ def build_pdf_table_sections(events: list[dict[str, Any]], report_mode: str = RE
             "title": f"{copy['records_title']}（{len(new_records)} 条）",
             "headers": ["序号", "管理人", "产品名称", "产品类型", "上报日期"],
             "rows": build_record_rows(new_records),
-            "column_widths": [70, 140, 430, 150, 160],
+            "column_widths": DAILY_SUMMARY_RECORD_PDF_COLUMN_WIDTHS,
+            "minimum_column_width": DAILY_SUMMARY_PDF_MIN_COLUMN_WIDTH,
+            "single_line_column_indexes": [PRODUCT_NAME_COLUMN_INDEX],
         },
         {
             "title": f"{copy['steps_title']}（{len(new_steps)} 条）",
             "headers": ["序号", "管理人", "产品名称", "产品类型", "上报日期", "最新节点", "节点日期"],
             "rows": build_step_rows(new_steps),
-            "column_widths": [70, 120, 300, 120, 120, 210, 120],
+            "column_widths": DAILY_SUMMARY_STEP_PDF_COLUMN_WIDTHS,
+            "minimum_column_width": DAILY_SUMMARY_PDF_MIN_COLUMN_WIDTH,
+            "single_line_column_indexes": [PRODUCT_NAME_COLUMN_INDEX],
         },
     ]
 
@@ -1230,7 +1238,7 @@ def normalized_column_widths(widths: list[int], total_width: int, min_width: int
 
 def pdf_page_size_for_report(pagesizes: Any, report_mode: str) -> tuple[float, float]:
     page_size = pagesizes.A4
-    if report_mode == REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY:
+    if report_mode in {REPORT_MODE_DAILY_SUMMARY, REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY}:
         return pagesizes.landscape(page_size)
     return page_size
 
@@ -1277,6 +1285,7 @@ def generate_daily_summary_pdf(
 
     buffer = io.BytesIO()
     is_withdrawal_report = report_mode == REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY
+    is_landscape_report = report_mode in {REPORT_MODE_DAILY_SUMMARY, REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY}
     new_record_count, new_step_count = count_events_by_type(events)
     suspected_withdrawal_count = count_suspected_withdrawal_events(events)
     confirmed_withdrawal_count = count_confirmed_withdrawal_events(events)
@@ -1355,13 +1364,13 @@ def generate_daily_summary_pdf(
         spaceBefore=10,
         spaceAfter=8,
     )
-    cell_font_size = 8 if is_withdrawal_report else 9.5
-    cell_leading = 10.5 if is_withdrawal_report else 13
-    header_font_size = 8.2 if is_withdrawal_report else 9.8
-    header_leading = 10 if is_withdrawal_report else 12
-    table_horizontal_padding = 4 if is_withdrawal_report else 6
-    table_header_vertical_padding = 5 if is_withdrawal_report else 7
-    table_body_vertical_padding = 4 if is_withdrawal_report else 6
+    cell_font_size = 8 if is_withdrawal_report else 8.8 if is_landscape_report else 9.5
+    cell_leading = 10.5 if is_withdrawal_report else 11.5 if is_landscape_report else 13
+    header_font_size = 8.2 if is_withdrawal_report else 9 if is_landscape_report else 9.8
+    header_leading = 10 if is_withdrawal_report else 11 if is_landscape_report else 12
+    table_horizontal_padding = 4 if is_landscape_report else 6
+    table_header_vertical_padding = 5 if is_landscape_report else 7
+    table_body_vertical_padding = 4 if is_landscape_report else 6
     cell_style = ParagraphStyle(
         "IndexMonitorCell",
         parent=styles["BodyText"],
@@ -1403,6 +1412,7 @@ def generate_daily_summary_pdf(
             int(content_width),
             min_width=section.get("minimum_column_width"),
         )
+        single_line_column_indexes = set(section.get("single_line_column_indexes", []))
         table_rows = [
             [Paragraph(rich_text(header, latin_bold=True), header_style) for header in section["headers"]]
         ]
@@ -1411,13 +1421,9 @@ def generate_daily_summary_pdf(
             normalized_row = list(row) + [""] * (len(section["headers"]) - len(row))
             table_row = []
             for column_index, value in enumerate(normalized_row[: len(section["headers"])]):
-                style = (
-                    product_cell_style
-                    if is_withdrawal_report and column_index == SUSPECTED_WITHDRAWAL_PRODUCT_COLUMN_INDEX
-                    else cell_style
-                )
+                style = product_cell_style if column_index in single_line_column_indexes else cell_style
                 cell = Paragraph(rich_text(str(value)), style)
-                if is_withdrawal_report and column_index == SUSPECTED_WITHDRAWAL_PRODUCT_COLUMN_INDEX:
+                if column_index in single_line_column_indexes:
                     cell = KeepInFrame(
                         max(1, column_widths[column_index] - 2 * table_horizontal_padding),
                         cell_leading,

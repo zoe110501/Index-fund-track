@@ -433,6 +433,24 @@ class DailySummaryTests(unittest.TestCase):
         self.assertEqual(sections[1]["headers"], ["\u5e8f\u53f7", "\u7ba1\u7406\u4eba", "\u4ea7\u54c1\u540d\u79f0", "\u4ea7\u54c1\u7c7b\u578b", "\u4e0a\u62a5\u65e5\u671f", "\u6700\u65b0\u8282\u70b9", "\u8282\u70b9\u65e5\u671f"])
         self.assertEqual(sections[1]["rows"][0][1:], ["\u534e\u590f", "\u534e\u590f\u4eba\u5de5\u667a\u80fdETF", "ETF", "2026-03-17", TASK_ACCEPT, "2026-03-17"])
 
+    def test_daily_summary_pdf_columns_prioritize_single_line_product_names(self):
+        sections = monitor.build_pdf_table_sections(self.build_daily_summary_events())
+        record_widths = monitor.normalized_column_widths(
+            sections[0]["column_widths"],
+            740,
+            min_width=sections[0]["minimum_column_width"],
+        )
+        step_widths = monitor.normalized_column_widths(
+            sections[1]["column_widths"],
+            740,
+            min_width=sections[1]["minimum_column_width"],
+        )
+
+        self.assertEqual(sections[0]["single_line_column_indexes"], [2])
+        self.assertEqual(sections[1]["single_line_column_indexes"], [2])
+        self.assertGreaterEqual(record_widths[2], 400)
+        self.assertGreaterEqual(step_widths[2], 285)
+
     def test_generate_daily_summary_pdf_reports_missing_cjk_font(self):
         local_now = datetime(2026, 3, 17, 19, 30, tzinfo=monitor.SHANGHAI_TZ)
 
@@ -576,6 +594,7 @@ class DailySummaryTests(unittest.TestCase):
         pdf = monitor.load_fitz_module().open(stream=attachment["content"], filetype="pdf")
         extracted = "\n".join(page.get_text() for page in pdf)
 
+        self.assertGreater(pdf[0].rect.width, pdf[0].rect.height)
         self.assertIn("指数基金审批日报 2026-03-17", extracted)
         self.assertIn("今日累计汇总如下：", extracted)
         self.assertIn("今日新产品（1 条）", extracted)
@@ -1390,7 +1409,7 @@ class SuspectedWithdrawalTests(unittest.TestCase):
         self.assertEqual(sum(widths), 493)
         self.assertTrue(all(width > 0 for width in widths))
 
-    def test_suspected_withdrawal_pdf_uses_landscape_page_size(self):
+    def test_pdf_reports_use_landscape_page_size(self):
         class FakePagesizes:
             A4 = (595, 842)
 
@@ -1404,7 +1423,7 @@ class SuspectedWithdrawalTests(unittest.TestCase):
         )
         self.assertEqual(
             monitor.pdf_page_size_for_report(FakePagesizes, monitor.REPORT_MODE_DAILY_SUMMARY),
-            (595, 842),
+            (842, 595),
         )
 
     def test_suspected_withdrawal_pdf_product_column_is_wide_on_landscape(self):
