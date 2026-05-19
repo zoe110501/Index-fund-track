@@ -65,6 +65,9 @@ PDF_FONT_FAMILY_CJK = "IndexMonitorSimFang"
 PDF_FONT_FAMILY_LATIN = "IndexMonitorTimesNewRoman"
 PDF_FONT_FAMILY_LATIN_BOLD = "IndexMonitorTimesNewRomanBold"
 PDF_FONT_FAMILY_CJK_CID_FALLBACK = "STSong-Light"
+SUSPECTED_WITHDRAWAL_PDF_COLUMN_WIDTHS = [34, 70, 430, 70, 76, 76, 76, 76, 78]
+SUSPECTED_WITHDRAWAL_PDF_MIN_COLUMN_WIDTH = 40
+SUSPECTED_WITHDRAWAL_PRODUCT_COLUMN_INDEX = 2
 DISPLAY_ETF_SOURCE = "交易型开放式指数证券投资基金"
 DISPLAY_ETF_TARGET = "ETF"
 LINKED_FUND_KEYWORD = "联接基金"
@@ -590,6 +593,26 @@ def find_true_withdrawal_batch_window(
     }
 
 
+def count_accepted_records_by_app_date(
+    record_history: dict[str, dict[str, Any]],
+    min_app_date: datetime,
+) -> dict[Any, int]:
+    accepted_counts: dict[Any, int] = {}
+    for record in record_history.values():
+        if not app_date_is_on_or_after(record, min_app_date):
+            continue
+        title = str(record.get("title", ""))
+        if not title or is_bond_product_title(title):
+            continue
+        if not record_has_acceptance_step(list(record.get("step_ids") or [])):
+            continue
+        app_date = parse_local_date(str(record.get("app_date") or ""))
+        if app_date is None:
+            continue
+        accepted_counts[app_date.date()] = accepted_counts.get(app_date.date(), 0) + 1
+    return accepted_counts
+
+
 def find_suspected_withdrawal_events(
     snapshot: dict[str, Any],
     local_now: datetime,
@@ -602,6 +625,7 @@ def find_suspected_withdrawal_events(
     if min_app_date is None:
         raise ValueError(f"Invalid suspected withdrawal minimum app date: {SUSPECTED_WITHDRAWAL_MIN_APP_DATE}")
     true_withdrawal_batch_window = find_true_withdrawal_batch_window(record_history, local_now, min_app_date)
+    accepted_counts_by_app_date = count_accepted_records_by_app_date(record_history, min_app_date)
     events: list[dict[str, Any]] = []
 
     for record_id, record in sorted(record_history.items(), key=lambda item: (item[1].get("app_date", ""), item[0]), reverse=True):
@@ -626,6 +650,21 @@ def find_suspected_withdrawal_events(
             and true_withdrawal_batch_window["start_app_date"] <= app_date.date() <= true_withdrawal_batch_window["end_app_date"]
             and not has_acceptance_step
         ):
+            same_day_accepted_count = accepted_counts_by_app_date.get(app_date.date(), 0)
+            if same_day_accepted_count:
+                confirmed_reason = (
+                    f"真正撤回提醒：同日上报产品已显示受理（{same_day_accepted_count} 个）；"
+                    "本产品同日上报且仍未显示受理，视为真正撤回。"
+                )
+            else:
+                confirmed_reason = (
+                    "真正撤回提醒：同批受理窗口 "
+                    f"{true_withdrawal_batch_window['start_app_date']:%Y-%m-%d} 至 "
+                    f"{true_withdrawal_batch_window['end_app_date']:%Y-%m-%d} "
+                    f"已有 {true_withdrawal_batch_window['trigger_count']} 个产品在 "
+                    f"{true_withdrawal_batch_window['trigger_seen_date']:%Y-%m-%d} 新显示受理；"
+                    "本产品处于该批次窗口且仍未显示受理，视为真正撤回。"
+                )
             events.append(
                 {
                     "event_type": CONFIRMED_WITHDRAWAL_EVENT_TYPE,
@@ -637,14 +676,7 @@ def find_suspected_withdrawal_events(
                     "last_seen_at": str(record.get("last_seen_at", "")),
                     "missing_since": str(record.get("missing_since", "")),
                     "days_without_acceptance": elapsed_days,
-                    "reason": (
-                        "真正撤回提醒：同批受理窗口 "
-                        f"{true_withdrawal_batch_window['start_app_date']:%Y-%m-%d} 至 "
-                        f"{true_withdrawal_batch_window['end_app_date']:%Y-%m-%d} "
-                        f"已有 {true_withdrawal_batch_window['trigger_count']} 个产品在 "
-                        f"{true_withdrawal_batch_window['trigger_seen_date']:%Y-%m-%d} 新显示受理；"
-                        "本产品处于该批次窗口且仍未显示受理，视为真正撤回。"
-                    ),
+                    "reason": confirmed_reason,
                 }
             )
 
@@ -804,6 +836,7 @@ def build_suspected_withdrawal_rows(events: list[dict[str, Any]]) -> list[list[s
     rows: list[list[str]] = []
     for index, event in enumerate(events, start=1):
         display = extract_display_fields(event["title"])
+        reminder_type = "真正撤回提醒" if event.get("event_type") == CONFIRMED_WITHDRAWAL_EVENT_TYPE else "疑似撤回提醒"
         rows.append(
             [
                 str(index),
@@ -814,7 +847,7 @@ def build_suspected_withdrawal_rows(events: list[dict[str, Any]]) -> list[list[s
                 display_snapshot_date(str(event.get("first_seen_at", ""))),
                 display_snapshot_date(str(event.get("last_seen_at", ""))),
                 display_snapshot_date(str(event.get("missing_since", ""))),
-                event.get("reason", ""),
+                reminder_type,
             ]
         )
     return rows
@@ -823,7 +856,7 @@ def build_suspected_withdrawal_rows(events: list[dict[str, Any]]) -> list[list[s
 def report_copy(report_mode: str) -> dict[str, str]:
     if report_mode == REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY:
         return {
-            "intro": "以下为按规则筛出的撤回监控产品（2025年及以后上报，不含债券；疑似口径为未显示受理满 7 天或已从公示列表中消失；真正撤回提醒口径为近期新显示受理产品覆盖的同批上报窗口内，仍未显示受理的产品），请人工核验。",
+            "intro": "以下为按规则筛出的撤回监控产品，请人工核验。口径：2025年及以后上报，不含债券；疑似撤回提醒为未显示受理满 7 天或已从公示列表中消失；真正撤回提醒优先看同日上报产品已显示受理，其次看近期新显示受理产品覆盖的同批上报窗口内仍未显示受理的产品。",
             "withdrawals_title": "疑似撤回产品及真正撤回提醒",
         }
     if report_mode == REPORT_MODE_DAILY_SUMMARY:
@@ -866,7 +899,7 @@ def format_html_summary(events: list[dict[str, Any]], report_mode: str) -> str:
                 f"<p>{escape(copy['intro'])}</p>",
                 f"<p><strong>{escape(copy['withdrawals_title'])}（{len(withdrawal_events)} 条）</strong></p>",
                 render_html_table(
-                    ["序号", "管理人", "产品名称", "产品类型", "上报日期", "首次看到", "最后看到", "消失日期", "提醒原因"],
+                    ["序号", "管理人", "产品名称", "产品类型", "上报日期", "首次看到", "最后看到", "消失日期", "提醒类型"],
                     build_suspected_withdrawal_rows(withdrawal_events),
                 )
                 if withdrawal_events
@@ -901,7 +934,7 @@ def format_email_summary(events: list[dict[str, Any]], report_mode: str, local_n
                 f"指数产品疑似撤回日报 {local_now:%Y-%m-%d}",
                 f"疑似撤回产品：{suspected_withdrawal_count} 条",
                 f"真正撤回提醒：{confirmed_withdrawal_count} 条",
-                "口径：2025年及以后上报的非债券指数产品；疑似为未显示受理满 7 天或已从公示列表中消失；真正撤回提醒为近期新显示受理产品覆盖的同批上报窗口内，仍未显示受理的产品。",
+                "口径：2025年及以后上报，不含债券；疑似撤回提醒为未显示受理满 7 天或已从公示列表中消失；真正撤回提醒优先看同日上报产品已显示受理，其次看近期新显示受理产品覆盖的同批上报窗口内仍未显示受理的产品。",
                 "请查看 HTML 正文和 PDF 附件获取完整汇总。",
             ]
         )
@@ -985,9 +1018,10 @@ def build_pdf_table_sections(events: list[dict[str, Any]], report_mode: str = RE
         return [
             {
                 "title": f"{copy['withdrawals_title']}（{len(withdrawal_events)} 条）",
-                "headers": ["序号", "管理人", "产品名称", "产品类型", "上报日期", "首次看到", "最后看到", "消失日期", "提醒原因"],
+                "headers": ["序号", "管理人", "产品名称", "产品类型", "上报日期", "首次看到", "最后看到", "消失日期", "提醒类型"],
                 "rows": build_suspected_withdrawal_rows(withdrawal_events),
-                "column_widths": [55, 95, 220, 90, 90, 90, 90, 90, 300],
+                "column_widths": SUSPECTED_WITHDRAWAL_PDF_COLUMN_WIDTHS,
+                "minimum_column_width": SUSPECTED_WITHDRAWAL_PDF_MIN_COLUMN_WIDTH,
             },
         ]
 
@@ -1166,20 +1200,24 @@ def wrap_pdf_text(draw: Any, text: str, font: Any, max_width: int) -> list[str]:
     return lines
 
 
-def normalized_column_widths(widths: list[int], total_width: int) -> list[int]:
+def normalized_column_widths(widths: list[int], total_width: int, min_width: int | None = None) -> list[int]:
     if not widths:
         return []
 
     width_sum = sum(widths)
-    min_width = max(1, min(60, total_width // len(widths)))
-    scaled = [max(min_width, round(width * total_width / width_sum)) for width in widths]
+    resolved_min_width = (
+        max(1, min(min_width, total_width // len(widths)))
+        if min_width is not None
+        else max(1, min(60, total_width // len(widths)))
+    )
+    scaled = [max(resolved_min_width, round(width * total_width / width_sum)) for width in widths]
     diff = total_width - sum(scaled)
     if diff > 0:
         scaled[widths.index(max(widths))] += diff
     elif diff < 0:
         remaining = -diff
-        for index in sorted(range(len(scaled)), key=lambda item: scaled[item] - min_width, reverse=True):
-            shrinkable = scaled[index] - min_width
+        for index in sorted(range(len(scaled)), key=lambda item: scaled[item] - resolved_min_width, reverse=True):
+            shrinkable = scaled[index] - resolved_min_width
             if shrinkable <= 0:
                 continue
             adjustment = min(shrinkable, remaining)
@@ -1188,6 +1226,13 @@ def normalized_column_widths(widths: list[int], total_width: int) -> list[int]:
             if remaining == 0:
                 break
     return scaled
+
+
+def pdf_page_size_for_report(pagesizes: Any, report_mode: str) -> tuple[float, float]:
+    page_size = pagesizes.A4
+    if report_mode == REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY:
+        return pagesizes.landscape(page_size)
+    return page_size
 
 
 def generate_daily_summary_pdf(
@@ -1217,7 +1262,7 @@ def generate_daily_summary_pdf(
         )
 
     colors = reportlab["colors"]
-    A4 = reportlab["pagesizes"].A4
+    page_size = pdf_page_size_for_report(reportlab["pagesizes"], report_mode)
     ParagraphStyle = reportlab["styles"].ParagraphStyle
     getSampleStyleSheet = reportlab["styles"].getSampleStyleSheet
     TA_CENTER = reportlab["enums"].TA_CENTER
@@ -1226,14 +1271,16 @@ def generate_daily_summary_pdf(
     SimpleDocTemplate = reportlab["platypus"].SimpleDocTemplate
     Spacer = reportlab["platypus"].Spacer
     Paragraph = reportlab["platypus"].Paragraph
+    KeepInFrame = reportlab["platypus"].KeepInFrame
     Table = reportlab["platypus"].LongTable
     TableStyle = reportlab["platypus"].TableStyle
 
     buffer = io.BytesIO()
+    is_withdrawal_report = report_mode == REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY
     new_record_count, new_step_count = count_events_by_type(events)
     suspected_withdrawal_count = count_suspected_withdrawal_events(events)
     confirmed_withdrawal_count = count_confirmed_withdrawal_events(events)
-    if report_mode == REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY:
+    if is_withdrawal_report:
         report_title = f"指数产品疑似撤回日报 {local_now:%Y-%m-%d}"
         report_subject = "指数产品疑似撤回日报"
         intro_text = report_copy(REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY)["intro"]
@@ -1256,7 +1303,7 @@ def generate_daily_summary_pdf(
 
     document = SimpleDocTemplate(
         buffer,
-        pagesize=A4,
+        pagesize=page_size,
         leftMargin=18 * mm,
         rightMargin=18 * mm,
         topMargin=18 * mm,
@@ -1308,21 +1355,34 @@ def generate_daily_summary_pdf(
         spaceBefore=10,
         spaceAfter=8,
     )
+    cell_font_size = 8 if is_withdrawal_report else 9.5
+    cell_leading = 10.5 if is_withdrawal_report else 13
+    header_font_size = 8.2 if is_withdrawal_report else 9.8
+    header_leading = 10 if is_withdrawal_report else 12
+    table_horizontal_padding = 4 if is_withdrawal_report else 6
+    table_header_vertical_padding = 5 if is_withdrawal_report else 7
+    table_body_vertical_padding = 4 if is_withdrawal_report else 6
     cell_style = ParagraphStyle(
         "IndexMonitorCell",
         parent=styles["BodyText"],
         fontName=cjk_font_name,
-        fontSize=9.5,
-        leading=13,
+        fontSize=cell_font_size,
+        leading=cell_leading,
         alignment=TA_LEFT,
         textColor=colors.HexColor("#111827"),
         wordWrap="CJK",
     )
+    product_cell_style = ParagraphStyle(
+        "IndexMonitorProductCell",
+        parent=cell_style,
+        wordWrap=None,
+        splitLongWords=0,
+    )
     header_style = ParagraphStyle(
         "IndexMonitorHeader",
         parent=cell_style,
-        fontSize=9.8,
-        leading=12,
+        fontSize=header_font_size,
+        leading=header_leading,
         alignment=TA_CENTER,
         textColor=colors.white,
     )
@@ -1338,14 +1398,36 @@ def generate_daily_summary_pdf(
 
     for section in build_pdf_table_sections(events, report_mode):
         story.append(Paragraph(rich_text(section["title"], latin_bold=True), section_style))
-        column_widths = normalized_column_widths(section["column_widths"], int(content_width))
+        column_widths = normalized_column_widths(
+            section["column_widths"],
+            int(content_width),
+            min_width=section.get("minimum_column_width"),
+        )
         table_rows = [
             [Paragraph(rich_text(header, latin_bold=True), header_style) for header in section["headers"]]
         ]
         body_rows = section["rows"] or [["无"] + [""] * (len(section["headers"]) - 1)]
         for row in body_rows:
             normalized_row = list(row) + [""] * (len(section["headers"]) - len(row))
-            table_rows.append([Paragraph(rich_text(str(value)), cell_style) for value in normalized_row[: len(section["headers"])]])
+            table_row = []
+            for column_index, value in enumerate(normalized_row[: len(section["headers"])]):
+                style = (
+                    product_cell_style
+                    if is_withdrawal_report and column_index == SUSPECTED_WITHDRAWAL_PRODUCT_COLUMN_INDEX
+                    else cell_style
+                )
+                cell = Paragraph(rich_text(str(value)), style)
+                if is_withdrawal_report and column_index == SUSPECTED_WITHDRAWAL_PRODUCT_COLUMN_INDEX:
+                    cell = KeepInFrame(
+                        max(1, column_widths[column_index] - 2 * table_horizontal_padding),
+                        cell_leading,
+                        [cell],
+                        mode="shrink",
+                        hAlign="LEFT",
+                        vAlign="MIDDLE",
+                    )
+                table_row.append(cell)
+            table_rows.append(table_row)
 
         table = Table(table_rows, colWidths=column_widths, repeatRows=1)
         table.setStyle(
@@ -1356,12 +1438,12 @@ def generate_daily_summary_pdf(
                     ("GRID", (0, 0), (-1, -1), 0.6, colors.HexColor("#1f2937")),
                     ("BOX", (0, 0), (-1, -1), 0.8, colors.HexColor("#1f2937")),
                     ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                    ("LEFTPADDING", (0, 0), (-1, -1), 6),
-                    ("RIGHTPADDING", (0, 0), (-1, -1), 6),
-                    ("TOPPADDING", (0, 0), (-1, 0), 7),
-                    ("BOTTOMPADDING", (0, 0), (-1, 0), 7),
-                    ("TOPPADDING", (0, 1), (-1, -1), 6),
-                    ("BOTTOMPADDING", (0, 1), (-1, -1), 6),
+                    ("LEFTPADDING", (0, 0), (-1, -1), table_horizontal_padding),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), table_horizontal_padding),
+                    ("TOPPADDING", (0, 0), (-1, 0), table_header_vertical_padding),
+                    ("BOTTOMPADDING", (0, 0), (-1, 0), table_header_vertical_padding),
+                    ("TOPPADDING", (0, 1), (-1, -1), table_body_vertical_padding),
+                    ("BOTTOMPADDING", (0, 1), (-1, -1), table_body_vertical_padding),
                     ("BACKGROUND", (0, 1), (-1, -1), colors.white),
                     ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8fafc")]),
                 ]

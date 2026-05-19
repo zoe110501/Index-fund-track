@@ -1060,7 +1060,7 @@ class SuspectedWithdrawalTests(unittest.TestCase):
         true_withdrawals = [event for event in events if event["event_type"] == "confirmed_withdrawal"]
         self.assertEqual([event["record_id"] for event in true_withdrawals], ["same-day-unaccepted"])
         self.assertTrue(all(event["event_id"].startswith("confirmed-withdrawal|") for event in true_withdrawals))
-        self.assertIn("同批受理窗口", true_withdrawals[0]["reason"])
+        self.assertIn("同日上报产品已显示受理", true_withdrawals[0]["reason"])
         self.assertIn("视为真正撤回", true_withdrawals[0]["reason"])
 
     def test_true_withdrawal_reminder_uses_first_seen_acceptance_date_not_step_finish_date(self):
@@ -1132,7 +1132,10 @@ class SuspectedWithdrawalTests(unittest.TestCase):
             [event["record_id"] for event in true_withdrawals],
             ["may13-unaccepted", "may12-unaccepted", "may8-unaccepted"],
         )
-        self.assertIn("2026-05-08 至 2026-05-13", true_withdrawals[0]["reason"])
+        events_by_id = {event["record_id"]: event for event in true_withdrawals}
+        self.assertIn("同日上报产品已显示受理", events_by_id["may13-unaccepted"]["reason"])
+        self.assertIn("2026-05-08 至 2026-05-13", events_by_id["may12-unaccepted"]["reason"])
+        self.assertIn("同日上报产品已显示受理", events_by_id["may8-unaccepted"]["reason"])
         self.assertNotIn("outside-batch-unaccepted", [event["record_id"] for event in true_withdrawals])
 
     def test_suspected_withdrawal_daily_resends_true_withdrawal_after_suspected_notice(self):
@@ -1386,6 +1389,80 @@ class SuspectedWithdrawalTests(unittest.TestCase):
 
         self.assertEqual(sum(widths), 493)
         self.assertTrue(all(width > 0 for width in widths))
+
+    def test_suspected_withdrawal_pdf_uses_landscape_page_size(self):
+        class FakePagesizes:
+            A4 = (595, 842)
+
+            @staticmethod
+            def landscape(page_size):
+                return (page_size[1], page_size[0])
+
+        self.assertEqual(
+            monitor.pdf_page_size_for_report(FakePagesizes, monitor.REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY),
+            (842, 595),
+        )
+        self.assertEqual(
+            monitor.pdf_page_size_for_report(FakePagesizes, monitor.REPORT_MODE_DAILY_SUMMARY),
+            (595, 842),
+        )
+
+    def test_suspected_withdrawal_pdf_product_column_is_wide_on_landscape(self):
+        section = monitor.build_pdf_table_sections(
+            [
+                {
+                    "event_type": "confirmed_withdrawal",
+                    "title": build_title("华夏基金管理有限公司", "华夏中证人工智能主题交易型开放式指数证券投资基金"),
+                    "app_date": "2026-03-10",
+                    "record_id": "confirmed",
+                    "event_id": "confirmed-withdrawal|confirmed",
+                    "first_seen_at": "2026-03-10T02:00:00Z",
+                    "last_seen_at": "2026-05-05T02:00:00Z",
+                    "missing_since": "2026-05-06T02:00:00Z",
+                    "days_without_acceptance": 63,
+                    "reason": "真正撤回提醒：同日上报产品已显示受理（3 个）；本产品同日上报且仍未显示受理，视为真正撤回。",
+                }
+            ],
+            monitor.REPORT_MODE_SUSPECTED_WITHDRAWAL_DAILY,
+        )[0]
+
+        self.assertEqual(section.get("minimum_column_width"), 40)
+        widths = monitor.normalized_column_widths(
+            section["column_widths"],
+            740,
+            min_width=section["minimum_column_width"],
+        )
+
+        self.assertEqual(sum(widths), 740)
+        self.assertGreaterEqual(widths[2], 300)
+        self.assertLessEqual(widths[-1], 70)
+
+    def test_withdrawal_rows_use_short_reminder_type(self):
+        rows = monitor.build_suspected_withdrawal_rows(
+            [
+                {
+                    "event_type": "confirmed_withdrawal",
+                    "title": build_title("华夏基金管理有限公司", "华夏人工智能" + ETF_PHRASE),
+                    "app_date": "2026-03-10",
+                    "first_seen_at": "2026-03-10T02:00:00Z",
+                    "last_seen_at": "2026-05-05T02:00:00Z",
+                    "missing_since": "2026-05-06T02:00:00Z",
+                    "reason": "真正撤回提醒：同日上报产品已显示受理（3 个）；本产品同日上报且仍未显示受理，视为真正撤回。",
+                },
+                {
+                    "event_type": "suspected_withdrawal",
+                    "title": build_title("南方基金管理有限公司", "南方红利" + ETF_PHRASE),
+                    "app_date": "2026-03-11",
+                    "first_seen_at": "2026-03-11T02:00:00Z",
+                    "last_seen_at": "2026-05-05T02:00:00Z",
+                    "missing_since": "",
+                    "reason": "疑似撤回：未显示受理满 7 天。",
+                },
+            ]
+        )
+
+        self.assertEqual(rows[0][-1], "真正撤回提醒")
+        self.assertEqual(rows[1][-1], "疑似撤回提醒")
 
     def test_suspected_withdrawal_daily_skips_when_no_candidates(self):
         visible_record = build_record(
