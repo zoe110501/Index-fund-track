@@ -1,0 +1,265 @@
+{
+  "version": "2.0",
+  "description": "ETF招募说明书模板变量定义表（聚焦模板直引占位符、条件变量与章节选择关系）",
+  "last_updated": "2026-04-11",
+  "scope": {
+    "target_files": [
+      "01_招募说明书通用模板.md",
+      "03_差异条款映射表.md",
+      "04_差异条款库.json"
+    ],
+    "notes": [
+      "本表仅保留模板骨架直接引用的占位符、条件变量及关系定义。",
+      "基金合同逐章抽取所得的普通正文变量延续既有抽取流程，不在本表重复展开。",
+      "第十章第七节的表格按整块条款维护，不进行表格内部变量拆分。"
+    ]
+  },
+  "sample_basis": [
+    "南方中证全指红利质量交易型开放式指数证券投资基金招募说明书",
+    "南方中证港股通互联网交易型开放式指数证券投资基金招募说明书",
+    "南方创业板中盘200交易型开放式指数证券投资基金招募说明书",
+    "南方上证科创板人工智能交易型开放式指数证券投资基金招募说明书",
+    "南方中证电池主题交易型开放式指数证券投资基金招募说明书",
+    "南方中证港股通50交易型开放式指数证券投资基金招募说明书",
+    "南方上证科创板综合交易型开放式指数证券投资基金招募说明书",
+    "南方中证港股通高股息投资交易型开放式指数证券投资基金招募说明书",
+    "南方中证通用航空主题交易型开放式指数证券投资基金招募说明书"
+  ],
+  "groups": {
+    "prospectus_direct_inputs": {
+      "description": "招募说明书直接录入变量",
+      "variables": [
+        {
+          "key": "CSRC_APPROVAL_NO",
+          "type": "direct_input",
+          "applies_to": "招募说明书封面注册信息；第六章基金的募集引言",
+          "source_field": "CSRC_APPROVAL_NO",
+          "ui_entry": "证监会注册批文号"
+        },
+        {
+          "key": "FUND_MANAGER_NAME",
+          "type": "direct_input",
+          "applies_to": "第三章 基金管理人 / 二、主要人员情况",
+          "source_field": "FUND_MANAGER_NAME",
+          "ui_entry": "基金经理姓名"
+        },
+        {
+          "key": "FUND_MANAGER_SEX",
+          "type": "direct_input",
+          "applies_to": "第三章 基金管理人 / 二、主要人员情况",
+          "source_field": "FUND_MANAGER_SEX",
+          "ui_entry": "基金经理称谓/性别",
+          "composition_rule": "与 FUND_MANAGER_NAME 连写形成“姓名+先生/女士”样式。"
+        },
+        {
+          "key": "FUND_MANAGER_BIO",
+          "type": "direct_input",
+          "applies_to": "第三章 基金管理人 / 二、主要人员情况",
+          "source_field": "FUND_MANAGER_BIO",
+          "ui_entry": "基金经理简介"
+        },
+        {
+          "key": "CUSTODIAN_INTRO",
+          "type": "direct_input",
+          "applies_to": "第四章 基金托管人",
+          "source_field": "CUSTODIAN_INTRO",
+          "ui_entry": "托管人情况原文"
+        },
+        {
+          "key": "ACCOUNTANT",
+          "type": "direct_input",
+          "applies_to": "第五章 相关服务机构 / 四、审计基金财产的会计师事务所",
+          "source_field": "ACCOUNTANT",
+          "ui_entry": "审计基金财产的会计师事务所"
+        }
+      ]
+    },
+    "contract_dispute_resolution": {
+      "description": "基金合同争议解决地点与仲裁机构",
+      "variables": [
+        {
+          "key": "DISPUTE_RESOLUTION_VENUE",
+          "type": "direct_input_enum",
+          "applies_to": "基金合同第二十三部分；基金合同内容摘要争议解决方式；基金产品资料概要重要提示",
+          "source_field": "DISPUTE_RESOLUTION_VENUE",
+          "ui_entry": "争议解决地点",
+          "options": {
+            "SZ_SCIA": "深圳-深圳国际仲裁院",
+            "BJ_CIETAC": "北京-中国国际经济贸易仲裁委员会"
+          },
+          "default": "SZ_SCIA"
+        },
+        {
+          "key": "DISPUTE_RESOLUTION_CLAUSE",
+          "type": "derived_clause_placeholder",
+          "applies_to": "基金合同争议解决正文",
+          "source_file": "07_基金合同差异条款原文库.json",
+          "selection_rule": "DISPUTE_RESOLUTION_VENUE"
+        }
+      ]
+    },
+    "chapter_9_listing": {
+      "description": "第九章 基金份额的上市交易",
+      "variables": [
+        {
+          "key": "LISTING_IOPV_CLAUSE",
+          "type": "clause_placeholder",
+          "applies_to": "第九章第四节 基金份额参考净值（IOPV）的计算与公告",
+          "source_file": "04_差异条款库.json",
+          "selection_rule": "MARKET_SH/MARKET_SZ + HAS_HK_CONNECT"
+        }
+      ]
+    },
+    "chapter_10_purchase_redemption": {
+      "description": "第十章 基金份额的申购赎回",
+      "variables": [
+        {
+          "key": "BASKET",
+          "type": "derived_placeholder",
+          "applies_to": "第十章第五节 申购和赎回的数额限制；第十八章流动性风险提示中的最小申购赎回单位展示",
+          "source_field": "MIN_SUB_UNIT",
+          "derivation_rule": "将最小申购赎回单位统一换算为“万份”口径后，提取数值部分供模板中的 {BASKET}万份 使用"
+        },
+        {
+          "key": "PURCHASE_REDEMPTION_PROCEDURE_CLAUSE",
+          "type": "clause_placeholder",
+          "applies_to": "第十章第四节 申购和赎回的程序",
+          "source_file": "04_差异条款库.json",
+          "selection_rule": "MARKET_SH/MARKET_SZ + HAS_HK_CONNECT"
+        },
+        {
+          "key": "PURCHASE_REDEMPTION_LIST_CLAUSE",
+          "type": "clause_placeholder",
+          "applies_to": "第十章第七节 申购赎回清单的内容与格式",
+          "source_file": "04_差异条款库.json",
+          "selection_rule": "MARKET_SH/MARKET_SZ + HAS_HK_CONNECT",
+          "preservation_rule": "表格及示意格式按整块条款原样保留"
+        }
+      ]
+    },
+    "chapter_18_risk_disclosure": {
+      "description": "第十八章 风险揭示专项风险附加块",
+      "variables": [
+        {
+          "key": "RISK_DISCLOSURE_CHUANGYE",
+          "type": "clause_placeholder",
+          "applies_to": "创业板专项风险附加段",
+          "source_file": "04_差异条款库.json",
+          "selection_rule": "IS_CHUANGYE=true"
+        },
+        {
+          "key": "RISK_DISCLOSURE_KECHUANG",
+          "type": "clause_placeholder",
+          "applies_to": "科创板专项风险附加段",
+          "source_file": "04_差异条款库.json",
+          "selection_rule": "IS_KECHUANG=true"
+        },
+        {
+          "key": "RISK_DISCLOSURE_HK_CONNECT",
+          "type": "clause_placeholder",
+          "applies_to": "港股通专项风险附加段",
+          "source_file": "04_差异条款库.json",
+          "selection_rule": "HAS_HK_CONNECT=true"
+        }
+      ]
+    }
+  },
+  "conditions": [
+    {
+      "key": "MARKET_SH",
+      "type": "boolean",
+      "description": "交易所为上海证券交易所上市 ETF。"
+    },
+    {
+      "key": "MARKET_SZ",
+      "type": "boolean",
+      "description": "交易所为深圳证券交易所上市 ETF。"
+    },
+    {
+      "key": "HAS_HK_CONNECT",
+      "type": "boolean",
+      "description": "标的指数或投资范围包含港股通股票。"
+    },
+    {
+      "key": "HK_CONNECT_EXCHANGE_VARIANT",
+      "type": "derived_enum",
+      "description": "internal derived selector for HK-connect exchange variants; derives to SSE_HK or SZSE_HK when MARKET_TYPE=HK_CONNECT."
+    },
+    {
+      "key": "IS_CHUANGYE",
+      "type": "boolean",
+      "description": "产品属于创业板 ETF，需附加创业板专项风险。"
+    },
+    {
+      "key": "IS_KECHUANG",
+      "type": "boolean",
+      "description": "产品属于科创板 ETF，需附加科创板专项风险。"
+    }
+  ],
+  "relations": [
+    {
+      "name": "chapter_9_iopv_selector",
+      "target_placeholder": "LISTING_IOPV_CLAUSE",
+      "dimensions": [
+        "MARKET_SH",
+        "MARKET_SZ",
+        "HAS_HK_CONNECT"
+      ],
+      "mapping": {
+        "MARKET_SH_STANDARD": "MARKET_SH=true && HAS_HK_CONNECT=false",
+        "MARKET_SZ_STANDARD": "MARKET_SZ=true && HAS_HK_CONNECT=false",
+        "MARKET_SH_HK_CONNECT": "MARKET_SH=true && HAS_HK_CONNECT=true",
+        "MARKET_SZ_HK_CONNECT": "MARKET_SZ=true && HAS_HK_CONNECT=true"
+      }
+    },
+    {
+      "name": "chapter_10_section_4_selector",
+      "target_placeholder": "PURCHASE_REDEMPTION_PROCEDURE_CLAUSE",
+      "dimensions": [
+        "MARKET_SH",
+        "MARKET_SZ",
+        "HAS_HK_CONNECT"
+      ],
+      "mapping": {
+        "MARKET_SH_STANDARD": "MARKET_SH=true && HAS_HK_CONNECT=false",
+        "MARKET_SZ_STANDARD": "MARKET_SZ=true && HAS_HK_CONNECT=false",
+        "MARKET_SH_HK_CONNECT": "MARKET_SH=true && HAS_HK_CONNECT=true",
+        "MARKET_SZ_HK_CONNECT": "MARKET_SZ=true && HAS_HK_CONNECT=true"
+      }
+    },
+    {
+      "name": "chapter_10_section_7_selector",
+      "target_placeholder": "PURCHASE_REDEMPTION_LIST_CLAUSE",
+      "dimensions": [
+        "MARKET_SH",
+        "MARKET_SZ",
+        "HAS_HK_CONNECT"
+      ],
+      "mapping": {
+        "MARKET_SH_STANDARD": "MARKET_SH=true && HAS_HK_CONNECT=false",
+        "MARKET_SZ_STANDARD": "MARKET_SZ=true && HAS_HK_CONNECT=false",
+        "MARKET_SH_HK_CONNECT": "MARKET_SH=true && HAS_HK_CONNECT=true",
+        "MARKET_SZ_HK_CONNECT": "MARKET_SZ=true && HAS_HK_CONNECT=true"
+      },
+      "notes": [
+        "四类版本均为整节条款块，不拆开表格和说明文字。",
+        "港股通版本保留全现金替代到实物申赎模式切换的表述。"
+      ]
+    },
+    {
+      "name": "chapter_18_special_risk_overlay",
+      "target_placeholder": "risk_disclosure_overlays",
+      "dimensions": [
+        "HAS_HK_CONNECT",
+        "IS_CHUANGYE",
+        "IS_KECHUANG"
+      ],
+      "mapping": {
+        "RISK_DISCLOSURE_HK_CONNECT": "HAS_HK_CONNECT=true",
+        "RISK_DISCLOSURE_CHUANGYE": "IS_CHUANGYE=true",
+        "RISK_DISCLOSURE_KECHUANG": "IS_KECHUANG=true"
+      },
+      "composition_rule": "公共风险正文保留母版，专项风险按条件顺序叠加，不互相覆盖。"
+    }
+  ]
+}

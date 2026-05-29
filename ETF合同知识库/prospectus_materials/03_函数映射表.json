@@ -1,0 +1,143 @@
+{
+  "library_name": "招募说明书函数映射表",
+  "version": 1,
+  "functions": [
+    {
+      "function_name": "_reference_prospectus_docx_candidates",
+      "responsibility": "按变体键收集参考招募说明书 docx 候选路径。",
+      "source_files": [
+        "manual_regression_20260310_201555/SSE_CROSS.docx",
+        "manual_regression_20260310_201555/SSE_SINGLE.docx",
+        "manual_regression_20260310_201555/SSE_HK.docx",
+        "manual_regression_20260310_201555/SZSE_CROSS.docx",
+        "manual_regression_20260310_201555/SZSE_SINGLE.docx",
+        "manual_regression_20260310_201555/SZSE_HK.docx"
+      ],
+      "topics": ["参考资产定位", "Word 导出依赖"],
+      "change_entry": "先改参考资产路径或环境变量约定，再改函数。",
+      "shared_dependency": true
+    },
+    {
+      "function_name": "_resolve_reference_prospectus_docx",
+      "responsibility": "从候选参考 docx 中选出当前场景使用的最佳版本。",
+      "source_files": [
+        "manual_regression_20260310_201555/*.docx"
+      ],
+      "topics": ["参考资产定位", "导出版式选择"],
+      "change_entry": "如果选错参考文件，先检查素材命名和评分规则。",
+      "shared_dependency": true
+    },
+    {
+      "function_name": "_load_reference_fixed_content_from_txt",
+      "responsibility": "从参考 txt 中拆出重要提示和固定章节正文。",
+      "source_files": [
+        "manual_regression_20260310_201555/*.txt"
+      ],
+      "topics": ["参考正文提取", "固定章节来源"],
+      "change_entry": "固定正文不对时，先检查 txt 资产和章节抽取边界。",
+      "shared_dependency": false
+    },
+    {
+      "function_name": "_load_reference_fixed_content",
+      "responsibility": "组合参考 docx/txt 的固定内容，作为后续章节覆盖和格式化输入。",
+      "source_files": [
+        "manual_regression_20260310_201555/*.docx",
+        "manual_regression_20260310_201555/*.txt"
+      ],
+      "topics": ["重要提示", "固定章节口径", "参考正文归档"],
+      "change_entry": "优先改参考素材；确属装配逻辑问题时再改函数。",
+      "shared_dependency": false
+    },
+    {
+      "function_name": "_replace_manual_reference_text",
+      "responsibility": "对参考文本做基金名称等二次替换，生成目标基金口径。",
+      "source_files": [
+        "app.py",
+        "manual_regression_20260310_201555/*.txt"
+      ],
+      "topics": ["参考文本替换", "基金名称替换"],
+      "change_entry": "如果只是替换规则不对，改函数；如果底稿内容不对，改参考素材。",
+      "shared_dependency": false
+    },
+    {
+      "function_name": "_replace_reference_fund_name",
+      "responsibility": "统一把参考基金名称替换成当前基金名称。",
+      "source_files": [
+        "app.py",
+        "manual_regression_20260310_201555/*.docx",
+        "manual_regression_20260310_201555/*.txt"
+      ],
+      "topics": ["基金名称标准化", "参考资产适配"],
+      "change_entry": "名称替换异常时优先改这里，不直接改模板。",
+      "shared_dependency": false
+    },
+    {
+      "function_name": "_apply_reference_fixed_content",
+      "responsibility": "将参考固定章节和重要提示覆盖应用到生成文本。",
+      "source_files": [
+        "02_招募说明书模板.md",
+        "manual_regression_20260310_201555/*.txt"
+      ],
+      "topics": ["重要提示", "固定章节覆盖"],
+      "change_entry": "优先查参考口径是否应覆盖，再决定是否调整覆盖顺序。",
+      "shared_dependency": false
+    },
+    {
+      "function_name": "_apply_canonical_reference_overrides",
+      "responsibility": "应用规范化参考口径，避免关键章节和监管要求表述跑偏。",
+      "source_files": [
+        "manual_regression_20260310_201555/*.txt",
+        "app.py"
+      ],
+      "topics": ["规范化口径", "监管披露要求"],
+      "change_entry": "涉及监管性固定表述时先查这里。",
+      "shared_dependency": false
+    },
+    {
+      "function_name": "_build_display_prospectus_text",
+      "responsibility": "把模板、变量、差异规则、参考内容和章节补丁装配成最终预览文本。",
+      "source_files": [
+        "02_招募说明书模板.md",
+        "08_招募说明书差异条款库.json",
+        "manual_regression_20260310_201555/*.docx",
+        "manual_regression_20260310_201555/*.txt"
+      ],
+      "topics": ["主流程装配", "章节重写", "预览文本生成"],
+      "change_entry": "如果结果不符合预期且上游素材没问题，再查这里。",
+      "shared_dependency": true
+    },
+    {
+      "function_name": "generate_bundle",
+      "responsibility": "统一生成预览文本与 render model，是招募说明书主入口之一。",
+      "source_files": [
+        "app.py",
+        "02_招募说明书模板.md",
+        "08_招募说明书差异条款库.json"
+      ],
+      "topics": ["主入口", "文本与导出模型同步"],
+      "change_entry": "预览与导出结构不一致时优先查看这里。",
+      "shared_dependency": true
+    },
+    {
+      "function_name": "_ensure_docx_reference_assets",
+      "responsibility": "校验导出招募说明书所需参考 docx 资产是否齐备。",
+      "source_files": [
+        "manual_regression_20260310_201555/*.docx"
+      ],
+      "topics": ["导出前校验", "参考资产完整性"],
+      "change_entry": "导出提示缺少参考资产时优先查这里。",
+      "shared_dependency": true
+    },
+    {
+      "function_name": "build_docx_prospectus",
+      "responsibility": "将招募说明书文本或 render model 导出成 Word，并复用参考版式与表格。",
+      "source_files": [
+        "manual_regression_20260310_201555/*.docx",
+        "app.py"
+      ],
+      "topics": ["Word 导出", "页眉页脚", "表格插入", "公式与版式"],
+      "change_entry": "如果文本正确但 Word 版式不对，优先查这里。",
+      "shared_dependency": true
+    }
+  ]
+}

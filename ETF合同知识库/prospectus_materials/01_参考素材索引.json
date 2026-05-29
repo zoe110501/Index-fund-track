@@ -1,0 +1,126 @@
+{
+  "library_name": "招募说明书参考素材索引",
+  "version": 1,
+  "items": [
+    {
+      "id": "ref-docx-sse-cross",
+      "variant_key": "SSE_CROSS",
+      "source_path": "manual_regression_20260310_201555/SSE_CROSS.docx",
+      "source_type": "reference_docx",
+      "usage_scope": "上交所跨市场 ETF 招募说明书导出参考版式与固定内容来源",
+      "chapters_or_topics": ["重要提示", "目录", "固定章节口径", "Word 导出版式"],
+      "export_dependency": true,
+      "notes": "作为默认格式模板回退来源，也用于参考标题和页眉页脚样式。"
+    },
+    {
+      "id": "ref-txt-sse-cross",
+      "variant_key": "SSE_CROSS",
+      "source_path": "manual_regression_20260310_201555/SSE_CROSS.txt",
+      "source_type": "reference_txt",
+      "usage_scope": "上交所跨市场 ETF 参考正文提取来源",
+      "chapters_or_topics": ["重要提示", "第九章", "第十八章", "第十章第七节"],
+      "export_dependency": false,
+      "notes": "用于固定章节正文和参考口径抽取。"
+    },
+    {
+      "id": "ref-docx-sse-single",
+      "variant_key": "SSE_SINGLE",
+      "source_path": "manual_regression_20260310_201555/SSE_SINGLE.docx",
+      "source_type": "reference_docx",
+      "usage_scope": "上交所单市场 ETF 招募说明书导出参考版式与固定内容来源",
+      "chapters_or_topics": ["重要提示", "目录", "固定章节口径", "Word 导出版式"],
+      "export_dependency": true,
+      "notes": "用于单市场场景的参考 Word 版式。"
+    },
+    {
+      "id": "ref-txt-sse-single",
+      "variant_key": "SSE_SINGLE",
+      "source_path": "manual_regression_20260310_201555/SSE_SINGLE.txt",
+      "source_type": "reference_txt",
+      "usage_scope": "上交所单市场 ETF 参考正文提取来源",
+      "chapters_or_topics": ["重要提示", "第九章", "第十八章", "第十章第七节"],
+      "export_dependency": false,
+      "notes": "用于单市场场景的固定章节正文复用。"
+    },
+    {
+      "id": "ref-docx-sse-hk",
+      "variant_key": "SSE_HK",
+      "source_path": "manual_regression_20260310_201555/SSE_HK.docx",
+      "source_type": "reference_docx",
+      "usage_scope": "上交所港股通 ETF 招募说明书导出参考版式与固定内容来源",
+      "chapters_or_topics": ["重要提示", "目录", "固定章节口径", "Word 导出版式"],
+      "export_dependency": true,
+      "notes": "用于港股通上交所场景的参考 Word 版式。"
+    },
+    {
+      "id": "ref-txt-sse-hk",
+      "variant_key": "SSE_HK",
+      "source_path": "manual_regression_20260310_201555/SSE_HK.txt",
+      "source_type": "reference_txt",
+      "usage_scope": "上交所港股通 ETF 参考正文提取来源",
+      "chapters_or_topics": ["重要提示", "第九章", "第十八章", "第十章第七节"],
+      "export_dependency": false,
+      "notes": "用于港股通上交所场景的固定章节正文复用。"
+    },
+    {
+      "id": "ref-docx-szse-cross",
+      "variant_key": "SZSE_CROSS",
+      "source_path": "manual_regression_20260310_201555/SZSE_CROSS.docx",
+      "source_type": "reference_docx",
+      "usage_scope": "深交所跨市场 ETF 招募说明书导出参考版式与固定内容来源",
+      "chapters_or_topics": ["重要提示", "目录", "固定章节口径", "Word 导出版式"],
+      "export_dependency": true,
+      "notes": "用于深交所跨市场场景的参考 Word 版式。"
+    },
+    {
+      "id": "ref-txt-szse-cross",
+      "variant_key": "SZSE_CROSS",
+      "source_path": "manual_regression_20260310_201555/SZSE_CROSS.txt",
+      "source_type": "reference_txt",
+      "usage_scope": "深交所跨市场 ETF 参考正文提取来源",
+      "chapters_or_topics": ["重要提示", "第九章", "第十八章", "第十章第七节"],
+      "export_dependency": false,
+      "notes": "用于深交所跨市场场景的固定章节正文复用。"
+    },
+    {
+      "id": "ref-docx-szse-single",
+      "variant_key": "SZSE_SINGLE",
+      "source_path": "manual_regression_20260310_201555/SZSE_SINGLE.docx",
+      "source_type": "reference_docx",
+      "usage_scope": "深交所单市场 ETF 招募说明书导出参考版式与固定内容来源",
+      "chapters_or_topics": ["重要提示", "目录", "固定章节口径", "Word 导出版式"],
+      "export_dependency": true,
+      "notes": "用于深交所单市场场景的参考 Word 版式。"
+    },
+    {
+      "id": "ref-txt-szse-single",
+      "variant_key": "SZSE_SINGLE",
+      "source_path": "manual_regression_20260310_201555/SZSE_SINGLE.txt",
+      "source_type": "reference_txt",
+      "usage_scope": "深交所单市场 ETF 参考正文提取来源",
+      "chapters_or_topics": ["重要提示", "第九章", "第十八章", "第十章第七节"],
+      "export_dependency": false,
+      "notes": "用于深交所单市场场景的固定章节正文复用。"
+    },
+    {
+      "id": "ref-docx-szse-hk",
+      "variant_key": "SZSE_HK",
+      "source_path": "manual_regression_20260310_201555/SZSE_HK.docx",
+      "source_type": "reference_docx",
+      "usage_scope": "深交所港股通 ETF 招募说明书导出参考版式与固定内容来源",
+      "chapters_or_topics": ["重要提示", "目录", "固定章节口径", "Word 导出版式"],
+      "export_dependency": true,
+      "notes": "用于深交所港股通场景的参考 Word 版式。"
+    },
+    {
+      "id": "ref-txt-szse-hk",
+      "variant_key": "SZSE_HK",
+      "source_path": "manual_regression_20260310_201555/SZSE_HK.txt",
+      "source_type": "reference_txt",
+      "usage_scope": "深交所港股通 ETF 参考正文提取来源",
+      "chapters_or_topics": ["重要提示", "第九章", "第十八章", "第十章第七节"],
+      "export_dependency": false,
+      "notes": "用于深交所港股通场景的固定章节正文复用。"
+    }
+  ]
+}

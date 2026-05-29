@@ -1,0 +1,1213 @@
+{
+  "version": "1.0",
+  "description": "ETF联接基金合同差异条款完整原文库，按差异标识键索引，供模板引擎按场景填充",
+  "last_updated": "2026-03-02",
+  "clauses": {
+    "FUND_PROFIT_DEF": {
+      "description": "基金利润定义（含/不含汇兑损益）",
+      "location": "第二部分释义第50条；第十六部分一",
+      "variants": {
+        "HK_CONNECT": {
+          "applicable_to": [
+            "hgtlianwang",
+            "hgt50"
+          ],
+          "condition": "HAS_HK_CONNECT=true",
+          "text": "指基金利息收入、汇兑损益、投资收益、公允价值变动收益和其他收入扣除相关费用后的余额，基金已实现收益指基金利润减去公允价值变动收益后的余额"
+        },
+        "STANDARD": {
+          "applicable_to": [
+            "tongyonghangkong",
+            "chuangyeAI",
+            "ziyouxianjinliu"
+          ],
+          "condition": "HAS_HK_CONNECT=false",
+          "text": "指基金利息收入、投资收益、公允价值变动收益和其他收入扣除相关费用后的余额，基金已实现收益指基金利润减去公允价值变动收益后的余额"
+        }
+      }
+    },
+    "DISPUTE_RESOLUTION_CLAUSE": {
+      "description": "争议解决地点与仲裁机构（第二十二部分争议的处理和适用的法律；合同内容摘要争议解决方式）",
+      "variants": {
+        "SZ_SCIA": {
+          "applicable_to": [
+            "default"
+          ],
+          "condition": "DISPUTE_RESOLUTION_VENUE=SZ_SCIA",
+          "text": "各方当事人同意，因《基金合同》而产生的或与《基金合同》有关的一切争议，如经友好协商未能解决的，任何一方均有权将争议提交深圳国际仲裁院，按照深圳国际仲裁院届时有效的仲裁规则进行仲裁。仲裁地点为深圳市，仲裁裁决是终局的，对当事人均有约束力。除非仲裁裁决另有规定，仲裁费、律师费由败诉方承担。"
+        },
+        "BJ_CIETAC": {
+          "applicable_to": [
+            "manual_select"
+          ],
+          "condition": "DISPUTE_RESOLUTION_VENUE=BJ_CIETAC",
+          "text": "各方当事人同意，因《基金合同》而产生的或与《基金合同》有关的一切争议，如经友好协商未能解决的，任何一方均有权将争议提交中国国际经济贸易仲裁委员会，按照中国国际经济贸易仲裁委员会届时有效的仲裁规则进行仲裁。仲裁地点为北京市，仲裁裁决是终局的，对当事人均有约束力。除非仲裁裁决另有规定，仲裁费、律师费由败诉方承担。"
+        }
+      }
+    },
+    "MGMT_FEE_PAYMENT": {
+      "description": "管理费每日计提后支付方式（第十七部分二第1条，起始词：'基金管理费每日计提...'之后部分）",
+      "variants": {
+        "CONSULT": {
+          "applicable_to": [
+            "chuangye",
+            "hgtlianwang"
+          ],
+          "condition": "MGMT_FEE_PAYMENT_METHOD=CONSULT",
+          "text": "经基金管理人与基金托管人双方核对无误后，基金托管人按照与基金管理人协商一致的方式于次月前5个工作日内从基金财产中一次性支付给基金管理人。若遇法定节假日、公休假或不可抗力等，支付日期顺延。"
+        },
+        "INSTRUCTION": {
+          "applicable_to": [
+            "kechuang"
+          ],
+          "condition": "MGMT_FEE_PAYMENT_METHOD=INSTRUCTION",
+          "text": "经基金管理人与基金托管人双方核对无误后，基金托管人按照基金管理人指令于次月前5个工作日内从基金财产中一次性支付。若遇法定节假日、公休假或不可抗力等，支付日期顺延。"
+        },
+        "AUTO": {
+          "applicable_to": [
+            "dianchi"
+          ],
+          "condition": "MGMT_FEE_PAYMENT_METHOD=AUTO",
+          "text": "由基金托管人根据与基金管理人核对一致的财务数据，基金托管人按照双方约定的时间，自动在次月按照指定的账户路径从基金财产中一次性支付，基金管理人无需再出具划款指令，支付时间及收款账户信息由基金管理人通过书面形式另行通知基金托管人。若遇法定节假日、公休日等，支付日期顺延。"
+        },
+        "MANAGER_INSTRUCTION": {
+          "applicable_to": [
+            "honglizhiliang"
+          ],
+          "condition": "MGMT_FEE_PAYMENT_METHOD=MANAGER_INSTRUCTION",
+          "text": "由基金管理人向基金托管人发送基金管理费划款指令，基金托管人复核后于次月前5个工作日内从基金财产中一次性支付给基金管理人。若遇法定节假日、公休日等，支付日期顺延至最近可支付日支付。"
+        },
+        "MGMT_ETF_7997E7A46C": {
+          "applicable_to": [
+            "中国银行股份有限公司"
+          ],
+          "condition": "MGMT_FEE_PAYMENT_METHOD=MGMT_ETF_7997E7A46C",
+          "text": "由基金管理人向基金托管人发送基金管理费划付指令，经基金托管人复核后于次月首日起5个工作日内从基金资产中一次性支付给基金管理人。若遇法定节假日、休息日或不可抗力致使无法按时支付的，顺延至最近可支付日支付。"
+        },
+        "MGMT_ETF_EEF9F48E4C": {
+          "applicable_to": [
+            "华夏银行股份有限公司"
+          ],
+          "condition": "MGMT_FEE_PAYMENT_METHOD=MGMT_ETF_EEF9F48E4C",
+          "text": "由基金管理人与基金托管人核对一致后，基金托管人按照与基金管理人协商一致的方式于次月首日起5个工作日内从基金财产中一次性支付给基金管理人。若遇法定节假日、休息日等，支付日期顺延。"
+        },
+        "MGMT_ETF_B8830AAECD": {
+          "applicable_to": [
+            "平安银行股份有限公司"
+          ],
+          "condition": "MGMT_FEE_PAYMENT_METHOD=MGMT_ETF_B8830AAECD",
+          "text": "每月首日起3个工作日内基金管理人与基金托管人对上月应计提的基金管理费进行核对，基金管理人与基金托管人核对一致后，由基金托管人于3个工作日内从基金财产中一次性向基金管理人支付上月基金管理费。基金管理人可选择在与基金托管人核对一致上月基金管理费后3个工作日内向基金托管人出具划款指令，也可出具自动付费授权函授权基金托管人依照授权函具体约定进行费用划付，如选择自动支付，基金管理人应确保支付当日账户余额充足，如因资金余额不足或其他原因造成自动支付无法进行，基金管理人应另行出具划款指令。若遇法定节假日、公休日或不可抗力致使无法按时支付的，支付日期顺延至最近可支付日支付。"
+        },
+        "MGMT_ETF_08D92552BA": {
+          "applicable_to": [
+            "广发银行股份有限公司"
+          ],
+          "condition": "MGMT_FEE_PAYMENT_METHOD=MGMT_ETF_08D92552BA",
+          "text": "由基金管理人向基金托管人发送基金管理费划款指令，基金托管人复核后于次月前5个工作日内从基金财产中一次性支付给基金管理人。若遇法定节假日、公休假等，支付日期顺延。"
+        },
+        "MGMT_ETF_E2D930172C": {
+          "applicable_to": [
+            "中国邮政储蓄银行股份有限公司"
+          ],
+          "condition": "MGMT_FEE_PAYMENT_METHOD=MGMT_ETF_E2D930172C",
+          "text": "由基金托管人根据与基金管理人核对一致的财务数据，自动在次月初5个工作日内按照指定的账户路径进行支付，基金管理人无需再出具资金划拨指令。若遇法定节假日、休息日等，支付日期顺延。费用自动扣划后，基金管理人应进行核对，如发现数据不符，应及时联系基金托管人协商解决。"
+        },
+        "MGMT_ETF_EAA4FECA64": {
+          "applicable_to": [
+            "上海银行股份有限公司"
+          ],
+          "condition": "MGMT_FEE_PAYMENT_METHOD=MGMT_ETF_EAA4FECA64",
+          "text": "由基金管理人向基金托管人发送基金管理费划款指令，基金托管人复核后于次月前3个工作日内从基金财产中一次性支付给基金管理人。若遇法定节假日、公休日等，支付日期顺延。"
+        },
+        "MGMT_ETF_C29518EA80": {
+          "applicable_to": [
+            "国信证券股份有限公司"
+          ],
+          "condition": "MGMT_FEE_PAYMENT_METHOD=MGMT_ETF_C29518EA80",
+          "text": "由基金托管人根据与基金管理人核对一致的财务数据，自动在月初5个工作日内、按照指定的账户路径进行资金支付，基金管理人无需再出具资金划拨指令。若遇法定节假日、休息日或不可抗力等，支付日期顺延。"
+        },
+        "MGMT_ETF_1463D5FEA6": {
+          "applicable_to": [
+            "招商证券股份有限公司"
+          ],
+          "condition": "MGMT_FEE_PAYMENT_METHOD=MGMT_ETF_1463D5FEA6",
+          "text": "由基金管理人向基金托管人发送基金管理费划付指令，基金托管人复核后于次月前5个工作日内从基金财产中一次性支付给基金管理人。若遇法定节假日、休息日或不可抗力致使无法按时支付的，顺延至最近可支付日支付。"
+        },
+        "MGMT_ETF_2C47992D95": {
+          "applicable_to": [
+            "广发证券股份有限公司"
+          ],
+          "condition": "MGMT_FEE_PAYMENT_METHOD=MGMT_ETF_2C47992D95",
+          "text": "经基金管理人与基金托管人双方核对无误后，基金托管人按照与基金管理人协商一致的方式于次月首日起5个工作日内从基金财产中一次性支付给基金管理人。若遇法定节假日、休息日或不可抗力等致使无法按时支付的，支付日期顺延。"
+        },
+        "MGMT_ETF_2168452A1C": {
+          "applicable_to": [
+            "江苏银行股份有限公司"
+          ],
+          "condition": "MGMT_FEE_PAYMENT_METHOD=MGMT_ETF_2168452A1C",
+          "text": "经基金管理人与基金托管人核对一致后，基金托管人自动于次月首日起5个工作日内从基金财产中一次性支付给基金管理人。若遇法定节假日、公休日等，支付日期顺延。"
+        },
+        "MGMT_ETF_722F5C91D0": {
+          "applicable_to": [
+            "中国银河证券股份有限公司"
+          ],
+          "condition": "MGMT_FEE_PAYMENT_METHOD=MGMT_ETF_722F5C91D0",
+          "text": "由基金托管人根据与基金管理人核对一致的估值数据，自动在次月初5个工作日内按照指定的账户路径进行支付。若遇法定节假日、休息日或不可抗力等，支付日期顺延。费用自动扣划后，基金管理人应进行核对，如发现数据不符，应及时联系基金托管人协商解决。"
+        },
+        "MGMT_ETF_FA587D8547": {
+          "applicable_to": [
+            "中泰证券股份有限公司"
+          ],
+          "condition": "MGMT_FEE_PAYMENT_METHOD=MGMT_ETF_FA587D8547",
+          "text": "基金管理人与基金托管人核对后，由基金托管人于次月前5个工作日内按照与基金管理人协商一致的方式从基金财产中一次性支付给基金管理人。若遇法定节假日、公休日或不可抗力等，支付日期顺延。"
+        },
+        "MGMT_ETF_6211E6BF63": {
+          "applicable_to": [
+            "国投证券股份有限公司"
+          ],
+          "condition": "MGMT_FEE_PAYMENT_METHOD=MGMT_ETF_6211E6BF63",
+          "text": "由基金托管人根据与基金管理人核对一致的财务数据，自动在月初5个工作日内、按照指定的账户路径进行资金支付，基金管理人无需再出具资金划拨指令。若遇法定节假日、公休日等，支付日期顺延至最近可支付日支付。"
+        },
+        "MGMT_ETF_9B405CB017": {
+          "applicable_to": [
+            "东方证券股份有限公司"
+          ],
+          "condition": "MGMT_FEE_PAYMENT_METHOD=MGMT_ETF_9B405CB017",
+          "text": "经基金管理人与基金托管人双方核对无误后，基金托管人按照与基金管理人协商一致的方式于次月前5个工作日内从基金财产中一次性支付，基金管理人无需再出具资金划拨指令。若遇法定节假日、公休假或不可抗力等，支付日期顺延。"
+        },
+        "MGMT_ETF_0377650382": {
+          "applicable_to": [
+            "申万宏源证券有限公司"
+          ],
+          "condition": "MGMT_FEE_PAYMENT_METHOD=MGMT_ETF_0377650382",
+          "text": "由基金托管人根据与基金管理人核对一致的财务数据，自动在月初5个工作日内、按照指定的账户路径从基金财产中一次性支付给基金管理人。若遇法定节假日、公休假等，支付日期顺延。费用自动扣划后，基金管理人应进行核对，如发现数据不符，及时联系基金托管人协商解决。"
+        },
+        "MGMT_ETF_E0C1A223F6": {
+          "applicable_to": [
+            "长城证券股份有限公司"
+          ],
+          "condition": "MGMT_FEE_PAYMENT_METHOD=MGMT_ETF_E0C1A223F6",
+          "text": "由基金管理人向基金托管人发送基金管理费划款指令，基金托管人复核后于次月前5个工作日内从基金财产中一次性支付给基金管理人。若遇法定节假日、公休日或不可抗力等，支付日期顺延。"
+        },
+        "MGMT_ETF_6F4681CCBC": {
+          "applicable_to": [
+            "长江证券股份有限公司"
+          ],
+          "condition": "MGMT_FEE_PAYMENT_METHOD=MGMT_ETF_6F4681CCBC",
+          "text": "经基金管理人与基金托管人核对一致后，由基金托管人于次月首日起5个工作日内从基金财产中一次性支付给基金管理人。若遇法定节假日、公休假等，支付日期顺延。"
+        },
+        "MGMT_ETF_2316807708": {
+          "applicable_to": [
+            "浙商证券股份有限公司"
+          ],
+          "condition": "MGMT_FEE_PAYMENT_METHOD=MGMT_ETF_2316807708",
+          "text": "由基金托管人根据与基金管理人核对一致的财务数据，自动在月初首日起5个工作日内、按照指定的账户路径进行资金支付，基金管理人无需再出具资金划拨指令。若遇法定节假日、休息日等，支付日期顺延。费用自动扣划后，基金管理人应进行核对，如发现数据不符，及时联系基金托管人协商解决。"
+        },
+        "MGMT_ETF_0EE89A0AAD": {
+          "applicable_to": [
+            "东方财富证券股份有限公司"
+          ],
+          "condition": "MGMT_FEE_PAYMENT_METHOD=MGMT_ETF_0EE89A0AAD",
+          "text": "由基金托管人根据与基金管理人核对一致的财务数据，自动在月初5个工作日内、按照指定的账户路径进行资金支付，基金管理人无需再出具资金划拨指令。若遇法定节假日、休息日等，支付日期顺延。费用自动扣划后，基金管理人应进行核对，如发现数据不符，及时联系基金托管人协商解决。"
+        }
+      }
+    },
+    "CUSTODY_FEE_PAYMENT": {
+      "description": "托管费每日计提后支付方式（第十七部分二第2条，对应管理费各版本）",
+      "variants": {
+        "CONSULT": {
+          "applicable_to": [
+            "chuangye",
+            "hgtlianwang"
+          ],
+          "text": "经基金管理人与基金托管人双方核对无误后，基金托管人按照与基金管理人协商一致的方式于次月前5个工作日内从基金财产中一次性支取。若遇法定节假日、公休假或不可抗力等，支付日期顺延。"
+        },
+        "INSTRUCTION": {
+          "applicable_to": [
+            "kechuang"
+          ],
+          "text": "经基金管理人与基金托管人双方核对无误后，基金托管人按照基金管理人指令于次月前5个工作日内从基金财产中一次性支取。若遇法定节假日、公休假或不可抗力等，支付日期顺延。"
+        },
+        "AUTO": {
+          "applicable_to": [
+            "dianchi"
+          ],
+          "text": "由基金托管人根据与基金管理人核对一致的财务数据，基金托管人按照双方约定的时间，自动在次月按照指定的账户路径从基金财产中一次性支取，基金管理人无需再出具划款指令，支付时间及收款账户信息由基金管理人通过书面形式另行通知基金托管人。若遇法定节假日、公休日等，支付日期顺延。"
+        },
+        "MANAGER_INSTRUCTION": {
+          "applicable_to": [
+            "honglizhiliang"
+          ],
+          "text": "由基金管理人向基金托管人发送基金托管费划款指令，基金托管人复核后于次月前5个工作日内从基金财产中一次性支取。若遇法定节假日、公休日等，支付日期顺延至最近可支付日支取。"
+        },
+        "CUSTODY_ETF_91F72F0C04": {
+          "applicable_to": [
+            "中国银行股份有限公司"
+          ],
+          "condition": "CUSTODY_FEE_PAYMENT_METHOD=CUSTODY_ETF_91F72F0C04",
+          "text": "由基金管理人向基金托管人发送基金托管费划付指令，经基金托管人复核后于次月首日起5个工作日内从基金资产中一次性支取。若遇法定节假日、休息日或不可抗力致使无法按时支付的，顺延至最近可支付日支付。"
+        },
+        "CUSTODY_ETF_4998E248F5": {
+          "applicable_to": [
+            "华夏银行股份有限公司"
+          ],
+          "condition": "CUSTODY_FEE_PAYMENT_METHOD=CUSTODY_ETF_4998E248F5",
+          "text": "由基金管理人与基金托管人核对一致后，基金托管人按照与基金管理人协商一致的方式于次月首日起5个工作日内从基金财产中一次性支取。若遇法定节假日、休息日等，支付日期顺延。"
+        },
+        "CUSTODY_ETF_3034FD1D82": {
+          "applicable_to": [
+            "平安银行股份有限公司"
+          ],
+          "condition": "CUSTODY_FEE_PAYMENT_METHOD=CUSTODY_ETF_3034FD1D82",
+          "text": "每月首日起3个工作日内基金管理人与基金托管人对上月应计提的基金托管费进行核对，基金管理人与基金托管人核对一致后，由基金托管人于3个工作日内从基金财产中一次性向基金管理人支付上月基金托管费。基金管理人可选择在与基金托管人核对一致上月基金托管费后3个工作日内向基金托管人出具划款指令，也可出具自动付费授权函授权基金托管人依照授权函具体约定进行费用划付，如选择自动支付，基金管理人应确保支付当日账户余额充足，如因资金余额不足或其他原因造成自动支付无法进行，基金管理人应另行出具划款指令。若遇法定节假日、公休日或不可抗力致使无法按时支付的，支付日期顺延至最近可支付日支付。"
+        },
+        "CUSTODY_ETF_ADD967F596": {
+          "applicable_to": [
+            "广发银行股份有限公司"
+          ],
+          "condition": "CUSTODY_FEE_PAYMENT_METHOD=CUSTODY_ETF_ADD967F596",
+          "text": "由基金管理人向基金托管人发送基金托管费划款指令，基金托管人复核后于次月前5个工作日内从基金财产中一次性支取。若遇法定节假日、公休日等，支付日期顺延。"
+        },
+        "CUSTODY_ETF_E2D930172C": {
+          "applicable_to": [
+            "中国邮政储蓄银行股份有限公司"
+          ],
+          "condition": "CUSTODY_FEE_PAYMENT_METHOD=CUSTODY_ETF_E2D930172C",
+          "text": "由基金托管人根据与基金管理人核对一致的财务数据，自动在次月初5个工作日内按照指定的账户路径进行支付，基金管理人无需再出具资金划拨指令。若遇法定节假日、休息日等，支付日期顺延。费用自动扣划后，基金管理人应进行核对，如发现数据不符，应及时联系基金托管人协商解决。"
+        },
+        "CUSTODY_ETF_8A261CB685": {
+          "applicable_to": [
+            "上海银行股份有限公司"
+          ],
+          "condition": "CUSTODY_FEE_PAYMENT_METHOD=CUSTODY_ETF_8A261CB685",
+          "text": "由基金管理人向基金托管人发送基金托管费划款指令，基金托管人复核后于次月前3个工作日内从基金财产中一次性支取。若遇法定节假日、公休日等，支付日期顺延。"
+        },
+        "CUSTODY_ETF_854FBD6E2B": {
+          "applicable_to": [
+            "国信证券股份有限公司"
+          ],
+          "condition": "CUSTODY_FEE_PAYMENT_METHOD=CUSTODY_ETF_854FBD6E2B",
+          "text": "由基金托管人根据与基金管理人核对一致的财务数据，自动在月初5个工作日内、按照指定的账户路径进行资金支付，管理人无需再出具资金划拨指令。若遇法定节假日、休息日或不可抗力等，支付日期顺延。"
+        },
+        "CUSTODY_ETF_FDEE2B1A5D": {
+          "applicable_to": [
+            "招商证券股份有限公司"
+          ],
+          "condition": "CUSTODY_FEE_PAYMENT_METHOD=CUSTODY_ETF_FDEE2B1A5D",
+          "text": "由基金管理人向基金托管人发送基金托管费划付指令，基金托管人复核后于次月前5个工作日内从基金财产中一次性收取。若遇法定节假日、休息日或不可抗力致使无法按时支付的，顺延至最近可支付日支付。"
+        },
+        "CUSTODY_ETF_4A21F8B7ED": {
+          "applicable_to": [
+            "广发证券股份有限公司"
+          ],
+          "condition": "CUSTODY_FEE_PAYMENT_METHOD=CUSTODY_ETF_4A21F8B7ED",
+          "text": "经基金管理人与基金托管人双方核对无误后，基金托管人按照与基金管理人协商一致的方式于次月首日起5个工作日内从基金财产中一次性支取。若遇法定节假日、休息日或不可抗力等致使无法按时支付的，支付日期顺延。"
+        },
+        "CUSTODY_ETF_0C3E801F25": {
+          "applicable_to": [
+            "江苏银行股份有限公司"
+          ],
+          "condition": "CUSTODY_FEE_PAYMENT_METHOD=CUSTODY_ETF_0C3E801F25",
+          "text": "经基金管理人与基金托管人核对一致后，基金托管人自动于次月首日起5个工作日内从基金财产中一次性支取。若遇法定节假日、公休日等，支付日期顺延。"
+        },
+        "CUSTODY_ETF_1C98CF9A33": {
+          "applicable_to": [
+            "中国银河证券股份有限公司"
+          ],
+          "condition": "CUSTODY_FEE_PAYMENT_METHOD=CUSTODY_ETF_1C98CF9A33",
+          "text": "由基金托管人根据与基金管理人核对一致的估值数据，自动在次月初5个工作日内按照指定的账户路径进行支取。若遇法定节假日、休息日或不可抗力等，支付日期顺延。费用自动扣划后，基金管理人应进行核对，如发现数据不符，应及时联系基金托管人协商解决。"
+        },
+        "CUSTODY_ETF_DB80E9AC9D": {
+          "applicable_to": [
+            "中泰证券股份有限公司"
+          ],
+          "condition": "CUSTODY_FEE_PAYMENT_METHOD=CUSTODY_ETF_DB80E9AC9D",
+          "text": "基金管理人与基金托管人核对后，由基金托管人于次月前5个工作日内按照与基金管理人协商一致的方式从基金财产中一次性支取。若遇法定节假日、公休日或不可抗力等，支付日期顺延。"
+        },
+        "CUSTODY_ETF_6211E6BF63": {
+          "applicable_to": [
+            "国投证券股份有限公司"
+          ],
+          "condition": "CUSTODY_FEE_PAYMENT_METHOD=CUSTODY_ETF_6211E6BF63",
+          "text": "由基金托管人根据与基金管理人核对一致的财务数据，自动在月初5个工作日内、按照指定的账户路径进行资金支付，基金管理人无需再出具资金划拨指令。若遇法定节假日、公休日等，支付日期顺延至最近可支付日支付。"
+        },
+        "CUSTODY_ETF_A0993389E4": {
+          "applicable_to": [
+            "东方证券股份有限公司"
+          ],
+          "condition": "CUSTODY_FEE_PAYMENT_METHOD=CUSTODY_ETF_A0993389E4",
+          "text": "经基金管理人与基金托管人双方核对无误后，基金托管人按照与基金管理人协商一致的方式于次月前5个工作日内从基金财产中一次性支取，基金管理人无需再出具资金划拨指令。若遇法定节假日、公休假或不可抗力等，支付日期顺延。"
+        },
+        "CUSTODY_ETF_912574F059": {
+          "applicable_to": [
+            "申万宏源证券有限公司"
+          ],
+          "condition": "CUSTODY_FEE_PAYMENT_METHOD=CUSTODY_ETF_912574F059",
+          "text": "由基金托管人根据与基金管理人核对一致的财务数据，自动在月初5个工作日内、按照指定的账户路径从基金资产中一次性支付给基金托管人。若遇法定节假日、公休假等，支付日期顺延。费用自动扣划后，基金管理人应进行核对，如发现数据不符，及时联系基金托管人协商解决。"
+        },
+        "CUSTODY_ETF_CC910A3978": {
+          "applicable_to": [
+            "长城证券股份有限公司"
+          ],
+          "condition": "CUSTODY_FEE_PAYMENT_METHOD=CUSTODY_ETF_CC910A3978",
+          "text": "由基金管理人向基金托管人发送基金托管费划款指令，基金托管人复核后于次月前5个工作日内从基金财产中一次性支取。若遇法定节假日、公休日或不可抗力等，支取日期顺延。"
+        },
+        "CUSTODY_ETF_2316807708": {
+          "applicable_to": [
+            "浙商证券股份有限公司"
+          ],
+          "condition": "CUSTODY_FEE_PAYMENT_METHOD=CUSTODY_ETF_2316807708",
+          "text": "由基金托管人根据与基金管理人核对一致的财务数据，自动在月初首日起5个工作日内、按照指定的账户路径进行资金支付，基金管理人无需再出具资金划拨指令。若遇法定节假日、休息日等，支付日期顺延。费用自动扣划后，基金管理人应进行核对，如发现数据不符，及时联系基金托管人协商解决。"
+        },
+        "CUSTODY_ETF_0EE89A0AAD": {
+          "applicable_to": [
+            "东方财富证券股份有限公司"
+          ],
+          "condition": "CUSTODY_FEE_PAYMENT_METHOD=CUSTODY_ETF_0EE89A0AAD",
+          "text": "由基金托管人根据与基金管理人核对一致的财务数据，自动在月初5个工作日内、按照指定的账户路径进行资金支付，基金管理人无需再出具资金划拨指令。若遇法定节假日、休息日等，支付日期顺延。费用自动扣划后，基金管理人应进行核对，如发现数据不符，及时联系基金托管人协商解决。"
+        }
+      }
+    },
+    "DISTRIBUTION_FREQ_CLAUSE": {
+      "description": "收益分配频率原则第2条",
+      "variants": {
+        "QUARTERLY": {
+          "applicable_to": [
+            "hgtlianwang",
+            "tongyonghangkong",
+            "chuangyeAI",
+            "hgt50",
+            "ziyouxianjinliu"
+          ],
+          "text": "基金管理人可每季度评估是否进行收益分配。基金管理人可每季度对基金相对业绩比较基准的超额收益率以及基金的可供分配利润进行评价，在符合基金收益分配条件下，可安排收益分配。收益分配条件、评估时间、分配时间、分配方案及每次基金收益分配数额等内容，基金管理人可以根据实际情况确定并按照有关规定公告；"
+        },
+        "MONTHLY": {
+          "applicable_to": [],
+          "text": "基金管理人可每月评估是否进行收益分配。基金管理人可每月对基金相对业绩比较基准的超额收益率以及基金的可供分配利润进行评价，在符合基金收益分配条件下，可安排收益分配。收益分配条件、评估时间、分配时间、分配方案及每次基金收益分配数额等内容，基金管理人可以根据实际情况确定并按照有关规定公告；"
+        }
+      }
+    },
+    "CUSTODIAN_INFO_KNOWN_VALUES": {
+      "description": "已知托管人信息汇总",
+      "custodians": {
+        "中国工商银行股份有限公司": {
+          "directory_order": 1,
+          "jurisdiction": "北京",
+          "address": "北京市西城区复兴门内大街55号",
+          "office_address": "北京市西城区复兴门内大街55号",
+          "legal_rep": "廖林",
+          "established": "1984年1月1日",
+          "approval_no": "国务院《关于中国人民银行专门行使中央银行职能的决定》（国发[1983]146号）",
+          "org_form": "股份有限公司",
+          "registered_capital": "人民币35,640,625.71万元",
+          "custody_license": "中国证监会和中国人民银行证监基字[1998]3号",
+          "payment_method": "CONSULT",
+          "mgmt_fee_payment_method": "CONSULT",
+          "custody_fee_payment_method": "CONSULT",
+          "payment_method_source": "大成国证石油天然气指数型发起式证券投资基金招募说明书“基金费用计提方法、计提标准和支付方式”章节（外部检索补录）",
+          "has_aml": false,
+          "has_special_transfer": false,
+          "mgmt_fee_payment": "CONSULT",
+          "custody_fee_payment": "CONSULT",
+          "custodian_type": "商业银行"
+        },
+        "中国农业银行股份有限公司": {
+          "directory_order": 2,
+          "jurisdiction": "北京",
+          "address": "北京市东城区建国门内大街69号",
+          "office_address": "北京市西城区复兴门内大街28号凯晨世贸中心东座九层",
+          "legal_rep": "谷澍",
+          "established": "2009年1月15日",
+          "approval_no": "中国银监会银监复[2009]13号",
+          "org_form": "股份有限公司",
+          "registered_capital": "34,998,303.4万元人民币",
+          "custody_license": "中国证监会证监基字[1998]23号",
+          "payment_method": "CONSULT",
+          "mgmt_fee_payment_method": "CONSULT",
+          "custody_fee_payment_method": "CONSULT",
+          "payment_method_source": "易方达恒生A股电网设备交易型开放式指数证券投资基金招募说明书“基金费用计提方法、计提标准和支付方式”章节（外部检索补录）",
+          "has_aml": false,
+          "has_special_transfer": false,
+          "mgmt_fee_payment": "CONSULT",
+          "custody_fee_payment": "CONSULT",
+          "custodian_type": "商业银行"
+        },
+        "中国银行股份有限公司": {
+          "directory_order": 3,
+          "jurisdiction": "北京",
+          "address": "北京市西城区复兴门内大街1号",
+          "office_address": "",
+          "legal_rep": "葛海蛟",
+          "established": "1983年10月31日",
+          "approval_no": "国务院批转中国人民银行《关于改革中国银行体制的请示报告》（国发[1979]72号）",
+          "org_form": "股份有限公司",
+          "registered_capital": "294,387,791,241元",
+          "custody_license": "中国证监会证监基字[1998]24号",
+          "payment_method": "",
+          "mgmt_fee_payment_method": "",
+          "custody_fee_payment_method": "",
+          "mgmt_fee_payment_text": "由基金管理人向基金托管人发送基金管理费划付指令，经基金托管人复核后于次月首日起5个工作日内从基金资产中一次性支付给基金管理人。若遇法定节假日、休息日或不可抗力致使无法按时支付的，顺延至最近可支付日支付。",
+          "custody_fee_payment_text": "由基金管理人向基金托管人发送基金托管费划付指令，经基金托管人复核后于次月首日起5个工作日内从基金资产中一次性支取。若遇法定节假日、休息日或不可抗力致使无法按时支付的，顺延至最近可支付日支付。",
+          "payment_method_source": "财通资管周期研选混合型发起式证券投资基金基金合同“基金费用计提方法、计提标准和支付方式”章节（外部检索补录）",
+          "has_aml": false,
+          "has_special_transfer": false,
+          "mgmt_fee_payment": "MGMT_ETF_7997E7A46C",
+          "custody_fee_payment": "CUSTODY_ETF_91F72F0C04",
+          "custodian_type": "商业银行"
+        },
+        "中国建设银行股份有限公司": {
+          "directory_order": 4,
+          "jurisdiction": "北京",
+          "address": "北京市西城区金融大街25号",
+          "office_address": "北京市西城区闹市口大街1号院1号楼",
+          "legal_rep": "张金良",
+          "established": "2004年9月17日",
+          "approval_no": "中国银行业监督管理委员会银监复[2004]143号",
+          "org_form": "股份有限公司",
+          "registered_capital": "25001097.7486万元人民币",
+          "custody_license": "中国证监会证监基字[1998]12号",
+          "payment_method": "AUTO",
+          "mgmt_fee_payment_method": "AUTO",
+          "custody_fee_payment_method": "AUTO",
+          "payment_method_source": "国泰产业机遇混合型发起式证券投资基金招募说明书“基金费用与税收”章节（外部检索补录）",
+          "has_aml": false,
+          "has_special_transfer": false,
+          "mgmt_fee_payment": "AUTO",
+          "custody_fee_payment": "AUTO",
+          "custodian_type": "商业银行"
+        },
+        "交通银行股份有限公司": {
+          "directory_order": 5,
+          "jurisdiction": "上海",
+          "address": "中国（上海）自由贸易试验区银城中路188号",
+          "office_address": "上海市长宁区仙霞路18号",
+          "legal_rep": "任德奇",
+          "established": "1987年3月30日",
+          "approval_no": "国务院国发(1986)字第81号文和中国人民银行银发［1987］40号文",
+          "org_form": "股份有限公司",
+          "registered_capital": "742.63亿元人民币",
+          "custody_license": "中国证监会证监基字［1998］25号",
+          "payment_method": "AUTO",
+          "mgmt_fee_payment_method": "AUTO",
+          "custody_fee_payment_method": "AUTO",
+          "payment_method_source": "招募说明书“基金的费用与税收”章节",
+          "has_aml": true,
+          "has_special_transfer": false,
+          "mgmt_fee_payment": "AUTO",
+          "custody_fee_payment": "AUTO",
+          "custodian_type": "商业银行"
+        },
+        "华夏银行股份有限公司": {
+          "directory_order": 6,
+          "jurisdiction": "北京",
+          "address": "北京市东城区建国门内大街22号",
+          "office_address": "北京市东城区建国门内大街22号（100005）",
+          "legal_rep": "杨书剑",
+          "established": "1992年10月14日",
+          "approval_no": "中国人民银行[银复（1992）391号]",
+          "org_form": "股份有限公司",
+          "registered_capital": "15914928468元人民币",
+          "custody_license": "中国证监会证监基金字[2005]25号",
+          "payment_method": "",
+          "mgmt_fee_payment_method": "",
+          "custody_fee_payment_method": "",
+          "mgmt_fee_payment_text": "由基金管理人与基金托管人核对一致后，基金托管人按照与基金管理人协商一致的方式于次月首日起5个工作日内从基金财产中一次性支付给基金管理人。若遇法定节假日、休息日等，支付日期顺延。",
+          "custody_fee_payment_text": "由基金管理人与基金托管人核对一致后，基金托管人按照与基金管理人协商一致的方式于次月首日起5个工作日内从基金财产中一次性支取。若遇法定节假日、休息日等，支付日期顺延。",
+          "payment_method_source": "广发恒生生物科技交易型开放式指数证券投资基金招募说明书“基金费用计提方法、计提标准和支付方式”章节（外部检索补录）",
+          "has_aml": false,
+          "has_special_transfer": false,
+          "mgmt_fee_payment": "MGMT_ETF_EEF9F48E4C",
+          "custody_fee_payment": "CUSTODY_ETF_4998E248F5",
+          "custodian_type": "商业银行"
+        },
+        "中国光大银行股份有限公司": {
+          "directory_order": 7,
+          "jurisdiction": "北京",
+          "address": "北京市西城区太平桥大街25号、甲25号中国光大中心",
+          "office_address": "",
+          "legal_rep": "吴利军",
+          "established": "1992年8月18日",
+          "approval_no": "国务院、国函[1992]7号",
+          "org_form": "股份有限公司",
+          "registered_capital": "590.86亿元人民币",
+          "custody_license": "中国证监会证监基金字[2002]75号",
+          "payment_method": "CONSULT",
+          "mgmt_fee_payment_method": "CONSULT",
+          "custody_fee_payment_method": "CONSULT",
+          "payment_method_source": "公开披露资料“基金费用与税收”章节（外部检索补录）",
+          "has_aml": false,
+          "has_special_transfer": false,
+          "mgmt_fee_payment": "CONSULT",
+          "custody_fee_payment": "CONSULT",
+          "custodian_type": "商业银行"
+        },
+        "招商银行股份有限公司": {
+          "directory_order": 8,
+          "jurisdiction": "深圳",
+          "address": "深圳市深南大道7088号招商银行大厦",
+          "office_address": null,
+          "legal_rep": "缪建民",
+          "established": "1987年4月8日",
+          "approval_no": "中国人民银行银复字（1986）175号文、银复（1987）86号文",
+          "org_form": "股份有限公司",
+          "registered_capital": "人民币252.20亿元",
+          "custody_license": "证监基金字[2002]83号",
+          "payment_method": "CONSULT",
+          "mgmt_fee_payment_method": "CONSULT",
+          "custody_fee_payment_method": "CONSULT",
+          "payment_method_source": "招募说明书“基金的费用与税收”章节",
+          "has_aml": false,
+          "has_special_transfer": false,
+          "mgmt_fee_payment": "CONSULT",
+          "custody_fee_payment": "CONSULT",
+          "custodian_type": "商业银行"
+        },
+        "中信银行股份有限公司": {
+          "directory_order": 9,
+          "jurisdiction": "北京",
+          "address": "北京市朝阳区光华路10号院1号楼6-30层、32-42层",
+          "office_address": "",
+          "legal_rep": "方合英",
+          "established": "1987年4月20日",
+          "approval_no": "中华人民共和国国务院办公厅国办函[1987]14号",
+          "org_form": "股份有限公司",
+          "registered_capital": "489.35亿元人民币",
+          "custody_license": "中国证监会证监基金字[2004]125号",
+          "payment_method": "CONSULT",
+          "mgmt_fee_payment_method": "CONSULT",
+          "custody_fee_payment_method": "CONSULT",
+          "payment_method_source": "招募说明书“基金的费用与税收”章节（公开披露资料检索补录）",
+          "has_aml": false,
+          "has_special_transfer": false,
+          "mgmt_fee_payment": "CONSULT",
+          "custody_fee_payment": "CONSULT",
+          "custodian_type": "商业银行"
+        },
+        "中国民生银行股份有限公司": {
+          "directory_order": 10,
+          "jurisdiction": "北京",
+          "address": "北京市西城区复兴门内大街2号",
+          "office_address": "北京市西城区复兴门内大街2号",
+          "legal_rep": "高迎欣",
+          "established": "1996年2月7日",
+          "approval_no": "中国人民银行银复[1996]14号",
+          "org_form": "股份有限公司",
+          "registered_capital": "43,782,418,502元人民币",
+          "custody_license": "证监基金字[2004]101号",
+          "payment_method": "CONSULT",
+          "mgmt_fee_payment_method": "CONSULT",
+          "custody_fee_payment_method": "CONSULT",
+          "payment_method_source": "易方达中证电池主题交易型开放式指数证券投资基金托管协议“基金费用”章节（外部检索补录）",
+          "has_aml": false,
+          "has_special_transfer": false,
+          "mgmt_fee_payment": "CONSULT",
+          "custody_fee_payment": "CONSULT",
+          "custodian_type": "商业银行"
+        },
+        "兴业银行股份有限公司": {
+          "directory_order": 11,
+          "jurisdiction": "上海（福建）",
+          "address": "中国福建省福州市台江区江滨中大道398号",
+          "office_address": "",
+          "legal_rep": "吕家进",
+          "established": "1988年8月22日",
+          "approval_no": "国函〔1988〕347号",
+          "org_form": "股份有限公司",
+          "registered_capital": "207.74亿元人民币",
+          "custody_license": "中国证监会证监基金字[2005]74号",
+          "payment_method": "CONSULT",
+          "mgmt_fee_payment_method": "CONSULT",
+          "custody_fee_payment_method": "CONSULT",
+          "payment_method_source": "公开披露资料“基金费用与税收/关联方报酬”章节（外部检索补录）",
+          "has_aml": false,
+          "has_special_transfer": false,
+          "mgmt_fee_payment": "CONSULT",
+          "custody_fee_payment": "CONSULT",
+          "custodian_type": "商业银行"
+        },
+        "上海浦东发展银行股份有限公司": {
+          "directory_order": 12,
+          "jurisdiction": "上海",
+          "address": "上海市中山东一路12号",
+          "office_address": "",
+          "legal_rep": "张为忠",
+          "established": "1992年10月19日",
+          "approval_no": "中国人民银行银复（1992）350号",
+          "org_form": "股份有限公司",
+          "registered_capital": "293.52亿元人民币",
+          "custody_license": "中国证监会证监基金字[2003]105号",
+          "payment_method": "CONSULT",
+          "mgmt_fee_payment_method": "CONSULT",
+          "custody_fee_payment_method": "CONSULT",
+          "payment_method_source": "公开披露资料“基金费用与税收”章节（外部检索补录）",
+          "has_aml": false,
+          "has_special_transfer": false,
+          "mgmt_fee_payment": "CONSULT",
+          "custody_fee_payment": "CONSULT",
+          "custodian_type": "商业银行"
+        },
+        "北京银行股份有限公司": {
+          "directory_order": 13,
+          "jurisdiction": "北京",
+          "address": "北京市西城区金融大街甲17号首层",
+          "office_address": "北京市西城区金融大街甲17号",
+          "legal_rep": "霍学文",
+          "established": "1996年1月29日",
+          "approval_no": "中国人民银行1995年12月28日《关于北京城市合作银行开业的批复》（银复[1995]470号）",
+          "org_form": "股份有限公司",
+          "registered_capital": "2114298.4272万元人民币",
+          "custody_license": "中国证监会证监许可[2008]776号",
+          "payment_method": "CONSULT",
+          "mgmt_fee_payment_method": "CONSULT",
+          "custody_fee_payment_method": "CONSULT",
+          "payment_method_source": "摩根聚利稳健三个月持有期混合型基金中基金(FOF)托管协议“基金费用”章节（外部检索补录）",
+          "has_aml": false,
+          "has_special_transfer": false,
+          "mgmt_fee_payment": "CONSULT",
+          "custody_fee_payment": "CONSULT",
+          "custodian_type": "商业银行"
+        },
+        "平安银行股份有限公司": {
+          "directory_order": 14,
+          "jurisdiction": "深圳",
+          "address": "广东省深圳市罗湖区深南东路5047号",
+          "office_address": "广东省深圳市福田区益田路5023号平安金融中心B座26楼",
+          "legal_rep": "谢永林",
+          "established": "1987年12月22日",
+          "approval_no": "银复[1987]365号",
+          "org_form": "股份有限公司",
+          "registered_capital": "19,405,918,198元",
+          "custody_license": "中国证监会证监许可[2008]1037号",
+          "payment_method": "",
+          "mgmt_fee_payment_method": "",
+          "custody_fee_payment_method": "",
+          "mgmt_fee_payment_text": "每月首日起3个工作日内基金管理人与基金托管人对上月应计提的基金管理费进行核对，基金管理人与基金托管人核对一致后，由基金托管人于3个工作日内从基金财产中一次性向基金管理人支付上月基金管理费。基金管理人可选择在与基金托管人核对一致上月基金管理费后3个工作日内向基金托管人出具划款指令，也可出具自动付费授权函授权基金托管人依照授权函具体约定进行费用划付，如选择自动支付，基金管理人应确保支付当日账户余额充足，如因资金余额不足或其他原因造成自动支付无法进行，基金管理人应另行出具划款指令。若遇法定节假日、公休日或不可抗力致使无法按时支付的，支付日期顺延至最近可支付日支付。",
+          "custody_fee_payment_text": "每月首日起3个工作日内基金管理人与基金托管人对上月应计提的基金托管费进行核对，基金管理人与基金托管人核对一致后，由基金托管人于3个工作日内从基金财产中一次性向基金管理人支付上月基金托管费。基金管理人可选择在与基金托管人核对一致上月基金托管费后3个工作日内向基金托管人出具划款指令，也可出具自动付费授权函授权基金托管人依照授权函具体约定进行费用划付，如选择自动支付，基金管理人应确保支付当日账户余额充足，如因资金余额不足或其他原因造成自动支付无法进行，基金管理人应另行出具划款指令。若遇法定节假日、公休日或不可抗力致使无法按时支付的，支付日期顺延至最近可支付日支付。",
+          "payment_method_source": "德邦沪深300指数增强型证券投资基金招募说明书“基金费用计提方法、计提标准和支付方式”章节（外部检索补录）",
+          "has_aml": false,
+          "has_special_transfer": false,
+          "mgmt_fee_payment": "MGMT_ETF_B8830AAECD",
+          "custody_fee_payment": "CUSTODY_ETF_3034FD1D82",
+          "custodian_type": "商业银行"
+        },
+        "广发银行股份有限公司": {
+          "directory_order": 15,
+          "jurisdiction": "北京（广东）",
+          "address": "广州市越秀区东风东路713号",
+          "office_address": "北京市东城区东长安街甲2号广发银行大厦",
+          "legal_rep": "王凯",
+          "established": "1988年7月8日",
+          "approval_no": "国发[1988]58号、中国人民银行广东省分行粤银管字[1988]129号",
+          "org_form": "股份有限公司",
+          "registered_capital": "217.9亿人民币",
+          "custody_license": "中国证监会、中国银监会《关于核准广东发展银行证券投资基金托管资格的批复》，证监许可[2009]363号",
+          "payment_method": "",
+          "mgmt_fee_payment_method": "",
+          "custody_fee_payment_method": "",
+          "mgmt_fee_payment_text": "由基金管理人向基金托管人发送基金管理费划款指令，基金托管人复核后于次月前5个工作日内从基金财产中一次性支付给基金管理人。若遇法定节假日、公休假等，支付日期顺延。",
+          "custody_fee_payment_text": "由基金管理人向基金托管人发送基金托管费划款指令，基金托管人复核后于次月前5个工作日内从基金财产中一次性支取。若遇法定节假日、公休日等，支付日期顺延。",
+          "payment_method_source": "广发消费智选混合型证券投资基金招募说明书“基金费用计提方法、计提标准和支付方式”章节（外部检索补录）",
+          "has_aml": false,
+          "has_special_transfer": false,
+          "mgmt_fee_payment": "MGMT_ETF_08D92552BA",
+          "custody_fee_payment": "CUSTODY_ETF_ADD967F596",
+          "custodian_type": "商业银行"
+        },
+        "中国邮政储蓄银行股份有限公司": {
+          "directory_order": 16,
+          "jurisdiction": "北京",
+          "address": "北京市西城区金融大街3号",
+          "office_address": "北京市西城区金融大街3号A座",
+          "legal_rep": "郑国雨",
+          "established": "2007年3月6日",
+          "approval_no": "中国银监会银监复[2006]484号",
+          "org_form": "股份有限公司",
+          "registered_capital": "991.61亿元人民币",
+          "custody_license": "中国证监会证监许可[2009]673号",
+          "payment_method": "",
+          "mgmt_fee_payment_method": "",
+          "custody_fee_payment_method": "",
+          "mgmt_fee_payment_text": "由基金托管人根据与基金管理人核对一致的财务数据，自动在次月初5个工作日内按照指定的账户路径进行支付，基金管理人无需再出具资金划拨指令。若遇法定节假日、休息日等，支付日期顺延。费用自动扣划后，基金管理人应进行核对，如发现数据不符，应及时联系基金托管人协商解决。",
+          "custody_fee_payment_text": "由基金托管人根据与基金管理人核对一致的财务数据，自动在次月初5个工作日内按照指定的账户路径进行支付，基金管理人无需再出具资金划拨指令。若遇法定节假日、休息日等，支付日期顺延。费用自动扣划后，基金管理人应进行核对，如发现数据不符，应及时联系基金托管人协商解决。",
+          "payment_method_source": "路博迈添航债券型证券投资基金招募说明书“基金费用计提方法、计提标准和支付方式”章节（外部检索补录）",
+          "has_aml": false,
+          "has_special_transfer": false,
+          "mgmt_fee_payment": "MGMT_ETF_E2D930172C",
+          "custody_fee_payment": "CUSTODY_ETF_E2D930172C",
+          "custodian_type": "商业银行"
+        },
+        "上海银行股份有限公司": {
+          "directory_order": 17,
+          "jurisdiction": "上海",
+          "address": "上海市黄浦区中山南路688号",
+          "office_address": "中国（上海）自由贸易试验区银城中路168号",
+          "legal_rep": "顾建忠",
+          "established": "1995年12月29日",
+          "approval_no": "中国人民银行银复[1995]469号《关于上海城市合作银行开业的批复》、中国人民银行银复[1998]215号《关于上海城市合作银行更改行名的批复》",
+          "org_form": "股份有限公司（外商投资、上市）",
+          "registered_capital": "人民币142.065287亿元",
+          "custody_license": "中国证监会证监许可[2009]814号",
+          "payment_method": "",
+          "mgmt_fee_payment_method": "",
+          "custody_fee_payment_method": "",
+          "mgmt_fee_payment_text": "由基金管理人向基金托管人发送基金管理费划款指令，基金托管人复核后于次月前3个工作日内从基金财产中一次性支付给基金管理人。若遇法定节假日、公休日等，支付日期顺延。",
+          "custody_fee_payment_text": "由基金管理人向基金托管人发送基金托管费划款指令，基金托管人复核后于次月前3个工作日内从基金财产中一次性支取。若遇法定节假日、公休日等，支付日期顺延。",
+          "payment_method_source": "富国中证光伏产业交易型开放式指数证券投资基金招募说明书“基金费用计提方法、计提标准和支付方式”章节（外部检索补录）",
+          "has_aml": false,
+          "has_special_transfer": false,
+          "mgmt_fee_payment": "MGMT_ETF_EAA4FECA64",
+          "custody_fee_payment": "CUSTODY_ETF_8A261CB685",
+          "custodian_type": "商业银行"
+        },
+        "国信证券股份有限公司": {
+          "directory_order": 18,
+          "jurisdiction": "深圳",
+          "address": "深圳市罗湖区红岭中路1012号国信证券大厦16-26层",
+          "office_address": "深圳市福田区福华一路125号国信金融大厦19楼",
+          "legal_rep": "张纳沙",
+          "established": "1994年6月30日",
+          "approval_no": "中国人民银行、银复[1994]162号",
+          "org_form": "股份有限公司",
+          "registered_capital": "人民币96.12亿元",
+          "custody_license": "证监许可〔2013〕1666号",
+          "payment_method": "",
+          "mgmt_fee_payment_method": "",
+          "custody_fee_payment_method": "",
+          "mgmt_fee_payment_text": "基金管理费每日计提，按月支付。由基金托管人根据与基金管理人核对一致的财务数据，自动在月初5个工作日内、按照指定的账户路径进行资金支付，基金管理人无需再出具资金划拨指令。若遇法定节假日、休息日或不可抗力等，支付日期顺延。",
+          "custody_fee_payment_text": "基金托管费每日计提，按月支付。由基金托管人根据与基金管理人核对一致的财务数据，自动在月初5个工作日内、按照指定的账户路径进行资金支付，管理人无需再出具资金划拨指令。若遇法定节假日、休息日或不可抗力等，支付日期顺延。",
+          "payment_method_source": "摩根恒生生物科技交易型开放式指数证券投资基金招募说明书“基金费用计提方法、计提标准和支付方式”章节（外部检索补录）",
+          "has_aml": false,
+          "has_special_transfer": false,
+          "mgmt_fee_payment": "MGMT_ETF_C29518EA80",
+          "custody_fee_payment": "CUSTODY_ETF_854FBD6E2B",
+          "custodian_type": "证券公司"
+        },
+        "招商证券股份有限公司": {
+          "directory_order": 19,
+          "jurisdiction": "深圳",
+          "address": "深圳市福田区福田街道福华一路111号",
+          "office_address": "深圳市福田区福田街道福华一路111号",
+          "legal_rep": "霍达",
+          "established": "1993年8月1日",
+          "approval_no": "中国证监会证监机构字[1999]11号",
+          "org_form": "股份有限公司",
+          "registered_capital": "86.97亿元",
+          "custody_license": "证监许可[2014]78号",
+          "payment_method": "",
+          "mgmt_fee_payment_method": "",
+          "custody_fee_payment_method": "",
+          "mgmt_fee_payment_text": "基金管理费每日计提，逐日累计至每月月末，按月支付，由基金管理人向基金托管人发送基金管理费划付指令，基金托管人复核后于次月前5个工作日内从基金财产中一次性支付给基金管理人。若遇法定节假日、休息日或不可抗力致使无法按时支付的，顺延至最近可支付日支付。",
+          "custody_fee_payment_text": "基金托管费每日计提，逐日累计至每月月末，按月支付，由基金管理人向基金托管人发送基金托管费划付指令，基金托管人复核后于次月前5个工作日内从基金财产中一次性收取。若遇法定节假日、休息日或不可抗力致使无法按时支付的，顺延至最近可支付日支付。",
+          "payment_method_source": "新华中证云计算50交易型开放式指数证券投资基金发起式联接基金招募说明书“基金费用计提方法、计提标准和支付方式”章节（外部检索补录）",
+          "has_aml": false,
+          "has_special_transfer": false,
+          "mgmt_fee_payment": "MGMT_ETF_1463D5FEA6",
+          "custody_fee_payment": "CUSTODY_ETF_FDEE2B1A5D",
+          "custodian_type": "证券公司"
+        },
+        "广发证券股份有限公司": {
+          "directory_order": 20,
+          "jurisdiction": "广东",
+          "address": "广东省广州市黄埔区中新广州知识城腾飞一街2号618室",
+          "office_address": "广东省广州市天河区马场路26号广发证券大厦34楼",
+          "legal_rep": "林传辉",
+          "established": "1994年1月21日",
+          "approval_no": "中国人民银行广东省分行粤银管字【1991】第133号",
+          "org_form": "股份有限公司",
+          "registered_capital": "人民币7,605,845,511元",
+          "custody_license": "证监许可【2014】510号",
+          "payment_method": "",
+          "mgmt_fee_payment_method": "",
+          "custody_fee_payment_method": "",
+          "mgmt_fee_payment_text": "基金管理费每日计提，逐日累计至每月月末，按月支付，经基金管理人与基金托管人双方核对无误后，基金托管人按照与基金管理人协商一致的方式于次月首日起5个工作日内从基金财产中一次性支付给基金管理人。若遇法定节假日、休息日或不可抗力等致使无法按时支付的，支付日期顺延。",
+          "custody_fee_payment_text": "基金托管费每日计提，逐日累计至每月月末，按月支付，经基金管理人与基金托管人双方核对无误后，基金托管人按照与基金管理人协商一致的方式于次月首日起5个工作日内从基金财产中一次性支取。若遇法定节假日、休息日或不可抗力等致使无法按时支付的，支付日期顺延。",
+          "payment_method_source": "财信均衡致远混合型发起式证券投资基金招募说明书“基金费用计提方法、计提标准和支付方式”章节（外部检索补录）",
+          "has_aml": false,
+          "has_special_transfer": false,
+          "mgmt_fee_payment": "MGMT_ETF_2C47992D95",
+          "custody_fee_payment": "CUSTODY_ETF_4A21F8B7ED",
+          "custodian_type": "证券公司"
+        },
+        "国泰海通证券股份有限公司": {
+          "directory_order": 21,
+          "jurisdiction": "上海",
+          "address": "中国（上海）自由贸易试验区商城路618号",
+          "office_address": null,
+          "legal_rep": "朱健",
+          "established": "1999年8月18日",
+          "approval_no": "批准设立机关：中国证监会；批准设立文号：证监机构字[1999]77号",
+          "org_form": "其他股份有限公司（上市）",
+          "registered_capital": "人民币17,628,925,829元整",
+          "custody_license": "中国证监会证监许可[2014]511号",
+          "payment_method": "CONSULT",
+          "mgmt_fee_payment_method": "CONSULT",
+          "custody_fee_payment_method": "CONSULT",
+          "payment_method_source": "招募说明书“基金的费用与税收”章节",
+          "has_aml": false,
+          "has_special_transfer": false,
+          "mgmt_fee_payment": "CONSULT",
+          "custody_fee_payment": "CONSULT",
+          "custodian_type": "证券公司"
+        },
+        "江苏银行股份有限公司": {
+          "directory_order": 22,
+          "jurisdiction": "江苏",
+          "address": "江苏省南京市中华路26号",
+          "office_address": "江苏省南京市中华路26号",
+          "legal_rep": "葛仁余",
+          "established": "2007年1月22日",
+          "approval_no": "中国银监会银监复[2006]379号",
+          "org_form": "股份有限公司（上市）",
+          "registered_capital": "1835132.4463万元整",
+          "custody_license": "中国证监会证监许可[2014]619号",
+          "payment_method": "",
+          "mgmt_fee_payment_method": "",
+          "custody_fee_payment_method": "",
+          "mgmt_fee_payment_text": "经基金管理人与基金托管人核对一致后，基金托管人自动于次月首日起5个工作日内从基金财产中一次性支付给基金管理人。若遇法定节假日、公休日等，支付日期顺延。",
+          "custody_fee_payment_text": "经基金管理人与基金托管人核对一致后，基金托管人自动于次月首日起5个工作日内从基金财产中一次性支取。若遇法定节假日、公休日等，支付日期顺延。",
+          "payment_method_source": "招商裕田混合型发起式证券投资基金基金合同“基金费用计提方法、计提标准和支付方式”章节（外部检索补录）",
+          "has_aml": false,
+          "has_special_transfer": false,
+          "mgmt_fee_payment": "MGMT_ETF_2168452A1C",
+          "custody_fee_payment": "CUSTODY_ETF_0C3E801F25",
+          "custodian_type": "商业银行"
+        },
+        "中国银河证券股份有限公司": {
+          "directory_order": 23,
+          "jurisdiction": "北京",
+          "address": "北京市丰台区西营街8号院1号楼7至18层101",
+          "office_address": "北京市丰台区西营街8号院1号楼青海金融大厦",
+          "legal_rep": "王晟",
+          "established": "2007年1月26日",
+          "approval_no": "证监会、证监机构字【2006】322号",
+          "org_form": "股份有限公司",
+          "registered_capital": "109.34亿元人民币",
+          "custody_license": "证监许可【2014】629号",
+          "payment_method": "",
+          "mgmt_fee_payment_method": "",
+          "custody_fee_payment_method": "",
+          "mgmt_fee_payment_text": "基金管理费每日计提，逐日累计至每月月末，按月支付。由基金托管人根据与基金管理人核对一致的估值数据，自动在次月初5个工作日内按照指定的账户路径进行支付。若遇法定节假日、休息日或不可抗力等，支付日期顺延。费用自动扣划后，基金管理人应进行核对，如发现数据不符，应及时联系基金托管人协商解决。",
+          "custody_fee_payment_text": "基金托管费每日计提，逐日累计至每月月末，按月支付。由基金托管人根据与基金管理人核对一致的估值数据，自动在次月初5个工作日内按照指定的账户路径进行支取。若遇法定节假日、休息日或不可抗力等，支付日期顺延。费用自动扣划后，基金管理人应进行核对，如发现数据不符，应及时联系基金托管人协商解决。",
+          "payment_method_source": "国投瑞银中证全指公用事业交易型开放式指数证券投资基金招募说明书“基金费用计提方法、计提标准和支付方式”章节（外部检索补录）",
+          "has_aml": false,
+          "has_special_transfer": false,
+          "mgmt_fee_payment": "MGMT_ETF_722F5C91D0",
+          "custody_fee_payment": "CUSTODY_ETF_1C98CF9A33",
+          "custodian_type": "证券公司"
+        },
+        "中信证券股份有限公司": {
+          "directory_order": 24,
+          "jurisdiction": "深圳",
+          "address": "广东省深圳市福田区中心三路8号卓越时代广场（二期）北座",
+          "office_address": "北京市朝阳区亮马桥路48号",
+          "legal_rep": "张佑君",
+          "established": "1995年10月25日",
+          "approval_no": "批准设立机关：国家工商总局；批准设立文号：100000000018305",
+          "org_form": "股份有限公司（上市）",
+          "registered_capital": "14,820,546,829元人民币",
+          "custody_license": "《关于核准中信证券股份有限公司证券投资基金托管资格的批复》（证监许可[2014]1044号）",
+          "payment_method": "MANAGER_INSTRUCTION",
+          "mgmt_fee_payment_method": "MANAGER_INSTRUCTION",
+          "custody_fee_payment_method": "MANAGER_INSTRUCTION",
+          "payment_method_source": "招募说明书“基金的费用与税收”章节",
+          "has_aml": false,
+          "has_special_transfer": true,
+          "mgmt_fee_payment": "MANAGER_INSTRUCTION",
+          "custody_fee_payment": "MANAGER_INSTRUCTION",
+          "custodian_type": "证券公司"
+        },
+        "兴业证券股份有限公司": {
+          "directory_order": 25,
+          "jurisdiction": "福建",
+          "address": "福建省福州市湖东路268号",
+          "office_address": "上海市浦东新区长柳路36号丁香国际商业中心东塔11楼",
+          "legal_rep": "苏军良",
+          "established": "2000年05月19日",
+          "approval_no": "证监机构字【2000】52号",
+          "org_form": "股份有限公司",
+          "registered_capital": "863598.7294万元人民币",
+          "custody_license": "证监许可【2014】1170号",
+          "payment_method": "",
+          "mgmt_fee_payment_method": "",
+          "custody_fee_payment_method": "",
+          "mgmt_fee_payment_text": "基金管理费每日计提，逐日累计至每月月末，按月支付，由基金管理人向基金托管人发送基金管理费划付指令，基金托管人复核后于次月前5个工作日内从基金财产中一次性支付给基金管理人。若遇法定节假日、休息日或不可抗力致使无法按时支付的，顺延至最近可支付日支付。",
+          "custody_fee_payment_text": "基金托管费每日计提，逐日累计至每月月末，按月支付，由基金管理人向基金托管人发送基金托管费划付指令，基金托管人复核后于次月前5个工作日内从基金财产中一次性收取。若遇法定节假日、休息日或不可抗力致使无法按时支付的，顺延至最近可支付日支付。",
+          "payment_method_source": "新华科技优选混合型发起式证券投资基金招募说明书“基金费用计提方法、计提标准和支付方式”章节（外部检索补录）",
+          "has_aml": false,
+          "has_special_transfer": false,
+          "mgmt_fee_payment": "MGMT_ETF_1463D5FEA6",
+          "custody_fee_payment": "CUSTODY_ETF_FDEE2B1A5D",
+          "custodian_type": "证券公司"
+        },
+        "中信建投证券股份有限公司": {
+          "directory_order": 26,
+          "jurisdiction": "北京",
+          "address": "北京市朝阳区安立路66号4号楼",
+          "office_address": null,
+          "legal_rep": "刘成",
+          "established": "2005年11月02日",
+          "approval_no": "中国证监会证监机构字[2005]112号",
+          "org_form": "股份有限公司",
+          "registered_capital": "人民币775669.4797万元",
+          "custody_license": "中国证监会证监许可[2015]219号",
+          "payment_method": "INSTRUCTION",
+          "mgmt_fee_payment_method": "INSTRUCTION",
+          "custody_fee_payment_method": "INSTRUCTION",
+          "payment_method_source": "招募说明书“基金的费用与税收”章节",
+          "has_aml": false,
+          "has_special_transfer": false,
+          "mgmt_fee_payment": "INSTRUCTION",
+          "custody_fee_payment": "INSTRUCTION",
+          "custodian_type": "证券公司"
+        },
+        "中泰证券股份有限公司": {
+          "directory_order": 27,
+          "jurisdiction": "山东",
+          "address": "济南市高新区经十路7000号汉峪金融商务中心五区3号楼",
+          "office_address": "山东省济南市经十路7000号汉峪金融商务中心五区3号楼35层",
+          "legal_rep": "王洪",
+          "established": "2001年05月15日",
+          "approval_no": "中国证监会证监机构字【2001】69号",
+          "org_form": "股份有限公司",
+          "registered_capital": "791834.0996万元人民币",
+          "custody_license": "中国证监会证监许可[2015]3037号",
+          "payment_method": "",
+          "mgmt_fee_payment_method": "",
+          "custody_fee_payment_method": "",
+          "mgmt_fee_payment_text": "基金管理费每日计算，逐日累计至每月月末，按月支付，基金管理人与基金托管人核对后，由基金托管人于次月前5个工作日内按照与基金管理人协商一致的方式从基金财产中一次性支付给基金管理人。若遇法定节假日、公休日或不可抗力等，支付日期顺延。",
+          "custody_fee_payment_text": "基金托管费每日计算，逐日累计至每月月末，按月支付，基金管理人与基金托管人核对后，由基金托管人于次月前5个工作日内按照与基金管理人协商一致的方式从基金财产中一次性支取。若遇法定节假日、公休日或不可抗力等，支付日期顺延。",
+          "payment_method_source": "鹏华创业板新能源交易型开放式指数证券投资基金发起式联接基金招募说明书“基金费用计提方法、计提标准和支付方式”章节（外部检索补录）",
+          "has_aml": false,
+          "has_special_transfer": false,
+          "mgmt_fee_payment": "MGMT_ETF_FA587D8547",
+          "custody_fee_payment": "CUSTODY_ETF_DB80E9AC9D",
+          "custodian_type": "证券公司"
+        },
+        "国投证券股份有限公司": {
+          "directory_order": 28,
+          "jurisdiction": "深圳",
+          "address": "深圳市福田区福华一路119号安信金融大厦15层",
+          "office_address": "",
+          "legal_rep": "王苏望",
+          "established": "2006年8月22日",
+          "approval_no": "中国证监会证监机构字[2006]197号",
+          "org_form": "股份有限公司",
+          "registered_capital": "100亿元人民币",
+          "custody_license": "证监许可[2018]1549号",
+          "payment_method": "",
+          "mgmt_fee_payment_method": "",
+          "custody_fee_payment_method": "",
+          "mgmt_fee_payment_text": "基金管理费每日计提，逐日累计至每月月末，按月支付，由基金托管人根据与基金管理人核对一致的财务数据，自动在月初5个工作日内、按照指定的账户路径进行资金支付，基金管理人无需再出具资金划拨指令。若遇法定节假日、公休日等，支付日期顺延至最近可支付日支付。",
+          "custody_fee_payment_text": "基金托管费每日计提，逐日累计至每月月末，按月支付，由基金托管人根据与基金管理人核对一致的财务数据，自动在月初5个工作日内、按照指定的账户路径进行资金支付，基金管理人无需再出具资金划拨指令。若遇法定节假日、公休日等，支付日期顺延至最近可支付日支付。",
+          "payment_method_source": "博时中证工业有色金属主题交易型开放式指数证券投资基金招募说明书“基金费用计提方法、计提标准和支付方式”章节（外部检索补录）",
+          "has_aml": false,
+          "has_special_transfer": false,
+          "mgmt_fee_payment": "MGMT_ETF_6211E6BF63",
+          "custody_fee_payment": "CUSTODY_ETF_6211E6BF63",
+          "custodian_type": "证券公司"
+        },
+        "东方证券股份有限公司": {
+          "directory_order": 29,
+          "jurisdiction": "上海",
+          "address": "中国上海市黄浦区中山南路119号东方证券大厦",
+          "office_address": "中国上海市黄浦区中山南路318号2号楼3层",
+          "legal_rep": "鲁伟铭（代）",
+          "established": "1997年12月10日",
+          "approval_no": "中国人民银行银复[1997]329号",
+          "org_form": "股份有限公司（外商投资、上市）",
+          "registered_capital": "849,664.5292万元",
+          "custody_license": "中国证监会证监许可[2018]1686号",
+          "payment_method": "",
+          "mgmt_fee_payment_method": "",
+          "custody_fee_payment_method": "",
+          "mgmt_fee_payment_text": "基金管理费每日计提，逐日累计至每月月末，按月支付。经基金管理人与基金托管人双方核对无误后，基金托管人按照与基金管理人协商一致的方式于次月前5个工作日内从基金财产中一次性支付，基金管理人无需再出具资金划拨指令。若遇法定节假日、公休假或不可抗力等，支付日期顺延。",
+          "custody_fee_payment_text": "基金托管费每日计提，逐日累计至每月月末，按月支付。经基金管理人与基金托管人双方核对无误后，基金托管人按照与基金管理人协商一致的方式于次月前5个工作日内从基金财产中一次性支取，基金管理人无需再出具资金划拨指令。若遇法定节假日、公休假或不可抗力等，支付日期顺延。",
+          "payment_method_source": "国泰上证科创板人工智能交易型开放式指数证券投资基金发起式联接基金招募说明书“基金费用计提方法、计提标准和支付方式”章节（外部检索补录）",
+          "has_aml": false,
+          "has_special_transfer": false,
+          "mgmt_fee_payment": "MGMT_ETF_9B405CB017",
+          "custody_fee_payment": "CUSTODY_ETF_A0993389E4",
+          "custodian_type": "证券公司"
+        },
+        "申万宏源证券有限公司": {
+          "directory_order": 30,
+          "jurisdiction": "上海",
+          "address": "上海市徐汇区长乐路989号45层",
+          "office_address": "北京市西城区太平桥大街19号恒奥中心B座",
+          "legal_rep": "张剑",
+          "established": "2015年01月16日",
+          "approval_no": "中国证监会证监许可[2015]95号",
+          "org_form": "有限责任公司",
+          "registered_capital": "5350000.00万人民币",
+          "custody_license": "《关于核准申万宏源证券有限公司证券投资基金托管资格的批复》（证监许可（2019）1165号）",
+          "payment_method": "",
+          "mgmt_fee_payment_method": "",
+          "custody_fee_payment_method": "",
+          "mgmt_fee_payment_text": "基金管理费每日计提，逐日累计至每个月月末，按月支付。由基金托管人根据与基金管理人核对一致的财务数据，自动在月初5个工作日内、按照指定的账户路径从基金财产中一次性支付给基金管理人。若遇法定节假日、公休假等，支付日期顺延。费用自动扣划后，基金管理人应进行核对，如发现数据不符，及时联系基金托管人协商解决。",
+          "custody_fee_payment_text": "基金托管费每日计提，逐日累计至每个月月末，按月支付。由基金托管人根据与基金管理人核对一致的财务数据，自动在月初5个工作日内、按照指定的账户路径从基金资产中一次性支付给基金托管人。若遇法定节假日、公休假等，支付日期顺延。费用自动扣划后，基金管理人应进行核对，如发现数据不符，及时联系基金托管人协商解决。",
+          "payment_method_source": "汇丰晋信创新先锋股票型证券投资基金更新招募说明书（2025年第1号）“基金费用计提方法、计提标准和支付方式”章节（外部检索补录）",
+          "has_aml": false,
+          "has_special_transfer": false,
+          "mgmt_fee_payment": "MGMT_ETF_0377650382",
+          "custody_fee_payment": "CUSTODY_ETF_912574F059",
+          "custodian_type": "证券公司"
+        },
+        "长城证券股份有限公司": {
+          "directory_order": 31,
+          "jurisdiction": "深圳",
+          "address": "广东省深圳市福田区福田街道金田路2026号能源大厦南塔楼10-19层",
+          "office_address": "广东省深圳市福田区深南大道6008号特区报业大厦16楼",
+          "legal_rep": "王军",
+          "established": "1996年05月02日",
+          "approval_no": "中国人民银行银复[1995]417号",
+          "org_form": "股份有限公司",
+          "registered_capital": "4,034,426,956元人民币",
+          "custody_license": "证监许可[2020]2235号",
+          "payment_method": "",
+          "mgmt_fee_payment_method": "",
+          "custody_fee_payment_method": "",
+          "mgmt_fee_payment_text": "基金管理费每日计提，逐日累计至每月月末，按月支付。由基金管理人向基金托管人发送基金管理费划款指令，基金托管人复核后于次月前5个工作日内从基金财产中一次性支付给基金管理人。若遇法定节假日、公休日或不可抗力等，支付日期顺延。",
+          "custody_fee_payment_text": "基金托管费每日计提，逐日累计至每月月末，按月支付。由基金管理人向基金托管人发送基金托管费划款指令，基金托管人复核后于次月前5个工作日内从基金财产中一次性支取。若遇法定节假日、公休日或不可抗力等，支取日期顺延。",
+          "payment_method_source": "鹏华上证科创板芯片设计主题交易型开放式指数证券投资基金招募说明书“基金费用计提方法、计提标准和支付方式”章节（外部检索补录）",
+          "has_aml": false,
+          "has_special_transfer": false,
+          "mgmt_fee_payment": "MGMT_ETF_E0C1A223F6",
+          "custody_fee_payment": "CUSTODY_ETF_CC910A3978",
+          "custodian_type": "证券公司"
+        },
+        "长江证券股份有限公司": {
+          "directory_order": 32,
+          "jurisdiction": "湖北",
+          "address": "湖北省武汉市江汉区淮海路88号",
+          "office_address": "湖北省武汉市江汉区淮海路88号",
+          "legal_rep": "刘正斌",
+          "established": "1997年7月24日",
+          "approval_no": "中国人民银行银复[1997]221号",
+          "org_form": "股份有限公司",
+          "registered_capital": "伍拾伍亿贰仟玖佰玖拾伍万柒仟肆佰柒拾玖圆整人民币",
+          "custody_license": "证监许可【2020】3366号",
+          "payment_method": "",
+          "mgmt_fee_payment_method": "",
+          "custody_fee_payment_method": "",
+          "mgmt_fee_payment_text": "基金管理费每日计提，逐日累计至每个月月末，按月支付。经基金管理人与基金托管人核对一致后，由基金托管人于次月首日起5个工作日内从基金财产中一次性支付给基金管理人。若遇法定节假日、公休假等，支付日期顺延。",
+          "custody_fee_payment_text": "基金托管费每日计提，逐日累计至每月月末，按月支付，由基金管理人向基金托管人发送基金托管费划款指令，基金托管人复核后于次月前5个工作日内从基金财产中一次性支取。若遇法定节假日、公休日等，支付日期顺延。",
+          "payment_method_source": "华夏上证科创板半导体材料设备主题交易型开放式指数证券投资基金发起式联接基金招募说明书“基金费用计提方法、计提标准和支付方式”章节（外部检索补录）",
+          "has_aml": false,
+          "has_special_transfer": false,
+          "mgmt_fee_payment": "MGMT_ETF_6F4681CCBC",
+          "custody_fee_payment": "CUSTODY_ETF_ADD967F596",
+          "custodian_type": "证券公司"
+        },
+        "浙商证券股份有限公司": {
+          "directory_order": 33,
+          "jurisdiction": "浙江",
+          "address": "杭州市上城区五星路201号",
+          "office_address": "杭州市上城区五星路201号",
+          "legal_rep": "吴承根",
+          "established": "2002年5月9日",
+          "approval_no": "中国证监会证监机构字[2002]104号",
+          "org_form": "股份有限公司",
+          "registered_capital": "38.7817亿元人民币",
+          "custody_license": "中国证券监督管理委员会证监许可[2021]3096号《关于核准浙商证券股份有限公司证券投资基金托管资格的批复》",
+          "payment_method": "",
+          "mgmt_fee_payment_method": "",
+          "custody_fee_payment_method": "",
+          "mgmt_fee_payment_text": "基金管理费每日计提，按月支付。由基金托管人根据与基金管理人核对一致的财务数据，自动在月初首日起5个工作日内、按照指定的账户路径进行资金支付，基金管理人无需再出具资金划拨指令。若遇法定节假日、休息日等，支付日期顺延。费用自动扣划后，基金管理人应进行核对，如发现数据不符，及时联系基金托管人协商解决。",
+          "custody_fee_payment_text": "基金托管费每日计提，按月支付。由基金托管人根据与基金管理人核对一致的财务数据，自动在月初首日起5个工作日内、按照指定的账户路径进行资金支付，基金管理人无需再出具资金划拨指令。若遇法定节假日、休息日等，支付日期顺延。费用自动扣划后，基金管理人应进行核对，如发现数据不符，及时联系基金托管人协商解决。",
+          "payment_method_source": "万家中证人工智能主题交易型开放式指数证券投资基金招募说明书“基金费用计提方法、计提标准和支付方式”章节（外部检索补录）",
+          "has_aml": false,
+          "has_special_transfer": false,
+          "mgmt_fee_payment": "MGMT_ETF_2316807708",
+          "custody_fee_payment": "CUSTODY_ETF_2316807708",
+          "custodian_type": "证券公司"
+        },
+        "东方财富证券股份有限公司": {
+          "directory_order": 34,
+          "jurisdiction": "西藏",
+          "address": "西藏自治区拉萨市城关区柳梧新区国际总部城10栋楼",
+          "office_address": "上海市静安区永和路118弄东方环球企业中心24号楼5楼（基金托管部）",
+          "legal_rep": "戴彦",
+          "established": "2000年3月7日",
+          "approval_no": "中国证券监督管理委员会证监机构字[2000]27号",
+          "org_form": "股份有限公司",
+          "registered_capital": "121亿元人民币",
+          "custody_license": "证监许可〔2022〕1134号",
+          "payment_method": "",
+          "mgmt_fee_payment_method": "",
+          "custody_fee_payment_method": "",
+          "mgmt_fee_payment_text": "基金管理费每日计提，逐日累计至每月月末，按月支付。由基金托管人根据与基金管理人核对一致的财务数据，自动在月初5个工作日内、按照指定的账户路径进行资金支付，基金管理人无需再出具资金划拨指令。若遇法定节假日、休息日等，支付日期顺延。费用自动扣划后，基金管理人应进行核对，如发现数据不符，及时联系基金托管人协商解决。",
+          "custody_fee_payment_text": "基金托管费每日计提，逐日累计至每月月末，按月支付。由基金托管人根据与基金管理人核对一致的财务数据，自动在月初5个工作日内、按照指定的账户路径进行资金支付，基金管理人无需再出具资金划拨指令。若遇法定节假日、休息日等，支付日期顺延。费用自动扣划后，基金管理人应进行核对，如发现数据不符，及时联系基金托管人协商解决。",
+          "payment_method_source": "华富淳信稳健3个月持有期混合型基金中基金（ETF-FOF）招募说明书“基金费用计提方法、计提标准和支付方式”章节（外部检索补录）",
+          "has_aml": false,
+          "has_special_transfer": false,
+          "mgmt_fee_payment": "MGMT_ETF_0EE89A0AAD",
+          "custody_fee_payment": "CUSTODY_ETF_0EE89A0AAD",
+          "custodian_type": "证券公司"
+        }
+      }
+    },
+    "INITIATING_FUND_DEFINITIONS": {
+        "description": "发起式基金、发起资金、发起资金提供方释义，由代码迁移至条款库。",
+        "variants": {
+            "DEFAULT": {
+                "terms": [
+                    "发起式基金：指符合《运作办法》和中国证监会规定的相关条件而募集、运作，由基金管理人、基金管理人股东、基金管理人高级管理人员或基金经理（指基金管理人员工中依法具有基金经理资格者，包括但不限于本基金的基金经理，同时也可以包括基金经理之外的投研人员，下同）等人员承诺认购一定金额并持有一定期限的证券投资基金",
+                    "发起资金：指基金管理人股东资金、基金管理人固有资金、基金管理人高级管理人员或者基金经理等人员参与认购的资金。发起资金认购本基金的金额不低于1000万元，且发起资金认购的基金份额持有期限不低于三年",
+                    "发起资金提供方：指以发起资金认购本基金且承诺以发起资金认购的基金份额持有期限不少于三年的基金管理人股东、基金管理人、基金管理人高级管理人员或基金经理等人员"
+                ]
+            }
+        }
+    },
+    "INVESTMENT_SCOPE_TEXT": {
+        "description": "第十二部分/基金财产投资范围正文，由代码迁移至条款库。",
+        "variants": {
+            "STANDARD": {
+                "condition": "HAS_HK_CONNECT=false && IS_KECHUANG_FUND=false",
+                "text": "本基金主要投资于目标ETF基金份额、标的指数成份股、备选成份股（含存托凭证）。为更好地实现投资目标，本基金可少量投资于非成份股（包含主板、创业板、科创板及其他经中国证监会核准或注册发行的股票、存托凭证）、金融衍生品（股指期货、股票期权等）、债券（包括国债、金融债、企业债、公司债、政府机构债券、地方政府债券、次级债、可转换债券、可交换债券、央行票据、中期票据、短期融资券、超短期融资券等）、资产支持证券、债券回购、银行存款（包括协议存款、定期存款及其他银行存款）、同业存单、货币市场工具以及法律法规或中国证监会允许基金投资的其他金融工具（但须符合中国证监会的相关规定）。"
+            },
+            "KECHUANG": {
+                "condition": "HAS_HK_CONNECT=false && IS_KECHUANG_FUND=true",
+                "text": "本基金主要投资于目标ETF基金份额、标的指数成份股、备选成份股（含存托凭证）。为更好地实现投资目标，本基金可少量投资于非成份股（包含主板、科创板、创业板及其他经中国证监会核准或注册发行的股票、存托凭证）、金融衍生品（股指期货、股票期权等）、债券（包括国债、金融债、企业债、公司债、政府机构债券、地方政府债券、次级债、可转换债券、可交换债券、央行票据、中期票据、短期融资券、超短期融资券等）、资产支持证券、债券回购、银行存款（包括协议存款、定期存款及其他银行存款）、同业存单、货币市场工具以及法律法规或中国证监会允许基金投资的其他金融工具（但须符合中国证监会的相关规定）。"
+            },
+            "HK_CONNECT": {
+                "condition": "HAS_HK_CONNECT=true",
+                "text": "本基金主要投资于目标ETF基金份额、标的指数成份股、备选成份股（包含内地与香港股票市场交易互联互通机制允许买卖的规定范围内的香港联合交易所上市的股票（简称“港股通股票”）、存托凭证，下同）。为更好地实现投资目标，本基金可少量投资于非成份股（包含主板、创业板、科创板及其他经中国证监会核准或注册发行的股票、港股通股票、存托凭证）、金融衍生品（股指期货、股票期权等）、债券（包括国债、金融债、企业债、公司债、政府机构债券、地方政府债券、次级债、可转换债券、可交换债券、央行票据、中期票据、短期融资券、超短期融资券等）、资产支持证券、债券回购、银行存款（包括协议存款、定期存款及其他银行存款）、同业存单、货币市场工具以及法律法规或中国证监会允许基金投资的其他金融工具（但须符合中国证监会的相关规定）。"
+            }
+        }
+    },
+    "COMPONENT_STOCK_STRATEGY": {
+        "description": "成份股、备选成份股投资策略，由代码迁移至条款库。",
+        "variants": {
+            "STANDARD": {
+                "condition": "HAS_HK_CONNECT=false",
+                "text": "本基金对成份股、备选成份股的投资目的是为准备构建股票组合以申购目标ETF。因此对可投资于成份股、备选成份股的资金头寸，主要采取完全复制法，即按照标的指数的成份股组成及其权重构建基金股票投资组合，并根据标的指数成份股及其权重的变动而进行相应调整。但在因特殊情况（如流动性不足等）导致无法获得足够数量的股票时，基金管理人将搭配使用其他合理方法进行适当的替代。"
+            },
+            "HK_CONNECT": {
+                "condition": "HAS_HK_CONNECT=true",
+                "text": "本基金可以通过投资成份股、备选成份股以跟踪标的指数，在条件允许的情况下也可以通过投资成份股、备选成份股构建股票组合以申购目标ETF。因此对可投资于成份股、备选成份股的资金头寸，主要采取完全复制法，即按照标的指数的成份股组成及其权重构建基金股票投资组合，并根据标的指数成份股及其权重的变动而进行相应调整。但在因特殊情况（如流动性不足等）导致无法获得足够数量的股票时，基金管理人将搭配使用其他合理方法进行适当的替代。"
+            }
+        }
+    },
+    "RISK_RETURN_CHARACTERISTICS": {
+        "description": "风险收益特征正文，由代码迁移至条款库。",
+        "variants": {
+            "BASE": {
+                "text": "本基金的目标ETF为股票型基金，一般而言，其长期平均风险与预期收益高于混合型基金、债券型基金与货币市场基金。本基金为ETF联接基金，通过投资于目标ETF跟踪标的指数表现，具有与标的指数以及标的指数所代表的市场相似的风险收益特征。"
+            },
+            "CHUANGYE": {
+                "text": "本基金的目标ETF为股票型基金，一般而言，其长期平均风险与预期收益高于混合型基金、债券型基金与货币市场基金。本基金为ETF联接基金，通过投资于目标ETF跟踪标的指数表现，具有与标的指数以及标的指数所代表的市场相似的风险收益特征。本基金投资创业板股票，会面临创业板机制下因投资标的、市场制度以及交易规则等差异带来的特有风险，包括流动性风险、退市风险和投资集中风险等。"
+            },
+            "KECHUANG": {
+                "text": "本基金的目标ETF为股票型基金，一般而言，其长期平均风险与预期收益高于混合型基金、债券型基金与货币市场基金。本基金为ETF联接基金，通过投资于目标ETF跟踪标的指数表现，具有与标的指数以及标的指数所代表的市场相似的风险收益特征。本基金投资于科创板股票，会面临科创板机制下因投资标的、市场制度以及交易规则等差异带来的特有风险，包括股价波动风险、流动性风险、退市风险和投资集中风险等。"
+            },
+            "HK_CONNECT": {
+                "text": "本基金的目标ETF为股票型基金，一般而言，其长期平均风险与预期收益高于混合型基金、债券型基金与货币市场基金。本基金为ETF联接基金，通过投资于目标ETF跟踪标的指数表现，具有与标的指数以及标的指数所代表的市场相似的风险收益特征。本基金投资港股通股票，除了承担与境内证券投资基金类似的市场波动风险等一般投资风险之外，还面临汇率风险和港股通机制下因投资环境、投资标的、市场制度以及交易规则等差异带来的特有风险。"
+            },
+            "HK_CHUANGYE_KECHUANG": {
+                "text": "本基金的目标ETF为股票型基金，一般而言，其长期平均风险与预期收益高于混合型基金、债券型基金与货币市场基金。本基金为ETF联接基金，通过投资于目标ETF跟踪标的指数表现，具有与标的指数以及标的指数所代表的市场相似的风险收益特征。本基金投资港股通股票，除了承担与境内证券投资基金类似的市场波动风险等一般投资风险之外，还面临汇率风险和港股通机制下因投资环境、投资标的、市场制度以及交易规则等差异带来的特有风险。"
+            }
+        }
+    }
+
+  }
+}
