@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "英读助手导入器",
+  "description": "将当前英文网页保存到英读助手，生成双语精读、生词表和地道表达表。",
+  "version": "0.1.0",
+  "action": {
+    "default_title": "保存到英读助手",
+    "default_popup": "popup.html"
+  },
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": ["<all_urls>"]
+}

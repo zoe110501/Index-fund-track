@@ -1,0 +1,55 @@
+{
+  "version": "1.0",
+  "last_updated": "2026-05-20",
+  "organizations": {
+    "managers": [
+      {
+        "name": "南方基金管理股份有限公司",
+        "address": "深圳市福田区莲花街道益田路5999号基金大厦32-42楼",
+        "legal_representative": "周易",
+        "established": "1998年3月6日",
+        "registered_capital": "3.6172亿元人民币",
+        "website": "www.nffund.com",
+        "service_hotline": "400-889-8899"
+      }
+    ],
+    "custodians": [
+      {
+        "name": "中国工商银行股份有限公司",
+        "type": "商业银行",
+        "address": "北京市西城区复兴门内大街55号",
+        "legal_representative": "廖林",
+        "established": "1984年1月1日",
+        "registered_capital": "人民币35,640,625.71万元",
+        "custody_license": "中国证监会和中国人民银行证监基字【1998】3号",
+        "mgmt_fee_payment_method": "AUTO_V2",
+        "custody_fee_payment_method": "AUTO_V2"
+      },
+      {
+        "name": "招商银行股份有限公司",
+        "type": "商业银行",
+        "address": "",
+        "legal_representative": "",
+        "established": "",
+        "registered_capital": "",
+        "custody_license": "",
+        "mgmt_fee_payment_method": "",
+        "custody_fee_payment_method": ""
+      }
+    ],
+    "accounting_firms": [
+      {
+        "name": "",
+        "profile": "",
+        "certified_accountants": []
+      }
+    ],
+    "law_firms": [
+      {
+        "name": "",
+        "profile": "",
+        "lawyers": []
+      }
+    ]
+  }
+}
