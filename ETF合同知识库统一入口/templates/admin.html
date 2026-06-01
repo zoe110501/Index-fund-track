@@ -1,0 +1,1162 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>维护后台 · 合同知识库工作台</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%23212a36'/%3E%3Cpath d='M14 18h36v6H14zm0 11h28v6H14zm0 11h36v6H14z' fill='%230f766e'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f6f8;
+      --surface: #ffffff;
+      --surface-soft: #f9fafb;
+      --surface-strong: #eef3f7;
+      --ink: #17202a;
+      --muted: #667386;
+      --subtle: #8b97a7;
+      --line: #dce3eb;
+      --line-strong: #c7d2df;
+      --navy: #202a37;
+      --teal: #0f766e;
+      --blue: #315f9c;
+      --gold: #b8892f;
+      --red: #b42318;
+      --green: #16825d;
+      --shadow: 0 16px 42px rgba(31, 42, 55, 0.08);
+      font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button,
+    a {
+      color: inherit;
+    }
+
+    a {
+      text-decoration: none;
+    }
+
+    .admin-shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 244px minmax(0, 1fr);
+    }
+
+    .sidebar {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 18px;
+      padding: 18px 14px;
+      background: var(--navy);
+      color: #eef2f7;
+    }
+
+    .brand {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      padding: 0 8px 18px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .brand-mark {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.10);
+      color: #f8d58a;
+      font-size: 12px;
+      font-weight: 800;
+      flex: 0 0 auto;
+    }
+
+    .brand strong {
+      display: block;
+      font-size: 17px;
+      line-height: 1.25;
+    }
+
+    .brand span {
+      display: block;
+      margin-top: 3px;
+      color: #a9b3c1;
+      font-size: 12px;
+    }
+
+    .nav {
+      display: grid;
+      align-content: start;
+      gap: 8px;
+    }
+
+    .nav button {
+      width: 100%;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 0 12px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      background: transparent;
+      color: #dce4ee;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .nav button span {
+      color: #9aa6b8;
+      font-size: 12px;
+    }
+
+    .nav button.active,
+    .nav button:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.09);
+      color: #ffffff;
+    }
+
+    .sidebar-foot {
+      display: grid;
+      gap: 8px;
+      padding: 12px 8px 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      color: #a9b3c1;
+      font-size: 12px;
+    }
+
+    .workspace {
+      min-width: 0;
+      display: grid;
+      grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface);
+    }
+
+    .topbar h1 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    .topbar p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .top-actions,
+    .toolbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .button,
+    select,
+    input[type="search"] {
+      min-height: 36px;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--ink);
+      padding: 0 12px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .button.primary {
+      border-color: var(--teal);
+      background: var(--teal);
+      color: #ffffff;
+    }
+
+    .button.danger {
+      border-color: rgba(180, 35, 24, 0.28);
+      color: var(--red);
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1px;
+      background: var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .metric {
+      min-height: 78px;
+      padding: 14px 18px;
+      background: var(--surface-soft);
+    }
+
+    .metric b {
+      display: block;
+      font-size: 24px;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: minmax(260px, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 24px;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface);
+    }
+
+    .search-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    input[type="search"] {
+      width: min(480px, 100%);
+    }
+
+    .content {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(360px, 430px);
+      gap: 16px;
+      padding: 16px 24px;
+    }
+
+    .panel {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      min-height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface-soft);
+    }
+
+    .panel-head strong {
+      font-size: 15px;
+    }
+
+    .count,
+    .hint {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .table-wrap {
+      max-height: calc(100vh - 302px);
+      overflow: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th,
+    td {
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #f8fafc;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    tr[data-selectable] {
+      cursor: pointer;
+    }
+
+    tr[data-selectable]:hover td {
+      background: #fbfcfd;
+    }
+
+    tr.selected td {
+      background: rgba(15, 118, 110, 0.08);
+    }
+
+    td {
+      word-break: break-word;
+    }
+
+    .path-text {
+      max-width: 360px;
+      color: #3a4858;
+      font-family: Consolas, "SF Mono", monospace;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 0 8px;
+      border-radius: 999px;
+      background: var(--surface-strong);
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .inspector {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      min-height: 0;
+    }
+
+    .form-scroll {
+      overflow: auto;
+      max-height: calc(100vh - 302px);
+      padding: 14px;
+    }
+
+    .empty {
+      min-height: 220px;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.7;
+      padding: 24px;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+      margin-bottom: 12px;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .field input,
+    .field select,
+    .field textarea {
+      width: 100%;
+      min-height: 38px;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      padding: 8px 10px;
+    }
+
+    .field textarea {
+      min-height: 84px;
+      resize: vertical;
+      line-height: 1.55;
+    }
+
+    .check-field {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-height: 38px;
+    }
+
+    .check-field input {
+      width: 16px;
+      height: 16px;
+    }
+
+    .json-panel {
+      margin: 0 24px 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      overflow: hidden;
+    }
+
+    .json-panel summary {
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      cursor: pointer;
+      font-weight: 700;
+      background: var(--surface-soft);
+    }
+
+    .json-tools {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 10px 12px;
+      border-top: 1px solid var(--line);
+      background: var(--surface-soft);
+    }
+
+    #json-editor {
+      width: 100%;
+      min-height: 260px;
+      display: block;
+      border: 0;
+      outline: 0;
+      resize: vertical;
+      padding: 14px;
+      color: #111827;
+      background: #fbfcfd;
+      font-family: Consolas, "SF Mono", monospace;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .message {
+      min-height: 28px;
+      display: flex;
+      align-items: center;
+      padding: 0 24px 16px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .message.error { color: var(--red); }
+    .message.ok { color: var(--green); }
+
+    @media (max-width: 1120px) {
+      .content {
+        grid-template-columns: 1fr;
+      }
+
+      .table-wrap,
+      .form-scroll {
+        max-height: none;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .admin-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        grid-template-rows: auto auto;
+      }
+
+      .sidebar-foot {
+        display: none;
+      }
+
+      .nav {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 640px) {
+      .topbar,
+      .toolbar {
+        align-items: stretch;
+        grid-template-columns: 1fr;
+        flex-direction: column;
+      }
+
+      .topbar {
+        display: flex;
+        padding: 16px;
+      }
+
+      .top-actions,
+      .toolbar-actions,
+      .search-row {
+        width: 100%;
+        justify-content: stretch;
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .toolbar,
+      .content {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+
+      .json-panel {
+        margin-left: 12px;
+        margin-right: 12px;
+      }
+
+      .button,
+      select,
+      input[type="search"] {
+        width: 100%;
+      }
+
+      .metrics {
+        grid-template-columns: 1fr;
+      }
+
+      .nav {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="admin-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">ADM</div>
+        <div>
+          <strong>维护后台</strong>
+          <span>模板、变量、机构</span>
+        </div>
+      </div>
+
+      <nav class="nav" aria-label="维护后台导航">
+        <button class="active" data-section="templates">模板资产 <span id="nav-count-templates">0</span></button>
+        <button data-section="variables">变量注册表 <span id="nav-count-variables">0</span></button>
+        <button data-section="organizations">机构主数据 <span id="nav-count-organizations">0</span></button>
+      </nav>
+
+      <div class="sidebar-foot">
+        <span>保存草稿时会自动备份旧版本。</span>
+        <span>发布生效流程后续接入。</span>
+      </div>
+    </aside>
+
+    <section class="workspace">
+      <header class="topbar">
+        <div>
+          <h1 id="page-title">模板资产</h1>
+          <p id="page-subtitle">维护正文模板、DOCX 底稿、规则表和素材库。</p>
+        </div>
+        <div class="top-actions">
+          <a class="button" href="/">返回入口</a>
+          <button class="button" id="reload">刷新</button>
+          <button class="button primary" id="save">保存草稿</button>
+        </div>
+      </header>
+
+      <section class="metrics" id="metrics" aria-label="当前数据概览"></section>
+
+      <section class="toolbar">
+        <div class="search-row">
+          <input id="search" type="search" placeholder="搜索名称、变量、路径">
+          <select id="system-filter" aria-label="系统筛选">
+            <option value="all">全部系统</option>
+            <option value="etf">ETF</option>
+            <option value="linked">ETF联接</option>
+          </select>
+        </div>
+        <div class="toolbar-actions">
+          <button class="button" id="add-row">新增</button>
+          <button class="button danger" id="delete-row">删除当前项</button>
+        </div>
+      </section>
+
+      <section class="content">
+        <section class="panel">
+          <div class="panel-head">
+            <strong id="table-title">模板资产</strong>
+            <span class="count" id="row-count">0 项</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead id="table-head"></thead>
+              <tbody id="table-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <aside class="panel inspector">
+          <div class="panel-head">
+            <strong id="detail-title">选择一项</strong>
+            <span class="hint" id="detail-hint">右侧编辑</span>
+          </div>
+          <div class="form-scroll" id="detail-form">
+            <div class="empty">从左侧列表选择一项。</div>
+          </div>
+        </aside>
+      </section>
+
+      <details class="json-panel">
+        <summary>高级 JSON 草稿</summary>
+        <textarea id="json-editor" spellcheck="false"></textarea>
+        <div class="json-tools">
+          <button class="button" id="apply-json">应用 JSON 到表格</button>
+          <button class="button primary" id="save-json">保存 JSON</button>
+        </div>
+      </details>
+
+      <div class="message" id="message">等待加载</div>
+    </section>
+  </main>
+
+  <script>
+    const bucketLabels = {
+      managers: "管理人",
+      custodians: "托管人",
+      accounting_firms: "会计师事务所",
+      law_firms: "律师事务所"
+    };
+
+    const sections = {
+      templates: {
+        title: "模板资产",
+        subtitle: "维护正文模板、DOCX 底稿、规则表和素材库。",
+        dataKey: "templates",
+        rows: data => (data.templates || []).map((row, index) => ({ ...row, __index: index })),
+        columns: [
+          ["label", "名称"],
+          ["system", "系统"],
+          ["kind", "类型"],
+          ["path", "来源路径"],
+          ["managed_path", "发布路径"]
+        ],
+        fields: () => [
+          { key: "id", label: "ID" },
+          { key: "label", label: "名称" },
+          { key: "system", label: "系统", type: "select", options: ["etf", "linked"] },
+          { key: "kind", label: "类型" },
+          { key: "path", label: "来源路径", type: "textarea" },
+          { key: "managed_path", label: "发布路径", type: "textarea" },
+          { key: "required_variables", label: "必填变量", type: "list" },
+          { key: "variant", label: "适用变体" },
+          { key: "selection_rule", label: "选择规则", type: "textarea" }
+        ],
+        create: () => ({
+          id: `template_${Date.now()}`,
+          system: "etf",
+          kind: "text_template",
+          label: "新模板资产",
+          path: "",
+          managed_path: "",
+          required_variables: []
+        })
+      },
+      variables: {
+        title: "变量注册表",
+        subtitle: "登记模板可使用的变量、字段类型和适用系统。",
+        dataKey: "variables",
+        rows: data => (data.variables || []).map((row, index) => ({ ...row, __index: index })),
+        columns: [
+          ["name", "变量名"],
+          ["label", "标签"],
+          ["type", "类型"],
+          ["required", "必填"],
+          ["systems", "系统"]
+        ],
+        fields: () => [
+          { key: "name", label: "变量名" },
+          { key: "label", label: "标签" },
+          { key: "type", label: "类型", type: "select", options: ["string", "text", "boolean", "enum", "organization_ref"] },
+          { key: "required", label: "必填", type: "checkbox" },
+          { key: "systems", label: "适用系统", type: "list" },
+          { key: "default", label: "默认值", type: "textarea" },
+          { key: "source", label: "数据来源" },
+          { key: "description", label: "说明", type: "textarea" }
+        ],
+        create: () => ({
+          name: "NEW_VARIABLE",
+          label: "新变量",
+          type: "string",
+          required: false,
+          systems: ["etf", "linked"]
+        })
+      },
+      organizations: {
+        title: "机构主数据",
+        subtitle: "维护管理人、托管人、会计师事务所和律师事务所资料。",
+        rows: data => Object.entries(data.organizations || {}).flatMap(([bucket, rows]) =>
+          (rows || []).map((row, index) => ({
+            ...row,
+            __bucket: bucket,
+            __bucketLabel: bucketLabels[bucket] || bucket,
+            __index: index
+          }))
+        ),
+        columns: [
+          ["__bucketLabel", "类别"],
+          ["name", "名称"],
+          ["type", "机构类型"],
+          ["legal_representative", "法定代表人"],
+          ["address", "住所"],
+          ["profile", "简介"]
+        ],
+        fields: row => [
+          { key: "__bucketLabel", label: "类别", readonly: true },
+          { key: "name", label: "名称" },
+          { key: "type", label: "机构类型" },
+          { key: "address", label: "住所", type: "textarea" },
+          { key: "office_address", label: "办公地址", type: "textarea" },
+          { key: "legal_representative", label: "法定代表人" },
+          { key: "established", label: "成立日期" },
+          { key: "registered_capital", label: "注册资本" },
+          { key: "custody_license", label: "托管资格批文", type: "textarea" },
+          { key: "website", label: "网站" },
+          { key: "service_hotline", label: "客服电话" },
+          { key: "profile", label: "简介", type: "textarea" },
+          { key: "certified_accountants", label: "经办注册会计师", type: "list" },
+          { key: "lawyers", label: "经办律师", type: "list" }
+        ],
+        create: bucket => ({
+          __bucket: bucket || "managers",
+          name: "",
+          address: "",
+          profile: ""
+        })
+      }
+    };
+
+    let currentSection = "templates";
+    let currentData = null;
+    let selectedRef = null;
+    let sectionCounts = { templates: "-", variables: "-", organizations: "-" };
+
+    const editor = document.getElementById("json-editor");
+    const message = document.getElementById("message");
+    const metrics = document.getElementById("metrics");
+    const tableHead = document.getElementById("table-head");
+    const tableBody = document.getElementById("table-body");
+    const rowCount = document.getElementById("row-count");
+    const systemFilter = document.getElementById("system-filter");
+    const searchInput = document.getElementById("search");
+    const detailForm = document.getElementById("detail-form");
+    const detailTitle = document.getElementById("detail-title");
+    const detailHint = document.getElementById("detail-hint");
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function setMessage(text, kind = "") {
+      message.textContent = text;
+      message.className = `message ${kind}`.trim();
+    }
+
+    function formatCell(value) {
+      if (Array.isArray(value)) return escapeHtml(value.join(", "));
+      if (typeof value === "boolean") return value ? "是" : "否";
+      if (value && typeof value === "object") return escapeHtml(JSON.stringify(value));
+      if (value === undefined || value === null || value === "") return "-";
+      return escapeHtml(value);
+    }
+
+    function stringifyValue(value, type) {
+      if (type === "list") return Array.isArray(value) ? value.join("\n") : (value || "");
+      if (value && typeof value === "object") return JSON.stringify(value, null, 2);
+      return value ?? "";
+    }
+
+    function parseValue(value, type, checked) {
+      if (type === "checkbox") return Boolean(checked);
+      if (type === "list") {
+        return String(value || "")
+          .split(/\n|,/)
+          .map(item => item.trim())
+          .filter(Boolean);
+      }
+      return value;
+    }
+
+    function allRows() {
+      const def = sections[currentSection];
+      return def.rows(currentData || {});
+    }
+
+    function rowMatchesSearch(row) {
+      const query = searchInput.value.trim().toLowerCase();
+      if (!query) return true;
+      return JSON.stringify(row).toLowerCase().includes(query);
+    }
+
+    function filteredRows() {
+      const rows = allRows().filter(rowMatchesSearch);
+      const filter = systemFilter.value;
+      if (filter === "all") return rows;
+      if (currentSection === "organizations") return rows.filter(row => row.__bucket === filter);
+      return rows.filter(row => row.system === filter || (Array.isArray(row.systems) && row.systems.includes(filter)));
+    }
+
+    function configureFilter(section) {
+      if (section === "organizations") {
+        systemFilter.innerHTML = `
+          <option value="all">全部机构</option>
+          <option value="managers">管理人</option>
+          <option value="custodians">托管人</option>
+          <option value="accounting_firms">会计师事务所</option>
+          <option value="law_firms">律师事务所</option>
+        `;
+        return;
+      }
+      systemFilter.innerHTML = `
+        <option value="all">全部系统</option>
+        <option value="etf">ETF</option>
+        <option value="linked">ETF联接</option>
+      `;
+    }
+
+    function getSelectedRow() {
+      if (!currentData || !selectedRef) return null;
+      if (currentSection === "organizations") {
+        return currentData.organizations?.[selectedRef.bucket]?.[selectedRef.index] || null;
+      }
+      const key = sections[currentSection].dataKey;
+      return currentData[key]?.[selectedRef.index] || null;
+    }
+
+    function refsEqual(row) {
+      if (!selectedRef) return false;
+      if (currentSection === "organizations") {
+        return row.__bucket === selectedRef.bucket && row.__index === selectedRef.index;
+      }
+      return row.__index === selectedRef.index;
+    }
+
+    function selectRow(row) {
+      selectedRef = currentSection === "organizations"
+        ? { bucket: row.__bucket, index: row.__index }
+        : { index: row.__index };
+      renderAll();
+    }
+
+    function metricItems() {
+      const rows = allRows();
+      if (currentSection === "templates") {
+        return [
+          ["全部资产", rows.length],
+          ["ETF", rows.filter(row => row.system === "etf").length],
+          ["ETF联接", rows.filter(row => row.system === "linked").length],
+          ["DOCX", rows.filter(row => String(row.kind || "").includes("docx")).length]
+        ];
+      }
+      if (currentSection === "variables") {
+        return [
+          ["全部变量", rows.length],
+          ["必填变量", rows.filter(row => row.required).length],
+          ["机构引用", rows.filter(row => row.type === "organization_ref").length],
+          ["双系统", rows.filter(row => Array.isArray(row.systems) && row.systems.length > 1).length]
+        ];
+      }
+      return [
+        ["全部机构", rows.length],
+        ["管理人", rows.filter(row => row.__bucket === "managers").length],
+        ["托管人", rows.filter(row => row.__bucket === "custodians").length],
+        ["服务机构", rows.filter(row => ["accounting_firms", "law_firms"].includes(row.__bucket)).length]
+      ];
+    }
+
+    function renderMetrics() {
+      metrics.innerHTML = metricItems().map(([label, value]) => `
+        <div class="metric"><b>${escapeHtml(value)}</b><span>${escapeHtml(label)}</span></div>
+      `).join("");
+    }
+
+    function renderNavCounts() {
+      for (const key of Object.keys(sections)) {
+        const target = document.getElementById(`nav-count-${key}`);
+        if (target) target.textContent = sectionCounts[key] ?? "-";
+      }
+    }
+
+    async function loadSectionCounts() {
+      await Promise.all(Object.keys(sections).map(async key => {
+        try {
+          const response = await fetch(`/api/admin/${key}`, { cache: "no-store" });
+          const result = await response.json();
+          if (response.ok && result.success) {
+            sectionCounts[key] = sections[key].rows(result.data).length;
+          }
+        } catch (error) {
+          sectionCounts[key] = "-";
+        }
+      }));
+      renderNavCounts();
+    }
+
+    function renderTable() {
+      const def = sections[currentSection];
+      const rows = filteredRows();
+      tableHead.innerHTML = `<tr>${def.columns.map(([, label]) => `<th>${escapeHtml(label)}</th>`).join("")}</tr>`;
+      tableBody.innerHTML = rows.map(row => `
+        <tr data-selectable class="${refsEqual(row) ? "selected" : ""}" data-index="${row.__index}" data-bucket="${row.__bucket || ""}">
+          ${def.columns.map(([key]) => {
+            const text = formatCell(row[key]);
+            const className = key.includes("path") ? "path-text" : "";
+            return key === "system" || key === "kind" || key === "type" || key === "__bucketLabel"
+              ? `<td><span class="pill">${text}</span></td>`
+              : `<td class="${className}">${text}</td>`;
+          }).join("")}
+        </tr>
+      `).join("");
+      tableBody.querySelectorAll("tr[data-selectable]").forEach((tr, offset) => {
+        tr.addEventListener("click", () => selectRow(rows[offset]));
+      });
+      rowCount.textContent = `${rows.length} 项`;
+    }
+
+    function syncEditor() {
+      editor.value = JSON.stringify(currentData, null, 2);
+    }
+
+    function setFieldValue(row, field, value, checked) {
+      if (field.readonly) return;
+      row[field.key] = parseValue(value, field.type, checked);
+      syncEditor();
+      renderMetrics();
+      renderNavCounts();
+      renderTable();
+      detailTitle.textContent = row.label || row.name || row.id || "未命名";
+      setMessage("有未保存改动", "");
+    }
+
+    function fieldControl(row, field) {
+      const value = stringifyValue(row[field.key], field.type);
+      const disabled = field.readonly ? "disabled" : "";
+      const data = `data-field="${escapeHtml(field.key)}"`;
+      if (field.type === "checkbox") {
+        return `<label class="check-field"><input type="checkbox" ${data} ${row[field.key] ? "checked" : ""} ${disabled}>是</label>`;
+      }
+      if (field.type === "select") {
+        return `<select ${data} ${disabled}>${(field.options || []).map(option =>
+          `<option value="${escapeHtml(option)}" ${String(value) === option ? "selected" : ""}>${escapeHtml(option)}</option>`
+        ).join("")}</select>`;
+      }
+      if (field.type === "textarea" || field.type === "list") {
+        return `<textarea ${data} ${disabled}>${escapeHtml(value)}</textarea>`;
+      }
+      return `<input ${data} value="${escapeHtml(value)}" ${disabled}>`;
+    }
+
+    function renderInspector() {
+      const row = getSelectedRow();
+      if (!row) {
+        detailTitle.textContent = "选择一项";
+        detailHint.textContent = "右侧编辑";
+        detailForm.innerHTML = `<div class="empty">从左侧列表选择一项。</div>`;
+        return;
+      }
+
+      const viewRow = currentSection === "organizations"
+        ? { ...row, __bucketLabel: bucketLabels[selectedRef.bucket] || selectedRef.bucket }
+        : row;
+      const fields = sections[currentSection].fields(viewRow);
+      const title = row.label || row.name || row.id || "未命名";
+      detailTitle.textContent = title;
+      detailHint.textContent = currentSection === "organizations" ? (bucketLabels[selectedRef.bucket] || selectedRef.bucket) : "";
+      detailForm.innerHTML = fields.map(field => `
+        <div class="field">
+          <label>${escapeHtml(field.label)}</label>
+          ${fieldControl(viewRow, field)}
+        </div>
+      `).join("");
+
+      detailForm.querySelectorAll("[data-field]").forEach(control => {
+        const field = fields.find(item => item.key === control.dataset.field);
+        if (!field || field.readonly) return;
+        const eventName = field.type === "checkbox" || field.type === "select" ? "change" : "input";
+        control.addEventListener(eventName, () => {
+          setFieldValue(row, field, control.value, control.checked);
+        });
+      });
+    }
+
+    function renderAll() {
+      renderMetrics();
+      renderNavCounts();
+      renderTable();
+      renderInspector();
+    }
+
+    function setSection(section) {
+      currentSection = section;
+      selectedRef = null;
+      document.querySelectorAll("[data-section]").forEach(button => {
+        button.classList.toggle("active", button.dataset.section === section);
+      });
+      const def = sections[section];
+      document.getElementById("page-title").textContent = def.title;
+      document.getElementById("page-subtitle").textContent = def.subtitle;
+      document.getElementById("table-title").textContent = def.title;
+      configureFilter(section);
+      searchInput.value = "";
+      loadSection();
+    }
+
+    async function loadSection() {
+      setMessage("加载中...");
+      const response = await fetch(`/api/admin/${currentSection}`, { cache: "no-store" });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        setMessage(result.error || "加载失败", "error");
+        return;
+      }
+      currentData = result.data;
+      sectionCounts[currentSection] = sections[currentSection].rows(currentData).length;
+      syncEditor();
+      renderAll();
+      setMessage("已加载", "ok");
+    }
+
+    function applyJsonToTable() {
+      try {
+        currentData = JSON.parse(editor.value);
+      } catch (error) {
+        setMessage(`JSON 格式错误：${error.message}`, "error");
+        return false;
+      }
+      selectedRef = null;
+      renderAll();
+      setMessage("JSON 已应用到表格", "ok");
+      return true;
+    }
+
+    async function saveSection() {
+      if (!applyJsonToTable()) return;
+      setMessage("保存中...");
+      const response = await fetch(`/api/admin/${currentSection}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(currentData)
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        setMessage(result.error || "保存失败", "error");
+        return;
+      }
+      currentData = result.data;
+      syncEditor();
+      renderAll();
+      setMessage("已保存草稿并备份旧版本", "ok");
+    }
+
+    function addRow() {
+      if (!currentData) return;
+      if (currentSection === "organizations") {
+        const bucket = systemFilter.value !== "all" ? systemFilter.value : (selectedRef?.bucket || "managers");
+        currentData.organizations ||= {};
+        currentData.organizations[bucket] ||= [];
+        const row = sections.organizations.create(bucket);
+        delete row.__bucket;
+        currentData.organizations[bucket].push(row);
+        selectedRef = { bucket, index: currentData.organizations[bucket].length - 1 };
+      } else {
+        const key = sections[currentSection].dataKey;
+        currentData[key] ||= [];
+        currentData[key].push(sections[currentSection].create());
+        selectedRef = { index: currentData[key].length - 1 };
+      }
+      sectionCounts[currentSection] = allRows().length;
+      syncEditor();
+      renderAll();
+      setMessage("已新增，保存后生效");
+    }
+
+    function deleteRow() {
+      if (!currentData || !selectedRef) {
+        setMessage("请先选择要删除的项目", "error");
+        return;
+      }
+      const row = getSelectedRow();
+      const label = row?.label || row?.name || row?.id || "当前项";
+      if (!window.confirm(`删除“${label}”？`)) return;
+      if (currentSection === "organizations") {
+        currentData.organizations[selectedRef.bucket].splice(selectedRef.index, 1);
+      } else {
+        currentData[sections[currentSection].dataKey].splice(selectedRef.index, 1);
+      }
+      selectedRef = null;
+      sectionCounts[currentSection] = allRows().length;
+      syncEditor();
+      renderAll();
+      setMessage("已删除，保存后生效");
+    }
+
+    document.querySelectorAll("[data-section]").forEach(button => {
+      button.addEventListener("click", () => setSection(button.dataset.section));
+    });
+    document.getElementById("reload").addEventListener("click", loadSection);
+    document.getElementById("save").addEventListener("click", saveSection);
+    document.getElementById("save-json").addEventListener("click", saveSection);
+    document.getElementById("apply-json").addEventListener("click", applyJsonToTable);
+    document.getElementById("add-row").addEventListener("click", addRow);
+    document.getElementById("delete-row").addEventListener("click", deleteRow);
+    systemFilter.addEventListener("change", renderAll);
+    searchInput.addEventListener("input", renderAll);
+    loadSectionCounts();
+    loadSection();
+  </script>
+</body>
+</html>

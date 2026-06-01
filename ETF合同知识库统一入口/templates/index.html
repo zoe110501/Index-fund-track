@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>合同知识库工作台</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%23212a36'/%3E%3Cpath d='M15 17h34v5H15zm0 12h26v5H15zm0 12h34v5H15z' fill='%23d7b46a'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f6f8;
+      --surface: #ffffff;
+      --surface-soft: #f9fafb;
+      --ink: #17202a;
+      --muted: #657386;
+      --subtle: #8995a5;
+      --line: #dce3eb;
+      --line-strong: #c8d3df;
+      --navy: #202a37;
+      --teal: #0f766e;
+      --blue: #315f9c;
+      --gold: #b8892f;
+      --green: #16825d;
+      --warn: #b7791f;
+      --shadow: 0 16px 42px rgba(31, 42, 55, 0.09);
+      font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(180deg, #f8fafc 0, var(--bg) 260px),
+        var(--bg);
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .shell {
+      width: min(1280px, calc(100% - 40px));
+      min-height: 100vh;
+      margin: 0 auto;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 18px;
+      padding: 18px 0;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.88);
+      box-shadow: 0 10px 28px rgba(31, 42, 55, 0.05);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: var(--navy);
+      color: #f8d58a;
+      font-size: 12px;
+      font-weight: 800;
+      flex: 0 0 auto;
+    }
+
+    .brand-title {
+      min-width: 0;
+    }
+
+    .brand-title strong {
+      display: block;
+      font-size: 17px;
+      line-height: 1.25;
+    }
+
+    .brand-title span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .status-chip,
+    .button {
+      min-height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .status-chip {
+      border: 1px solid rgba(22, 130, 93, 0.22);
+      background: rgba(22, 130, 93, 0.08);
+      color: #16634a;
+    }
+
+    .pulse {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--green);
+    }
+
+    .button {
+      border: 1px solid var(--line-strong);
+      background: var(--surface);
+      color: var(--ink);
+      font-weight: 700;
+    }
+
+    .button.primary {
+      border-color: var(--navy);
+      background: var(--navy);
+      color: #fff;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 340px;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .main-panel,
+    .side-panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface-soft);
+    }
+
+    .section-head h1,
+    .section-head h2 {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    .section-head h2 {
+      font-size: 16px;
+    }
+
+    .section-head span {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .action-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1px;
+      background: var(--line);
+    }
+
+    .action-card {
+      min-height: 250px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 18px;
+      padding: 22px;
+      background: var(--surface);
+      transition: background 0.18s ease, transform 0.18s ease;
+    }
+
+    .action-card:hover {
+      background: #fbfcfd;
+      transform: translateY(-1px);
+    }
+
+    .card-icon {
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      border: 1px solid currentColor;
+      font-weight: 800;
+    }
+
+    .action-card[data-tone="etf"] .card-icon { color: var(--blue); background: rgba(49, 95, 156, 0.08); }
+    .action-card[data-tone="linked"] .card-icon { color: var(--teal); background: rgba(15, 118, 110, 0.08); }
+    .action-card[data-tone="admin"] .card-icon { color: var(--gold); background: rgba(184, 137, 47, 0.10); }
+
+    .action-card h2 {
+      margin: 0 0 8px;
+      font-size: 20px;
+      line-height: 1.32;
+    }
+
+    .action-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .meta-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--subtle);
+      font-size: 12px;
+    }
+
+    .status-row {
+      display: grid;
+      gap: 1px;
+      background: var(--line);
+    }
+
+    .status-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 16px;
+      background: var(--surface);
+    }
+
+    .status-item strong {
+      display: block;
+      font-size: 14px;
+      line-height: 1.3;
+    }
+
+    .status-item span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .state {
+      min-width: 64px;
+      min-height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .state.ready {
+      border-color: rgba(22, 130, 93, 0.25);
+      background: rgba(22, 130, 93, 0.08);
+      color: var(--green);
+    }
+
+    .state.loading {
+      border-color: rgba(183, 121, 31, 0.28);
+      background: rgba(183, 121, 31, 0.10);
+      color: var(--warn);
+    }
+
+    .utility {
+      display: grid;
+      gap: 10px;
+      padding: 16px;
+      border-top: 1px solid var(--line);
+      background: var(--surface-soft);
+    }
+
+    .utility a {
+      justify-content: flex-start;
+      width: 100%;
+    }
+
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 0 2px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .log {
+      max-width: 52vw;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-family: Consolas, "SF Mono", monospace;
+    }
+
+    @media (max-width: 1060px) {
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+
+      .action-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .action-card {
+        min-height: 0;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .shell {
+        width: min(100% - 24px, 1280px);
+        padding: 12px 0;
+      }
+
+      .topbar,
+      .footer,
+      .section-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .top-actions {
+        width: 100%;
+        justify-content: flex-start;
+      }
+
+      .button,
+      .status-chip {
+        width: 100%;
+      }
+
+      .section-head span {
+        white-space: normal;
+      }
+
+      .action-card {
+        padding: 18px;
+      }
+
+      .log {
+        max-width: 100%;
+        white-space: normal;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">ETF</div>
+        <div class="brand-title">
+          <strong>合同知识库工作台</strong>
+          <span>本地生成、复核与维护入口</span>
+        </div>
+      </div>
+      <div class="top-actions">
+        <a class="button" href="{{ url_for('admin') }}">维护后台</a>
+        <div class="status-chip">
+          <span class="pulse" aria-hidden="true"></span>
+          端口自动避让
+        </div>
+      </div>
+    </header>
+
+    <section class="workspace">
+      <section class="main-panel" aria-label="常用入口">
+        <div class="section-head">
+          <h1>选择工作入口</h1>
+          <span>启动后会自动打开对应系统</span>
+        </div>
+        <div class="action-grid">
+          {% for item in services %}
+          <a class="action-card" href="{{ url_for('open_service', key=item.key) }}" data-service="{{ item.key }}" data-tone="{{ item.key }}">
+            <div class="card-icon">{{ "ETF" if item.key == "etf" else "LNK" }}</div>
+            <div>
+              <h2>{{ item.subtitle }}</h2>
+              <p>{{ item.description }}</p>
+            </div>
+            <div class="meta-row">
+              <span data-port="{{ item.key }}">优先端口 {{ item.preferred_port }}</span>
+              <span class="state" data-state="{{ item.key }}">未启动</span>
+            </div>
+          </a>
+          {% endfor %}
+          <a class="action-card" href="{{ url_for('admin') }}" data-tone="admin">
+            <div class="card-icon">ADM</div>
+            <div>
+              <h2>模板与变量维护</h2>
+              <p>维护模板资产、变量注册表、机构主数据和草稿配置。</p>
+            </div>
+            <div class="meta-row">
+              <span>保存前自动备份</span>
+              <span class="state ready">可进入</span>
+            </div>
+          </a>
+        </div>
+      </section>
+
+      <aside class="side-panel" aria-label="服务状态">
+        <div class="section-head">
+          <h2>服务状态</h2>
+          <span id="status-updated">等待刷新</span>
+        </div>
+        <div class="status-row">
+          {% for item in services %}
+          <div class="status-item">
+            <div>
+              <strong>{{ item.subtitle }}</strong>
+              <span data-status-port="{{ item.key }}">端口 {{ item.preferred_port }}</span>
+            </div>
+            <span class="state" data-side-state="{{ item.key }}">未启动</span>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="utility">
+          <a class="button primary" href="{{ url_for('admin') }}">打开维护后台</a>
+          <a class="button" href="/api/status" target="_blank" rel="noopener">查看状态 JSON</a>
+        </div>
+      </aside>
+    </section>
+
+    <footer class="footer">
+      <span>关闭启动器窗口后，由它启动的后台系统会一起退出。</span>
+      <span class="log">LOG {{ log_dir }}</span>
+    </footer>
+  </main>
+
+  <script>
+    const labels = {
+      idle: "未启动",
+      ready: "运行中",
+      loading: "启动中"
+    };
+
+    function applyState(element, ready, loading = false) {
+      if (!element) return;
+      element.textContent = loading ? labels.loading : (ready ? labels.ready : labels.idle);
+      element.classList.toggle("ready", Boolean(ready));
+      element.classList.toggle("loading", Boolean(loading));
+    }
+
+    function setLoading(key) {
+      applyState(document.querySelector(`[data-state="${key}"]`), false, true);
+      applyState(document.querySelector(`[data-side-state="${key}"]`), false, true);
+    }
+
+    async function refreshStatus() {
+      try {
+        const response = await fetch("/api/status", { cache: "no-store" });
+        if (!response.ok) return;
+        const services = await response.json();
+        for (const service of services) {
+          applyState(document.querySelector(`[data-state="${service.key}"]`), service.ready);
+          applyState(document.querySelector(`[data-side-state="${service.key}"]`), service.ready);
+
+          const portText = `${service.ready ? "当前端口" : "优先端口"} ${service.port}`;
+          const port = document.querySelector(`[data-port="${service.key}"]`);
+          const sidePort = document.querySelector(`[data-status-port="${service.key}"]`);
+          if (port) port.textContent = portText;
+          if (sidePort) sidePort.textContent = portText;
+        }
+        const updated = document.getElementById("status-updated");
+        if (updated) updated.textContent = new Date().toLocaleTimeString("zh-CN", { hour12: false });
+      } catch (error) {
+        const updated = document.getElementById("status-updated");
+        if (updated) updated.textContent = "刷新失败";
+      }
+    }
+
+    document.querySelectorAll("[data-service]").forEach((entry) => {
+      entry.addEventListener("click", () => setLoading(entry.dataset.service));
+    });
+
+    refreshStatus();
+    window.setInterval(refreshStatus, 5000);
+  </script>
+</body>
+</html>

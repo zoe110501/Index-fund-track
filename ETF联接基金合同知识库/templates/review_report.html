@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>联接基金法律文件复核报告</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;background:#f5f7fa;color:#1e2a38;padding:30px;font-size:13px;line-height:1.7}
+.report{max-width:1160px;margin:0 auto;background:#fff;border-radius:12px;box-shadow:0 2px 14px rgba(0,0,0,.08);overflow:hidden}
+.report-header{background:linear-gradient(135deg,#1a3a5c,#2e6ca4);color:#fff;padding:30px 40px}
+.report-header h1{font-size:20px;margin-bottom:8px}
+.meta{font-size:12px;opacity:.9;display:flex;gap:20px;flex-wrap:wrap}
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding:18px 40px;border-bottom:1px solid #e8ecf1;background:#fafbfc}
+.toolbar-title{font-size:12px;color:#6b7a8d}
+.toggle-group{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.toggle-btn{border:1px solid #2e6ca4;background:#fff;color:#2e6ca4;border-radius:999px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer}
+.toggle-btn.active{background:#2e6ca4;color:#fff}
+.stats-bar{display:flex;gap:12px;flex-wrap:wrap;padding:20px 40px;border-bottom:1px solid #e8ecf1}
+.stat-card{flex:1;min-width:130px;text-align:center;padding:14px;border-radius:8px;border:1px solid #e8ecf1}
+.stat-card .num{font-size:24px;font-weight:700}
+.stat-card .label{font-size:11px;color:#6b7a8d;margin-top:2px}
+.stat-overall .num{color:#1a3a5c}
+.stat-error .num{color:#c62828}
+.stat-warning .num{color:#e65100}
+.stat-pass .num{color:#2e7d32}
+.module-chips{display:flex;gap:8px;flex-wrap:wrap;padding:0 40px 20px}
+.module-chip{font-size:12px;color:#4a5568;background:#f5f7fa;border:1px solid #e0e6ef;border-radius:999px;padding:5px 10px}
+.section{padding:24px 40px;border-top:1px solid #e8ecf1}
+.section h2{font-size:15px;font-weight:700;margin-bottom:14px;color:#1a3a5c}
+.issue-item{padding:12px 14px;margin:8px 0;border-radius:8px;border-left:4px solid #e8ecf1}
+.issue-item.error{border-left-color:#c62828;background:#fff8f8}
+.issue-item.warning{border-left-color:#e65100;background:#fffaf5}
+.issue-item.info{border-left-color:#1565c0;background:#f8fbff}
+.issue-item.pass{border-left-color:#2e7d32;background:#f8fdf8}
+.issue-title{font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600}
+.badge-error{background:#ffebee;color:#c62828}
+.badge-warning{background:#fff3e0;color:#e65100}
+.badge-info{background:#e3f2fd;color:#1565c0}
+.badge-pass{background:#e8f5e9;color:#2e7d32}
+.issue-detail{font-size:12px;color:#6b7a8d;margin:4px 0}
+.issue-body{margin:4px 0}
+.suggestion{font-size:12px;color:#2e7d32;margin-top:4px}
+details{margin:8px 0}
+details summary{cursor:pointer;font-weight:600;color:#2e6ca4;font-size:12px}
+pre{white-space:pre-wrap;word-break:break-all;background:#f8f9fb;border:1px solid #e8ecf1;border-radius:6px;padding:10px;font-size:12px;line-height:1.7;max-height:240px;overflow:auto}
+.ctx-block{margin-top:8px;background:#f8f9fb;border:1px solid #e8ecf1;border-radius:6px;overflow:hidden;font-family:Consolas,"Courier New",monospace;font-size:12px}
+.ctx-line{display:flex;border-bottom:1px solid #eef2f6}
+.ctx-line:last-child{border-bottom:none}
+.ctx-line.current .ctx-txt{background:#fef9e7}
+.ctx-ln{width:46px;padding:4px 8px;text-align:right;color:#9aa5b4;background:#f0f2f5;flex-shrink:0}
+.ctx-txt{flex:1;padding:4px 10px;white-space:pre-wrap;word-break:break-all}
+.ctx-txt mark{background:#ffe082;padding:0 1px;border-radius:2px}
+.dual-pane{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
+table{width:100%;border-collapse:collapse;margin-top:8px;font-size:12px}
+th,td{padding:7px 10px;text-align:left;border:1px solid #e8ecf1;vertical-align:top}
+th{background:#f5f7fa;color:#4a5568}
+.diff-ln{width:38px;text-align:right;color:#9aa5b4;background:#f5f7fa}
+.footer{padding:20px 40px;text-align:center;font-size:11px;color:#9aa5b4;background:#fafbfc}
+.empty-hint{padding:20px;text-align:center;color:#9aa5b4;font-size:13px}
+del{background:#fdd;text-decoration:none;border-radius:2px;padding:0 1px}
+ins{background:#dfd;text-decoration:none;border-radius:2px;padding:0 1px}
+@media print{body{padding:0;background:#fff}.report{box-shadow:none;border-radius:0}.toolbar{display:none}}
+</style>
+</head>
+<body>
+<div class="report">
+  <div class="report-header">
+    <h1>联接基金法律文件复核报告</h1>
+    <div class="meta">
+      <span>基金: {{ fund_name }}</span>
+      <span>生成时间: {{ generated_at }}</span>
+      <span>总体评估: {{ overall }}</span>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="toolbar-title">默认仅展示有问题的结果，可随时切换为全量视图。</div>
+    <div class="toggle-group">
+      <span style="font-size:12px;color:#6b7a8d">显示方式</span>
+      <button type="button" id="report-problem-btn" class="toggle-btn active" aria-pressed="true" onclick="setReportMode('problem')">仅看问题</button>
+      <button type="button" id="report-all-btn" class="toggle-btn" aria-pressed="false" onclick="setReportMode('all')">显示全部</button>
+    </div>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat-card stat-overall">
+      <div class="num" style="font-size:18px">{{ overall }}</div>
+      <div class="label">总体评估</div>
+    </div>
+    <div class="stat-card stat-error">
+      <div class="num">{{ total_errors }}</div>
+      <div class="label">错误</div>
+    </div>
+    <div class="stat-card stat-warning">
+      <div class="num">{{ total_warnings }}</div>
+      <div class="label">警告</div>
+    </div>
+    <div class="stat-card stat-pass">
+      <div class="num">{{ cross_total + format_total + consistency_total + summary_total }}</div>
+      <div class="label">检查项总数</div>
+    </div>
+  </div>
+
+  <div class="module-chips">
+    <span class="module-chip">合同↔招募: {{ cross_errors }}错误 {{ cross_warnings }}警告 / {{ cross_total }}项</span>
+    <span class="module-chip">正文↔摘要: {{ summary_errors }}错误 {{ summary_warnings }}警告 / {{ summary_total }}项</span>
+    <span class="module-chip">格式检查: {{ format_errors }}错误 {{ format_warnings }}警告 / {{ format_total }}项</span>
+    <span class="module-chip">一致性检查: {{ consistency_errors }}错误 {{ consistency_warnings }}警告 / {{ consistency_total }}项</span>
+  </div>
+
+  {% if cross_results %}
+  <div class="section" data-review-section>
+    <h2>一、合同与招募说明书交叉比对</h2>
+    {% for item in cross_results %}
+    <div class="issue-item {{ item.severity }} review-filter-item" data-problem="{{ 'true' if item.get('is_problem', item.severity in ('error','warning')) else 'false' }}">
+      <div class="issue-title">
+        <span class="badge badge-{{ item.severity if item.get('is_problem', item.severity in ('error','warning')) else 'pass' }}">{{ item.status or item.severity }}</span>
+        <span>{{ item.rule.contract_chapter if item.rule else (item.contract_chapter or '') }} ↔ {{ item.rule.prospectus_chapter if item.rule else (item.prospectus_chapter or '') }}</span>
+        {% if item.rule and item.rule.relation %}<span class="badge" style="background:#e8ecf1;color:#4a5568">{{ item.rule.relation }}</span>{% endif %}
+      </div>
+      <div class="issue-detail">定位: 合同 {{ item.contract_locator or item.contract_heading or '未定位' }} · 招募 {{ item.prospectus_locator or item.prospectus_heading or '未定位' }}</div>
+      <div class="issue-body"><strong>问题说明：</strong>{{ item.message or item.detail or '' }}</div>
+      {% if item.suggestion or item.expected_diff %}
+      <div class="suggestion">建议：{{ item.suggestion or item.expected_diff }}</div>
+      {% endif %}
+      {% if item.contract_anchor_text or item.prospectus_anchor_text or item.contract_context_excerpt or item.prospectus_context_excerpt %}
+      <div class="dual-pane" style="margin-top:10px">
+        <div>
+          <div class="issue-detail">合同差异片段</div>
+          {% if item.contract_anchor_text %}<div style="font-weight:600;margin:6px 0">{{ item.contract_anchor_text }}</div>{% endif %}
+          <pre>{{ item.contract_context_excerpt or '' }}</pre>
+        </div>
+        <div>
+          <div class="issue-detail">招募差异片段</div>
+          {% if item.prospectus_anchor_text %}<div style="font-weight:600;margin:6px 0">{{ item.prospectus_anchor_text }}</div>{% endif %}
+          <pre>{{ item.prospectus_context_excerpt or '' }}</pre>
+        </div>
+      </div>
+      {% endif %}
+      {% if item.hunks %}
+      <details>
+        <summary>查看差异原文</summary>
+        <table>
+          <thead><tr><th class="diff-ln">行</th><th style="width:46%">合同原文</th><th class="diff-ln">行</th><th style="width:46%">招募原文</th></tr></thead>
+          <tbody>
+          {% for d in item.hunks %}
+          <tr>
+            <td class="diff-ln">{{ d.contract_ln or '' }}</td>
+            <td>{{ d.contract_html|safe if d.contract_html else (d.contract_text or '') }}</td>
+            <td class="diff-ln">{{ d.prospectus_ln or '' }}</td>
+            <td>{{ d.prospectus_html|safe if d.prospectus_html else (d.prospectus_text or '') }}</td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </details>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if summary_results %}
+  <div class="section" data-review-section>
+    <h2>二、正文与摘要核对</h2>
+    {% for item in summary_results %}
+    {% set is_prob = item.get('is_problem', item.severity in ('error','warning')) %}
+    {% set contract_matched = item.get('contract_found', item.get('locator_matched', item.get('matched_section') or item.get('matched_locator'))) %}
+    <div class="issue-item {{ item.severity }} review-filter-item" data-problem="{{ 'true' if is_prob else 'false' }}">
+      <div class="issue-title">
+        <span class="badge badge-{{ item.severity if is_prob else 'pass' }}">{{ item.severity }}</span>
+        <span>{{ item.summary_pos or item.summary_heading or '摘要项' }}</span>
+        {% if item.status %}<span class="badge" style="background:#e8ecf1;color:#4a5568">{{ item.status }}</span>{% endif %}
+      </div>
+      <div class="issue-detail">
+        合同定位: {{ item.contract_pos or '未定位' }}
+        {% if item.similarity is not none %}· 相似度: {{ item.similarity }}%{% endif %}
+        {% if item.method %}· 方法: {{ item.method }}{% endif %}
+      </div>
+      <div class="issue-body">
+        <strong>问题说明：</strong>
+        {{ item.message or item.detail or item.description or (
+          '合同对应章节未找到，需要人工复核。' if not contract_matched else
+          ('摘要与正文存在差异' ~ ('，相似度 ' ~ item.similarity ~ '%' if item.similarity is not none else '') ~ '。' if is_prob else '正文与摘要一致。')
+        ) }}
+      </div>
+      {% if item.suggestion %}
+      <div class="suggestion">建议：{{ item.suggestion }}</div>
+      {% endif %}
+      {% set summary_diff_rows = item.hunks or item.diffs %}
+      {% if summary_diff_rows %}
+      <details {% if is_prob %}open{% endif %}>
+        <summary>查看差异原文</summary>
+        <table>
+          <thead><tr><th class="diff-ln">行</th><th style="width:46%">正文原文</th><th class="diff-ln">行</th><th style="width:46%">摘要原文</th></tr></thead>
+          <tbody>
+          {% for d in summary_diff_rows %}
+          <tr>
+            <td class="diff-ln">{{ d.contract_ln or '' }}</td>
+            <td>{{ d.contract_html|safe if d.contract_html else (d.contract_text or '') }}</td>
+            <td class="diff-ln">{{ d.summary_ln or d.prospectus_ln or '' }}</td>
+            <td>{{ d.summary_html|safe if d.summary_html else (d.prospectus_html|safe if d.prospectus_html else (d.summary_text or d.prospectus_text or '')) }}</td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </details>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if format_issues %}
+  <div class="section" data-review-section>
+    <h2>三、格式检查</h2>
+    {% for issue in format_issues %}
+    <div class="issue-item {{ issue.severity }} review-filter-item" data-problem="{{ 'true' if issue.severity in ('error','warning') else 'false' }}">
+      <div class="issue-title">
+        <span class="badge badge-{{ issue.severity }}">{{ issue.severity }}</span>
+        <span>{{ issue.type }}</span>
+        {% if issue.line %}<span class="issue-detail">第{{ issue.line }}行</span>{% endif %}
+      </div>
+      {% if issue.section and issue.section.text %}
+      <div class="issue-detail">所在章节：第{{ issue.section.ln or '' }}行 {{ issue.section.text }}</div>
+      {% endif %}
+      <div class="issue-body"><strong>问题说明：</strong>{{ issue.description }}</div>
+      {% if issue.text %}
+      <div class="issue-detail">问题原文</div>
+      <pre>{{ issue.text }}</pre>
+      {% endif %}
+      {% if issue.context %}
+      <div class="ctx-block">
+        {% for ctx in issue.context %}
+        <div class="ctx-line{% if ctx.current %} current{% endif %}">
+          <div class="ctx-ln">{{ ctx.ln or '' }}</div>
+          <div class="ctx-txt">{{ ctx.html|safe if ctx.html else (ctx.text or '') }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% if issue.suggestion %}<div class="suggestion">建议：{{ issue.suggestion }}</div>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if consistency_issues %}
+  <div class="section" data-review-section>
+    <h2>四、一致性检查</h2>
+    {% for issue in consistency_issues %}
+    <div class="issue-item {{ issue.severity }} review-filter-item" data-problem="true">
+      <div class="issue-title">
+        <span class="badge badge-{{ issue.severity }}">{{ issue.severity }}</span>
+        <span>{{ issue.type }}</span>
+      </div>
+      <div class="issue-body"><strong>问题说明：</strong>{{ issue.description }}</div>
+      {% if issue.suggestion %}<div class="suggestion">建议：{{ issue.suggestion }}</div>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if not cross_results and not summary_results and not format_issues and not consistency_issues %}
+  <div class="section">
+    <div class="empty-hint">暂无复核数据，请先执行各项检查后再生成报告。</div>
+  </div>
+  {% endif %}
+
+  <div class="footer">本报告由 ETF联接基金合同知识库系统自动生成 · {{ generated_at }}</div>
+</div>
+
+<script>
+function setReportMode(mode) {
+  const problemOnly = mode !== 'all';
+  const problemBtn = document.getElementById('report-problem-btn');
+  const allBtn = document.getElementById('report-all-btn');
+  problemBtn.classList.toggle('active', problemOnly);
+  allBtn.classList.toggle('active', !problemOnly);
+  problemBtn.setAttribute('aria-pressed', String(problemOnly));
+  allBtn.setAttribute('aria-pressed', String(!problemOnly));
+
+  document.querySelectorAll('.review-filter-item').forEach(item => {
+    const isProblem = item.dataset.problem === 'true';
+    item.style.display = (!problemOnly || isProblem) ? '' : 'none';
+  });
+
+  document.querySelectorAll('[data-review-section]').forEach(section => {
+    const visibleItems = Array.from(section.querySelectorAll('.review-filter-item')).filter(item => item.style.display !== 'none');
+    section.style.display = visibleItems.length ? '' : 'none';
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => setReportMode('problem'));
+</script>
+</body>
+</html>

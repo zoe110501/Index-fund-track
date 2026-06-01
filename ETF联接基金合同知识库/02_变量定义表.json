@@ -1,0 +1,659 @@
+{
+  "version": "1.0",
+  "description": "ETF联接基金合同自动生成系统变量定义表",
+  "last_updated": "2026-05-11",
+  "note": "联接基金与ETF基金的关键区别：无交易所/上市概念、无网下股票认购、投资标的为目标ETF而非直接持股、增加发起式基金相关条款、管理费/托管费仅对非目标ETF部分计提",
+  "groups": {
+    "fund_basic": {
+      "label": "基本信息",
+      "variables": [
+        {
+          "name": "FUND_NAME",
+          "label": "基金全名",
+          "type": "string",
+          "required": true,
+          "example": "南方中证港股通互联网交易型开放式指数证券投资基金发起式联接基金",
+          "pattern": "^.+交易型开放式指数证券投资基金(发起式)?联接基金$",
+          "usage": "全文多处：第一页、释义第1条、第三部分、合同标题"
+        },
+        {
+          "name": "FUND_SHORT_NAME",
+          "label": "基金简称",
+          "type": "string",
+          "required": true,
+          "example": "南方港股通互联网ETF联接",
+          "usage": "招募说明书、产品资料概要等简称引用"
+        },
+        {
+          "name": "FUND_CODE",
+          "label": "基金代码",
+          "type": "string",
+          "required": false,
+          "pattern": "^\\d{6}$",
+          "example": "022918",
+          "usage": "第二十六部分基金概况"
+        },
+        {
+          "name": "INDEX_NAME",
+          "label": "标的指数名称",
+          "type": "string",
+          "required": true,
+          "example": "中证港股通互联网指数",
+          "usage": "释义、第三部分、第十四部分"
+        },
+        {
+          "name": "INDEX_CODE",
+          "label": "标的指数代码",
+          "type": "string",
+          "required": true,
+          "example": "931637",
+          "usage": "释义、第三部分"
+        },
+        {
+          "name": "INDEX_COMPILER",
+          "label": "指数编制机构",
+          "type": "string",
+          "required": false,
+          "example": "中证指数有限公司",
+          "usage": "第十四部分（指数不符合要求时的处理说明）"
+        },
+        {
+          "name": "CONTRACT_DATE",
+          "label": "合同签署日期（年月）",
+          "type": "string",
+          "required": true,
+          "example": "2025年8月",
+          "usage": "封面页"
+        },
+        {
+          "name": "DISPUTE_RESOLUTION_VENUE",
+          "label": "争议解决地点",
+          "type": "enum",
+          "required": false,
+          "default": "SZ_SCIA",
+          "options": [
+            {
+              "value": "SZ_SCIA",
+              "label": "深圳-深圳国际仲裁院",
+              "arbitration_institution": "深圳国际仲裁院",
+              "arbitration_location": "深圳市",
+              "text": "将争议提交深圳国际仲裁院，按照深圳国际仲裁院届时有效的仲裁规则进行仲裁。仲裁地点为深圳市，仲裁裁决是终局的，对各方当事人均有约束力。"
+            },
+            {
+              "value": "BJ_CIETAC",
+              "label": "北京-中国国际经济贸易仲裁委员会",
+              "arbitration_institution": "中国国际经济贸易仲裁委员会",
+              "arbitration_location": "北京市",
+              "text": "将争议提交中国国际经济贸易仲裁委员会，按照中国国际经济贸易仲裁委员会届时有效的仲裁规则进行仲裁。仲裁地点为北京市，仲裁裁决是终局的，对各方当事人均有约束力。"
+            }
+          ],
+          "example": "SZ_SCIA",
+          "usage": "基金合同争议处理条款"
+        },
+        {
+          "name": "FUND_TYPE_LABEL",
+          "label": "基金类型标签（风险收益特征描述用）",
+          "type": "string",
+          "required": false,
+          "default": "股票型基金",
+          "example": "本基金投资港股，会面临港股通机制下特有风险，包括汇率风险、港股市场波动风险、港股通交易不连贯风险等。",
+          "usage": "第十四部分风险收益特征"
+        }
+      ]
+    },
+    "linked_fund_specific": {
+      "label": "联接基金专属信息",
+      "variables": [
+        {
+          "name": "TARGET_ETF_NAME",
+          "label": "目标ETF全名",
+          "type": "string",
+          "required": true,
+          "derived_from": "FUND_NAME",
+          "derivation": "从FUND_NAME中去掉'(发起式)联接基金'后缀",
+          "example": "南方中证港股通互联网交易型开放式指数证券投资基金",
+          "usage": "释义（目标ETF定义）、第十四部分投资范围、投资策略"
+        },
+        {
+          "name": "TARGET_ETF_SHORT_NAME",
+          "label": "目标ETF简称",
+          "type": "string",
+          "required": false,
+          "example": "南方港股通互联网ETF",
+          "usage": "释义中目标ETF简称引用"
+        },
+        {
+          "name": "BENCHMARK",
+          "label": "业绩比较基准表述",
+          "type": "string",
+          "required": true,
+          "example": "中证港股通互联网指数收益率×95%＋活期存款利率（税后）×5%",
+          "usage": "第三部分、第十四部分业绩比较基准"
+        },
+        {
+          "name": "IS_INITIATING_FUND",
+          "label": "是否为发起式基金",
+          "type": "boolean",
+          "required": true,
+          "default": false,
+          "note": "发起式基金要求发起资金≥1000万元且持有期≥3年",
+          "impact": [
+            "释义：增加发起资金、发起资金提供方定义条款",
+            "第三部分五：含发起资金方认购条件（募集金额≥1000万，发起资金≥1000万）",
+            "第四部分二1：发起资金认购条款启用",
+            "第五部分一：含发起资金提供方承诺条件（验资报告需专门说明）",
+            "第二十二部分：信息披露含发起资金持有情况"
+          ],
+          "known_values": {
+            "hgtlianwang": true,
+            "tongyonghangkong": true,
+            "hgt50": false,
+            "chuangyeAI": false,
+            "ziyouxianjinliu": false
+          }
+        }
+      ]
+    },
+    "manager": {
+      "label": "基金管理人信息（南方基金，默认值可替换）",
+      "variables": [
+        {
+          "name": "MANAGER_NAME",
+          "label": "管理人名称",
+          "type": "string",
+          "required": true,
+          "default": "南方基金管理股份有限公司",
+          "usage": "第九部分一（一）"
+        },
+        {
+          "name": "MANAGER_ADDRESS",
+          "label": "管理人住所",
+          "type": "string",
+          "required": true,
+          "default": "深圳市福田区莲花街道益田路5999号基金大厦32-42楼",
+          "usage": "第九部分一（一）"
+        },
+        {
+          "name": "MANAGER_LEGAL_REP",
+          "label": "管理人法定代表人",
+          "type": "string",
+          "required": true,
+          "default": "周易",
+          "usage": "第九部分一（一）"
+        },
+        {
+          "name": "MANAGER_ESTABLISHED",
+          "label": "管理人设立日期",
+          "type": "string",
+          "required": true,
+          "default": "1998年3月6日",
+          "usage": "第九部分一（一）"
+        },
+        {
+          "name": "MANAGER_APPROVAL_NO",
+          "label": "管理人批准设立文号",
+          "type": "string",
+          "required": true,
+          "default": "中国证监会证监基字[1998]4号",
+          "usage": "第九部分一（一）"
+        },
+        {
+          "name": "MANAGER_REGISTERED_CAPITAL",
+          "label": "管理人注册资本",
+          "type": "string",
+          "required": true,
+          "default": "3.6172亿元人民币",
+          "usage": "第九部分一（一）"
+        }
+      ]
+    },
+    "custodian": {
+      "label": "托管人信息",
+      "variables": [
+        {
+          "name": "CUSTODIAN_NAME",
+          "label": "托管人名称",
+          "type": "string",
+          "required": true,
+          "example": "国泰海通证券股份有限公司",
+          "known_values": {
+            "国泰海通证券股份有限公司": "hgtlianwang",
+            "国投证券股份有限公司": "tongyonghangkong",
+            "中国建设银行股份有限公司": "chuangyeAI",
+            "中国工商银行股份有限公司": "hgt50",
+            "国信证券股份有限公司": "ziyouxianjinliu"
+          },
+          "usage": "封面、释义第3条、第九部分二（一）"
+        },
+        {
+          "name": "CUSTODIAN_ADDRESS",
+          "label": "托管人注册住所",
+          "type": "string",
+          "required": true,
+          "example": "中国（上海）自由贸易试验区商城路618号",
+          "known_values": {
+            "国泰海通证券股份有限公司": "中国（上海）自由贸易试验区商城路618号",
+            "国投证券股份有限公司": "深圳市福田区福华一路119号安信金融大厦15层",
+            "中国建设银行股份有限公司": "北京市西城区金融大街25号",
+            "中国工商银行股份有限公司": "北京市西城区复兴门内大街55号",
+            "国信证券股份有限公司": "深圳市罗湖区红岭中路1012号国信证券大厦十六至二十六层"
+          },
+          "usage": "第九部分二（一）住所"
+        },
+        {
+          "name": "CUSTODIAN_HAS_OFFICE_ADDRESS",
+          "label": "托管人是否有单独办公地址",
+          "type": "boolean",
+          "required": false,
+          "default": false,
+          "note": "部分托管人注册地与办公地不同，需单独列出",
+          "known_values": {
+            "国泰海通证券股份有限公司": true,
+            "国投证券股份有限公司": false,
+            "中国建设银行股份有限公司": false,
+            "中国工商银行股份有限公司": false,
+            "国信证券股份有限公司": false
+          }
+        },
+        {
+          "name": "CUSTODIAN_OFFICE_ADDRESS",
+          "label": "托管人办公地址（仅当 CUSTODIAN_HAS_OFFICE_ADDRESS=true 时）",
+          "type": "string",
+          "required": false,
+          "condition": "CUSTODIAN_HAS_OFFICE_ADDRESS=true",
+          "known_values": {
+            "国泰海通证券股份有限公司": "上海市静安区新闸路669号19楼",
+            "中国建设银行股份有限公司": "北京市西城区闹市口大街1号院1号楼",
+            "国信证券股份有限公司": "深圳市福田区福华一路125号国信金融大厦19楼"
+          }
+        },
+        {
+          "name": "CUSTODIAN_LEGAL_REP",
+          "label": "托管人法定代表人",
+          "type": "string",
+          "required": true,
+          "example": "朱健",
+          "known_values": {
+            "国泰海通证券股份有限公司": "朱健",
+            "国投证券股份有限公司": "戴力力",
+            "中国建设银行股份有限公司": "张金良",
+            "中国工商银行股份有限公司": "廖林",
+            "国信证券股份有限公司": "何成名"
+          },
+          "usage": "第九部分二（一）"
+        },
+        {
+          "name": "CUSTODIAN_ESTABLISHED",
+          "label": "托管人成立时间",
+          "type": "string",
+          "required": true,
+          "example": "1999年8月18日",
+          "known_values": {
+            "国泰海通证券股份有限公司": "1999年8月18日",
+            "国投证券股份有限公司": "1994年12月7日",
+            "中国建设银行股份有限公司": "1954年10月1日",
+            "中国工商银行股份有限公司": "1984年1月1日",
+            "国信证券股份有限公司": "1994年12月22日"
+          },
+          "usage": "第九部分二（一）"
+        },
+        {
+          "name": "CUSTODIAN_APPROVAL_NO",
+          "label": "托管人批准设立文号",
+          "type": "string",
+          "required": true,
+          "example": "中国证监会证监机构字[1999]77号",
+          "known_values": {
+            "国泰海通证券股份有限公司": "中国证监会证监机构字[1999]77号",
+            "国投证券股份有限公司": "中国证监会证监机构字［2006］197号",
+            "中国建设银行股份有限公司": "中国银行业监督管理委员会银监复[2004]143号",
+            "中国工商银行股份有限公司": "国务院《关于中国人民银行专门行使中央银行职能的决定》（国发[1983]146号）",
+            "国信证券股份有限公司": "中国人民银行、银复【1994】162号"
+          },
+          "usage": "第九部分二（一）"
+        },
+        {
+          "name": "CUSTODIAN_REGISTERED_CAPITAL",
+          "label": "托管人注册资本",
+          "type": "string",
+          "required": true,
+          "example": "人民币17,629,708,696元整",
+          "known_values": {
+            "国泰海通证券股份有限公司": "人民币17,629,708,696元整",
+            "国投证券股份有限公司": "100亿元人民币",
+            "中国建设银行股份有限公司": "贰仟伍佰亿壹仟零玖拾柒万柒仟肆佰捌拾陆元整",
+            "中国工商银行股份有限公司": "人民币35,640,625.71万元",
+            "国信证券股份有限公司": "人民币96.12亿元"
+          },
+          "usage": "第九部分二（一）"
+        },
+        {
+          "name": "CUSTODIAN_ORG_FORM",
+          "label": "托管人组织形式",
+          "type": "string",
+          "required": false,
+          "default": "股份有限公司",
+          "known_values": {
+            "国泰海通证券股份有限公司": "其他股份有限公司（上市）",
+            "国投证券股份有限公司": "股份有限公司",
+            "中国建设银行股份有限公司": "股份有限公司",
+            "中国工商银行股份有限公司": "股份有限公司",
+            "国信证券股份有限公司": "股份有限公司"
+          },
+          "usage": "第九部分二（一）"
+        },
+        {
+          "name": "CUSTODIAN_CUSTODY_LICENSE",
+          "label": "托管人基金托管资格批文及文号",
+          "type": "string",
+          "required": true,
+          "example": "中国证监会证监许可[2014]511号",
+          "known_values": {
+            "国泰海通证券股份有限公司": "中国证监会证监许可[2014]511号",
+            "国投证券股份有限公司": "证监许可[2018]1549号",
+            "中国建设银行股份有限公司": "中国证监会证监基字[1998]12号",
+            "中国工商银行股份有限公司": "中国证监会和中国人民银行证监基字【1998】3号",
+            "国信证券股份有限公司": "证监许可[2013]1666号"
+          },
+          "usage": "第九部分二（一）"
+        }
+      ]
+    },
+    "fees": {
+      "label": "费用参数",
+      "variables": [
+        {
+          "name": "MGMT_FEE_RATE",
+          "label": "管理费年费率（百分比）",
+          "type": "float",
+          "required": true,
+          "default": 0.15,
+          "validation": {"min": 0, "max": 5},
+          "example": 0.15,
+          "note": "联接基金管理费仅对非目标ETF部分计提",
+          "usage": "第十七部分二第1条"
+        },
+        {
+          "name": "CUSTODY_FEE_RATE",
+          "label": "托管费年费率（百分比）",
+          "type": "float",
+          "required": true,
+          "default": 0.05,
+          "validation": {"min": 0, "max": 2},
+          "example": 0.05,
+          "note": "联接基金托管费仅对非目标ETF部分计提",
+          "usage": "第十七部分二第2条"
+        },
+        {
+          "name": "MGMT_FEE_PAYMENT_METHOD",
+          "label": "管理费划款方式",
+          "type": "string",
+          "input_type": "textarea",
+          "required": true,
+          "note": "选择托管人后自动带出预设表述，但前端允许人工编辑；仍兼容 CONSULT/AUTO/AUTO_V2/AUTO_CHECK 等历史枚举值",
+          "options": [
+            {
+              "value": "CONSULT",
+              "label": "协商一致方式",
+              "text": "基金管理费每日计提，逐日累计至每月月末，按月支付，经基金管理人与基金托管人双方核对无误后，基金托管人按照与基金管理人协商一致的方式于次月前5个工作日内从基金财产中一次性支付。若遇法定节假日、公休假或不可抗力等，支付日期顺延。",
+              "applicable_to": ["hgtlianwang"]
+            },
+            {
+              "value": "AUTO",
+              "label": "自动划款（无需指令）",
+              "text": "基金管理费每日计提，逐日累计至每月月末，按月支付，由基金托管人根据与基金管理人核对一致的财务数据，自动在月初5个工作日内、按照指定的账户路径进行资金支付，基金管理人无需再出具资金划拨指令。若遇法定节假日、休息日等，支付日期顺延。",
+              "applicable_to": ["tongyonghangkong", "ziyouxianjinliu"],
+              "note": "国投证券、国信证券版本"
+            },
+            {
+              "value": "AUTO_V2",
+              "label": "自动划款（次月首日起第3工作日）",
+              "text": "基金管理费每日计算，逐日累计至每月月末，按月支付。由基金管理人与基金托管人核对一致后，由基金托管人于次月首日起第3个工作日内、按照指定的账户路径进行资金支付，基金管理人无需再出具资金划拨指令。若遇法定节假日、休息日或不可抗力致使无法按时支付的，支付日期顺延。",
+              "applicable_to": ["hgt50"],
+              "note": "工商银行版本，支付时点表述略有不同"
+            },
+            {
+              "value": "AUTO_CHECK",
+              "label": "自动划款（含核对确认）",
+              "text": "基金管理费每日计提，逐日累计至每个月月末，按月支付。由基金托管人根据与基金管理人核对一致的财务数据，自动在次月初5个工作日内、按照指定的账户路径进行资金支付，基金管理人无需再出具资金划拨指令。若遇法定节假日、休息日或不可抗力致使无法按时支付等，支付日期顺延。费用自动扣划后，基金管理人应进行核对，如发现数据不符，及时联系基金托管人协商解决。",
+              "applicable_to": ["chuangyeAI"],
+              "note": "建设银行版本，增加费用扣划后核对确认要求"
+            }
+          ],
+          "example": "CONSULT 或人工编辑后的管理费支付表述",
+          "usage": "第十七部分二第1条（管理费支付方式段落）"
+        },
+        {
+          "name": "CUSTODY_FEE_PAYMENT_METHOD",
+          "label": "托管费划款方式",
+          "type": "string",
+          "input_type": "textarea",
+          "required": true,
+          "note": "选择托管人后自动带出预设表述，但前端允许人工编辑；仍兼容 CONSULT/AUTO/AUTO_V2/AUTO_CHECK 等历史枚举值",
+          "options": [
+            {
+              "value": "CONSULT",
+              "label": "协商一致方式",
+              "text": "基金托管费每日计提，逐日累计至每月月末，按月支付，经基金管理人与基金托管人双方核对无误后，基金托管人按照与基金管理人协商一致的方式于次月前5个工作日内从基金财产中一次性支付。若遇法定节假日、公休假或不可抗力等，支付日期顺延。",
+              "applicable_to": ["hgtlianwang"]
+            },
+            {
+              "value": "AUTO",
+              "label": "自动划款（无需指令）",
+              "text": "基金托管费每日计提，逐日累计至每月月末，按月支付，由基金托管人根据与基金管理人核对一致的财务数据，自动在月初5个工作日内、按照指定的账户路径进行资金支付，基金管理人无需再出具资金划拨指令。若遇法定节假日、休息日等，支付日期顺延。",
+              "applicable_to": ["tongyonghangkong", "ziyouxianjinliu"]
+            },
+            {
+              "value": "AUTO_V2",
+              "label": "自动划款（次月首日起第3工作日）",
+              "text": "基金托管费每日计算，逐日累计至每月月末，按月支付。由基金管理人与基金托管人核对一致后，由基金托管人于次月首日起第3个工作日内、按照指定的账户路径进行资金支付，基金管理人无需再出具资金划拨指令。若遇法定节假日、休息日或不可抗力致使无法按时支付的，支付日期顺延。",
+              "applicable_to": ["hgt50"],
+              "note": "工商银行版本"
+            },
+            {
+              "value": "AUTO_CHECK",
+              "label": "自动划款（含核对确认）",
+              "text": "基金托管费每日计提，逐日累计至每个月月末，按月支付。由基金托管人根据与基金管理人核对一致的财务数据，自动在次月初5个工作日内、按照指定的账户路径进行资金支付，基金管理人无需再出具资金划拨指令。若遇法定节假日、休息日或不可抗力致使无法按时支付等，支付日期顺延。费用自动扣划后，基金管理人应进行核对，如发现数据不符，及时联系基金托管人协商解决。",
+              "applicable_to": ["chuangyeAI"],
+              "note": "建设银行版本"
+            }
+          ],
+          "example": "CONSULT 或人工编辑后的托管费支付表述",
+          "usage": "第十七部分二第2条（托管费支付方式段落）"
+        },
+        {
+          "name": "SALES_SERVICE_FEE_RATE",
+          "label": "C类销售服务费年费率（%）",
+          "type": "float",
+          "required": true,
+          "default": 0.20,
+          "validation": {"min": 0, "max": 5},
+          "example": 0.20,
+          "note": "C类基金份额销售服务费年费率，A类不收取",
+          "usage": "第十五部分二第3条（销售服务费计提标准）"
+        }
+      ]
+    },
+    "distribution": {
+      "label": "收益分配参数",
+      "variables": [
+        {
+          "name": "DISTRIBUTION_FREQ",
+          "label": "收益分配评估频率",
+          "type": "enum",
+          "required": true,
+          "options": [
+            {
+              "value": "MONTHLY",
+              "label": "每月",
+              "text": "基金管理人可每月评估是否进行收益分配。基金管理人可每月对基金相对业绩比较基准的超额收益率以及基金的可供分配利润进行评价，在符合基金收益分配条件下，可安排收益分配。收益分配条件、评估时间、分配时间、分配方案及每次基金收益分配数额等内容，基金管理人可以根据实际情况确定并按照有关规定公告；",
+              "applicable_to": ["ziyouxianjinliu"]
+            },
+            {
+              "value": "QUARTERLY",
+              "label": "每季度",
+              "text": "基金管理人可每季度评估是否进行收益分配。基金管理人可每季度对基金相对业绩比较基准的超额收益率以及基金的可供分配利润进行评价，在符合基金收益分配条件下，可安排收益分配。收益分配条件、评估时间、分配时间、分配方案及每次基金收益分配数额等内容，基金管理人可以根据实际情况确定并按照有关规定公告；",
+              "applicable_to": ["hgtlianwang", "tongyonghangkong", "hgt50", "chuangyeAI"]
+            }
+          ],
+          "example": "QUARTERLY",
+          "usage": "第十八部分三基金收益分配原则第2条"
+        },
+        {
+          "name": "DISTRIBUTION_FREQ_CLAUSE",
+          "label": "收益分配原则第2条完整原文",
+          "type": "string",
+          "required": true,
+          "derived_from": "DISTRIBUTION_FREQ",
+          "usage": "第十八部分三第2条直接填充"
+        },
+        {
+          "name": "DISTRIBUTION_METHOD",
+          "label": "收益分配方式",
+          "type": "string",
+          "required": false,
+          "default": "现金分红与红利再投资（默认现金分红）",
+          "fixed": true,
+          "note": "收益分配方式分为现金分红与红利再投资；未选择时默认现金分红",
+          "usage": "第十八部分三第3条"
+        }
+      ]
+    },
+    "special_flags": {
+      "label": "特殊条款标志",
+      "variables": [
+        {
+          "name": "HAS_HK_CONNECT",
+          "label": "是否为港股通基金",
+          "type": "boolean",
+          "required": true,
+          "default": false,
+          "impact": [
+            "第二部分释义：增加互联互通机制、港股通定义条款",
+            "开放日限制：非港股通交易日不开放申购赎回",
+            "基金利润定义增加'汇兑损益'",
+            "第十七部分一：增加港股通费用项",
+            "暂停申购条款：含港股通额度项",
+            "估值条款：增加外币汇率相关条款",
+            "信息披露：港股通专项披露启用"
+          ],
+          "known_values": {
+            "hgtlianwang": true,
+            "hgt50": true,
+            "tongyonghangkong": false,
+            "chuangyeAI": false,
+            "ziyouxianjinliu": false
+          }
+        },
+        {
+          "name": "HAS_CDR",
+          "label": "是否投资中国存托凭证（CDR）",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "note": "所有合同均含CDR风险提示，通常为true",
+          "impact": [
+            "第一部分八：中国存托凭证风险提示（所有合同均含）"
+          ]
+        }
+      ]
+    }
+  },
+  "linkage_rules": [
+    {
+      "trigger": "HAS_HK_CONNECT=true",
+      "auto_set": {
+        "MGMT_FEE_PAYMENT_METHOD": "CONSULT（推荐，基于港股通互联网合同）",
+        "CUSTODY_FEE_PAYMENT_METHOD": "CONSULT（推荐，基于港股通互联网合同）",
+        "note": "港股通联接基金通常使用协商一致方式（国泰海通），但也有自动划款方式（工商银行/港股通50）"
+      }
+    },
+    {
+      "trigger": "IS_INITIATING_FUND=true",
+      "auto_set": {
+        "note": "发起式条款在释义、第三部分五、第四部分二1、第五部分一自动显示"
+      }
+    },
+    {
+      "trigger": "CUSTODIAN_NAME=国泰海通证券股份有限公司",
+      "auto_set": {
+        "CUSTODIAN_ADDRESS": "中国（上海）自由贸易试验区商城路618号",
+        "CUSTODIAN_HAS_OFFICE_ADDRESS": true,
+        "CUSTODIAN_OFFICE_ADDRESS": "上海市静安区新闸路669号19楼",
+        "CUSTODIAN_LEGAL_REP": "朱健",
+        "CUSTODIAN_ESTABLISHED": "1999年8月18日",
+        "CUSTODIAN_APPROVAL_NO": "中国证监会证监机构字[1999]77号",
+        "CUSTODIAN_ORG_FORM": "其他股份有限公司（上市）",
+        "CUSTODIAN_REGISTERED_CAPITAL": "人民币17,629,708,696元整",
+        "CUSTODIAN_CUSTODY_LICENSE": "中国证监会证监许可[2014]511号",
+        "MGMT_FEE_PAYMENT_METHOD": "CONSULT",
+        "CUSTODY_FEE_PAYMENT_METHOD": "CONSULT",
+        "HAS_HK_CONNECT": "通常true（港股通互联网联接）",
+        "IS_INITIATING_FUND": "通常true（港股通互联网联接为发起式）"
+      }
+    },
+    {
+      "trigger": "CUSTODIAN_NAME=国投证券股份有限公司",
+      "auto_set": {
+        "CUSTODIAN_ADDRESS": "深圳市福田区福华一路119号安信金融大厦15层",
+        "CUSTODIAN_HAS_OFFICE_ADDRESS": false,
+        "CUSTODIAN_LEGAL_REP": "戴力力",
+        "CUSTODIAN_ESTABLISHED": "1994年12月7日",
+        "CUSTODIAN_APPROVAL_NO": "中国证监会证监机构字［2006］197号",
+        "CUSTODIAN_ORG_FORM": "股份有限公司",
+        "CUSTODIAN_REGISTERED_CAPITAL": "100亿元人民币",
+        "CUSTODIAN_CUSTODY_LICENSE": "证监许可[2018]1549号",
+        "MGMT_FEE_PAYMENT_METHOD": "AUTO",
+        "CUSTODY_FEE_PAYMENT_METHOD": "AUTO",
+        "IS_INITIATING_FUND": "通常true（通用航空联接为发起式）"
+      }
+    },
+    {
+      "trigger": "CUSTODIAN_NAME=中国建设银行股份有限公司",
+      "auto_set": {
+        "CUSTODIAN_ADDRESS": "北京市西城区金融大街25号",
+        "CUSTODIAN_HAS_OFFICE_ADDRESS": false,
+        "CUSTODIAN_OFFICE_ADDRESS": "北京市西城区闹市口大街1号院1号楼",
+        "CUSTODIAN_LEGAL_REP": "张金良",
+        "CUSTODIAN_ESTABLISHED": "1954年10月1日",
+        "CUSTODIAN_APPROVAL_NO": "中国银行业监督管理委员会银监复[2004]143号",
+        "CUSTODIAN_ORG_FORM": "股份有限公司",
+        "CUSTODIAN_REGISTERED_CAPITAL": "贰仟伍佰亿壹仟零玖拾柒万柒仟肆佰捌拾陆元整",
+        "CUSTODIAN_CUSTODY_LICENSE": "中国证监会证监基字[1998]12号",
+        "MGMT_FEE_PAYMENT_METHOD": "AUTO_CHECK",
+        "CUSTODY_FEE_PAYMENT_METHOD": "AUTO_CHECK"
+      }
+    },
+    {
+      "trigger": "CUSTODIAN_NAME=中国工商银行股份有限公司",
+      "auto_set": {
+        "CUSTODIAN_ADDRESS": "北京市西城区复兴门内大街55号",
+        "CUSTODIAN_HAS_OFFICE_ADDRESS": false,
+        "CUSTODIAN_LEGAL_REP": "廖林",
+        "CUSTODIAN_ESTABLISHED": "1984年1月1日",
+        "CUSTODIAN_APPROVAL_NO": "国务院《关于中国人民银行专门行使中央银行职能的决定》（国发[1983]146号）",
+        "CUSTODIAN_ORG_FORM": "股份有限公司",
+        "CUSTODIAN_REGISTERED_CAPITAL": "人民币35,640,625.71万元",
+        "CUSTODIAN_CUSTODY_LICENSE": "中国证监会和中国人民银行证监基字【1998】3号",
+        "MGMT_FEE_PAYMENT_METHOD": "AUTO_V2",
+        "CUSTODY_FEE_PAYMENT_METHOD": "AUTO_V2"
+      }
+    },
+    {
+      "trigger": "CUSTODIAN_NAME=国信证券股份有限公司",
+      "auto_set": {
+        "CUSTODIAN_ADDRESS": "深圳市罗湖区红岭中路1012号国信证券大厦十六至二十六层",
+        "CUSTODIAN_HAS_OFFICE_ADDRESS": false,
+        "CUSTODIAN_OFFICE_ADDRESS": "深圳市福田区福华一路125号国信金融大厦19楼",
+        "CUSTODIAN_LEGAL_REP": "何成名",
+        "CUSTODIAN_ESTABLISHED": "1994年12月22日",
+        "CUSTODIAN_APPROVAL_NO": "中国人民银行、银复【1994】162号",
+        "CUSTODIAN_ORG_FORM": "股份有限公司",
+        "CUSTODIAN_REGISTERED_CAPITAL": "人民币96.12亿元",
+        "CUSTODIAN_CUSTODY_LICENSE": "证监许可[2013]1666号",
+        "MGMT_FEE_PAYMENT_METHOD": "AUTO",
+        "CUSTODY_FEE_PAYMENT_METHOD": "AUTO"
+      }
+    }
+  ]
+}
